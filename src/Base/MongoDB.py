@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-  
 from util import *
 import pymongo
-from colorama import *
-init()
+
+# @todo: add more methods and comments
 
 class MongoDB :
-
-    host       = 'mongodb://119.254.210.63'
+    host       = 'mongodb://119.254.210.63' # @todo
     port       = 27017
     db         = None
     collection = None

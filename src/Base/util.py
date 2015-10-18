@@ -10,6 +10,9 @@ from operator import itemgetter, attrgetter
 from math import *
 from copy import *
 
+# @todo: add comments for the following functions
+
+# ==================== Web ====================
 def request(url, getData = None, postData = None, timeout = None) :
     num_timeout, num_unknown, num_other = 0, 0, 0
     try :
@@ -40,6 +43,39 @@ def request(url, getData = None, postData = None, timeout = None) :
     else :
         return {'e' : None, 'content' : content}
 
+# ==================== Dict ====================
+def c(*dicts) :
+    _ = {}
+    for __ in dicts : _.update(__)
+    return _
+
+# ==================== String ====================
+def unicode_to_url_hex(st) :
+    res = ''
+    for ch in st :
+        if ch == ' ' :
+            res += '%20'
+        elif ord(ch) <= 128 :
+            res += ch
+        else :
+            res += hex(ord(ch)).upper().replace('0X', '%u')
+    return res
+
+def safe_print(stream, st, encoding = 'utf-8') :
+    for ch in st :
+        if ord(ch) < 128 : stream.write(ch)
+        else : stream.write(ch.encode(encoding))
+    stream.flush()
+
+# ==================== Date ====================
+def get_date_str(timestamp = None) :
+    if timestamp is None : timestamp = time()
+    return str(datetime.fromtimestamp(timestamp))[:10].replace('-', '.').replace('T', '.').replace(':', '.')
+
+def generate_datetime(datestr, pattern = '%Y-%m-%d %H:%M:%S') :
+    return datetime.strptime(datestr, pattern)
+
+# ==================== Data ====================
 def decode_list(data):
     rv = []
     for item in data:
@@ -80,11 +116,6 @@ def anti_serialize(data, seperator, mapper, caster_value = None, caster_key = No
 def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
     return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
 
-def c(*dicts) :
-    _ = {}
-    for __ in dicts : _.update(__)
-    return _
-
 def load_txt(fin, fields = None, primary_key = None, cast = None, sep = '\t') :
     if fields == None :
         fields = fin.readline().strip('\n').split(sep)
@@ -109,22 +140,6 @@ def load_txt(fin, fields = None, primary_key = None, cast = None, sep = '\t') :
 
 def load_json(fin, object_hook = None, encoding = 'utf-8') :
     return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
-
-def get_date_str(timestamp = None) :
-    if timestamp is None : timestamp = time()
-    return str(datetime.fromtimestamp(timestamp))[:10].replace('-', '.').replace('T', '.').replace(':', '.')
-
-def generate_datetime(datestr, pattern = '%Y-%m-%d %H:%M:%S') :
-    return datetime.strptime(datestr, pattern)
-
-def split_filename(filename) :
-    if '.' in filename :
-        return re.findall('([^/]*)\.([^\.]+)$', filename)[0]
-    else : return (filename, '')
-
-def add_suffix(filename, suffix) :
-    _ = split_filename(filename)
-    return _[0] + suffix + ('' if _[1] == '' else '.') + _[1]
 
 def check_criterion(data, criterion = None) :
     if criterion is None : return True
@@ -153,6 +168,25 @@ def find(data, criterion = None, projection = None) :
     if not check_criterion(data, criterion) : return False
     else : return perform_projection(data, projection)
 
+# ==================== File ====================
+def split_filename(filename) :
+    if '.' in filename :
+        return re.findall('(.*/)?([^/]*)\.([^\.]+)$', filename)[0]
+    else : return (filename, '')
+
+def add_prefix(filename, prefix) :
+    _ = split_filename(filename)
+    return _[0] + prefix + _[1] + ('' if _[2] == '' else '.') + _[2]
+
+def add_suffix(filename, suffix) :
+    _ = split_filename(filename)
+    return _[0] + _[1] + suffix + ('' if _[2] == '' else '.') + _[2]
+
+def change_ext(filename, ext) :
+    _ = split_filename(filename)
+    return _[0] + _[1] + ('' if _[2] == '' else '.') + ext
+
+# ==================== Statistics ====================
 def calc_mean(data) :
     # data = map(long, list(data))
     # tot = long(0)
@@ -164,6 +198,7 @@ def calc_std(data) :
     mean = calc_mean(data)
     return sqrt(1.0 * sum([(datum - mean) * (datum - mean) for datum in data]) / len(data))
 
+# ==================== System ====================
 def parse_argv(argv) :
     mapping  = {}
     sequence = []
@@ -176,8 +211,6 @@ def parse_argv(argv) :
         else :
             sequence.append(arg)
     return mapping, sequence
-def sort(data, key) :
-    pass
 
 def shell(command) :
     p = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
@@ -186,33 +219,5 @@ def shell(command) :
     retval = p.wait()
     return (p.stdout, retval)
 
-def random_pause(bot,top):
-    sleeptime =  (top - bot) * random.random() + bot
-    print 'pause',sleeptime,'secs'
-    sleep(sleeptime)
-    # if count % 100 == 0:
-    #     delaytime = 5 + random.random()
-    #     print 'delay',delaytime,'secs'
-    #     time.sleep(delaytime)
-
-def unicode_to_url_hex(st) :
-    res = ''
-    for ch in st :
-        if ch == ' ' :
-            res += '%20'
-        elif ord(ch) <= 128 :
-            res += ch
-        else :
-            res += hex(ord(ch)).upper().replace('0X', '%u')
-    return res
-
-def safe_print(stream, st, encoding = 'utf-8') :
-    for ch in st :
-        if ord(ch) < 128 : stream.write(ch)
-        else : stream.write(ch.encode(encoding))
-    stream.flush()
-
 if __name__ == '__main__':
-    # print shell(sys.argv[1])
-    url = 'http://d2.alibaba-inc.com/rest/task/result/0c52759b-710e-45b8-8f94-7ec77696d8f9/sqlIndex/0/page/4/limit/50?appId=17434&tenantId=1&userId=103130'
-    print request(url)['content']
+    pass
