@@ -50,6 +50,19 @@ def union(*dicts) :
     return _
 
 # ==================== String ====================
+def strip(data, chars = ' 　\n\t') :
+    if type(data) == str :
+        return data.strip(chars)
+    elif type(data) == list :
+        return [strip(datum, chars) for datum in data]
+    elif type(data) == tuple :
+        return (strip(datum, chars) for datum in data)
+    elif type(data) == dict :
+        return dict([(key, strip(data[key], chars)) for key in data.keys()])
+    else :
+        print 'strip error'
+        exit()
+
 def unicode_to_url_hex(st) :
     res = ''
     for ch in st :
