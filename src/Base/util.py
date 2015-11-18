@@ -44,7 +44,7 @@ def request(url, getData = None, postData = None, timeout = None) :
         return {'e' : None, 'content' : content}
 
 # ==================== Dict ====================
-def c(*dicts) :
+def union(*dicts) :
     _ = {}
     for __ in dicts : _.update(__)
     return _
