@@ -50,9 +50,11 @@ def union(*dicts) :
     return _
 
 # ==================== String ====================
-def strip(data, chars = ' 　\n\t') :
+def strip(data, chars = ' \n\t', encoding = 'utf-8') :
     if type(data) == str :
         return data.strip(chars)
+    elif type(data) == unicode :
+        return data.encode(encoding).strip(chars).decode(encoding)
     elif type(data) == list :
         return [strip(datum, chars) for datum in data]
     elif type(data) == tuple :
@@ -62,6 +64,11 @@ def strip(data, chars = ' 　\n\t') :
     else :
         print 'strip error'
         exit()
+
+def safe(st, encoding = 'utf-8') :
+    st = strip(st)
+    st = st.decode(encoding)
+    return st
 
 def unicode_to_url_hex(st) :
     res = ''
