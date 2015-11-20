@@ -65,6 +65,26 @@ def strip(data, chars = ' \n\t', encoding = 'utf-8') :
         print 'strip error'
         exit()
 
+def containsEmptyString(data) :
+    if type(data) in [str, unicode] :
+        if strip(data) == '' :
+            return True
+        else :
+            return False
+    elif type(data) == list :
+        for datum in data :
+            if containsEmptyString(datum) :
+                return True
+        return False
+    elif type(data) == dict :
+        for key, value in data.items() :
+            if containsEmptyString(value) :
+                return True
+        return False
+    else :
+        print 'containsEmptyString error'
+        exit()
+
 def safe(st, encoding = 'utf-8') :
     st = strip(st)
     st = st.decode(encoding)
