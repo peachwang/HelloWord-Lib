@@ -59,11 +59,14 @@ def strip(data, chars = ' \n\t', encoding = 'utf-8') :
         return [strip(datum, chars) for datum in data]
     elif type(data) == tuple :
         return (strip(datum, chars) for datum in data)
+    elif type(data) == set :
+        return set([strip(datum, chars) for datum in data])
     elif type(data) == dict :
         return dict([(key, strip(data[key], chars)) for key in data.keys()])
+    elif type(data) in [int, float, bool] :
+        return data
     else :
-        print 'strip error'
-        exit()
+        raise Exception('strip: unknown data type')
 
 def containsEmptyString(data) :
     if type(data) in [str, unicode] :
@@ -71,7 +74,7 @@ def containsEmptyString(data) :
             return True
         else :
             return False
-    elif type(data) == list :
+    elif type(data) in [list, tuple, set] :
         for datum in data :
             if containsEmptyString(datum) :
                 return True
@@ -81,9 +84,10 @@ def containsEmptyString(data) :
             if containsEmptyString(value) :
                 return True
         return False
+    elif type(data) in [int, float, bool] :
+        return False
     else :
-        print 'containsEmptyString error'
-        exit()
+        raise Exception('containsEmptyString: unknown data type')
 
 def safe(st, encoding = 'utf-8') :
     st = strip(st)
