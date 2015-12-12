@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-  
 from util import *
 from MongoDB import *
-from Log_Processor import *
+from Log import *
 
-class Data_Generator :
+class DataGenerator :
 
     def __init__(self, config) :
         self.config = config

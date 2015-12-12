@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
-from Resource_Generator import *
+from ResourceGenerator import *
 
-class Task_Generator(Data_Generator) :
+class TaskGenerator(DataGenerator) :
 
     type_list = {
         'clue'      : 'word',

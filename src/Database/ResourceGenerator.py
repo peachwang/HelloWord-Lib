@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-  
 from Phonetic import *
 from Youdao import *
-from Data_Generator import *
+from DataGenerator import *
 
-class Resource_Generator(Data_Generator) :
+class ResourceGenerator(DataGenerator) :
 
     def __init__(self, config) :
         Data_Generator.__init__(self, config)

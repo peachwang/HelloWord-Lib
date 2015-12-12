@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
-from Task_Generator import *
+from TaskGenerator import *
 
-class Mission_Generator(Data_Generator) :
+class MissionGenerator(DataGenerator) :
 
     def __init__(self, config) :
         Data_Generator.__init__(self, config)

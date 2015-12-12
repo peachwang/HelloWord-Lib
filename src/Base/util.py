@@ -264,4 +264,5 @@ def shell(command) :
     return (p.stdout, retval)
 
 if __name__ == '__main__':
-    pass
+    print unicode_to_url_hex('apple@')
+    print chr(64)

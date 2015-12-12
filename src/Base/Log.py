@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-  
 from util import *
 
-
-class Log_Processor :
+class Log :
     '''
     应用位置建议：
         log_processor应该是放在哪一个里面；介于其应用于所有的.py，它应该在底层(父类)里面initiate; 

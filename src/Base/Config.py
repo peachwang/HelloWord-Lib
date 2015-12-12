@@ -4,10 +4,10 @@ from util import *
 
 class Config :
 
-    def __init__(self, original_path) :
+    def __init__(self, originalPath) :
         self.config = {}
-        self.original_path = original_path
-        self.__recursive_merge(self.original_path)
+        self.originalPath = originalPath
+        self.__recursive_merge(self.originalPath)
 
     def __recursive_merge(self, path) :
         config = load_json(open(config_path))
@@ -22,13 +22,13 @@ class Config :
 
     def clear(self) :
         self.config = {}
-        self.original_path = None
+        self.originalPath = None
         return self
 
     def has(self, key) :
         return self.config.has_key(key)
 
-    def __get__(self, key) :
+    def __get__(self, key, default = None) :
         return self.get(key)
 
     def get(self, key, default = None) :
