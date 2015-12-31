@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.extend([os.path.abspath(_[0]) for _ in os.walk(os.path.join(os.getcwd(), '../'))]);
+from util import *
+from Table import *
+from openpyxl import Workbook
 
 # class Frequency
 # 
@@ -22,7 +25,7 @@ import sys, os; sys.path.extend([os.path.abspath(_[0]) for _ in os.walk(os.path.
 # @method       addSentence(str sentence, str categoryName, str sourceName, str seperator = '[^a-zA-Z]+')
 # @method tuple _addByRule(dict rule, *args)
 # @method       _addTableRow(dict tableRow, list rules)
-# @method       addTable(list table, list rules)
+# @method       addTable(Table table, list rules)
 # @method       addFile(io fin, str filename, list rules)
 # @method       addFiles(list filenames, list rules)
 # @method       addFolder(str folderName, list rules)
@@ -114,16 +117,14 @@ class Frequency :
     #   <rule>
     def _addTableRow(self, tableRow, rules) :
         for rule in rules :
-            for fieldName in tableRow.keys() :
-                params = self._addByRule(rule, tableRow, fieldName)
+            self._addByRule(rule, tableRow)
 
     # Adds a table-style data.
-    # @param list table
-    #   <tableRow>
+    # @param Table table
     # @param list rules
     #   <rule>
     def addTable(self, table, rules) :
-        for tableRow in table :
+        for tableRow in table.getData() :
             self._addTableRow(tableRow, rules)
 
     # Adds the content of a file.
@@ -180,6 +181,15 @@ class Frequency :
             _words[wordForm].update(_words[wordForm]['Categories'])
             _words[wordForm].pop('Categories')
         return fieldNames, _words, self._categories.copy(), self._sources.copy()
+
+    def saveWorkbook(self, filename) :
+        fieldNames, words, categories, sources = self.getFlattenedData()
+        wb = Workbook()
+        ws = wb.active
+        ws.append(fieldNames)
+        for word in sorted(words.values(), key = lambda _ : _['TotalFrequency'], reverse = True) :
+            ws.append(map(word.get, fieldNames))
+        wb.save(filename)
 
 if __name__ == '__main__':
     f = Frequency({})
