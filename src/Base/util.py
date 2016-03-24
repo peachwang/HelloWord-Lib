@@ -7,6 +7,8 @@ from os.path import exists, getsize, join, isfile
 from os import rename, listdir, remove
 from sys import stdin, stdout, stderr, exit
 from operator import itemgetter, attrgetter
+from threading import Thread
+from Queue import Queue
 from math import *
 from copy import *
 
@@ -42,6 +44,12 @@ def request(url, getData = None, postData = None, timeout = None) :
         return {'e' : 'UNKNOWN', 'content' : None}
     else :
         return {'e' : None, 'content' : content}
+
+# ==================== List ====================
+def extend(*lists) :
+    _ = []
+    for __ in lists : _.extend(__)
+    return _
 
 # ==================== Dict ====================
 def union(*dicts) :
@@ -108,7 +116,11 @@ def unicode_to_url_hex(st) :
 def safe_print(stream, st, encoding = 'utf-8') :
     for ch in st :
         if ord(ch) < 128 : stream.write(ch)
-        else : stream.write(ch.encode(encoding))
+        else : 
+            try :
+                stream.write(ch.encode(encoding))
+            except Exception, e :
+                stream.write(ch)
     stream.flush()
 
 # ==================== Date ====================
@@ -160,27 +172,41 @@ def anti_serialize(data, seperator, mapper, caster_value = None, caster_key = No
 def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
     return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
 
-def load_txt(fin, fields = None, primary_key = None, cast = None, sep = '\t') :
-    if fields == None :
-        fields = fin.readline().strip('\n').split(sep)
-    mapping_fields = dict([(_, fields[_]) for _ in range(len(fields))])
-    if primary_key is None :
-        data = []
-    else :
-        data = {}
+def load_txt(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
+    if not is_matrix :
+        if fields == None :
+            fields = fin.readline().strip('\n').split(sep)
+        mapping_fields = dict([(_, fields[_]) for _ in range(len(fields))])
+    if primary_key is None or is_matrix : data = []
+    else : data = {}
     for line in fin :
         line = line.strip('\n')
         if line == '' : continue
         record = line.split(sep)
-        if cast is None :
-            datum = dict([(mapping_fields[_], record[_]) for _ in range(len(record))])
-        else :
-            datum = dict([(mapping_fields[_], cast[_](record[_])) for _ in range(len(record))])
-        if primary_key is None :
-            data.append(datum)
-        else :
-            data[datum[primary_key]] = datum
+        if cast is not None : record = [cast[_](record[_]) for _ in range(len(record))]
+        if not is_matrix : datum = dict(zip(mapping_fields.values(), record))
+        else : datum = record
+        if primary_key is None or is_matrix: data.append(datum)
+        else : data[datum[primary_key]] = datum
     return data
+
+def dump_txt(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
+    if is_matrix :
+        for datum in data :
+            safe_print(fout, sep.join(datum) + '\n')
+            fout.flush()
+    else :
+        if primary_key is not None :
+            data = data.values()
+        if fields is None :
+            fields = union(*(data)).keys()
+        if primary_key is not None :
+            fields.remove(primary_key)
+            fields = [primary_key] + fields
+        safe_print(fout, sep.join(fields) + '\n')
+        for datum in data :
+            safe_print(fout, sep.join([datum.get(field, default) for field in fields]) + '\n')
+            fout.flush()
 
 def load_json(fin, object_hook = None, encoding = 'utf-8') :
     return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
@@ -264,5 +290,4 @@ def shell(command) :
     return (p.stdout, retval)
 
 if __name__ == '__main__':
-    print unicode_to_url_hex('apple@')
-    print chr(64)
+    print request('http://helloword.cn/service/test/report/update?since=0', getData = None, postData = '{"apple" : "123"}')['content']
