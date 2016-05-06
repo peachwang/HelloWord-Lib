@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-  
+import sys, os; _paths = filter(lambda _ : _.split('/')[-1] in ['src', 'HelloWord'], [os.path.realpath(__file__ + '/..' * (_ + 1)) for _ in range(os.path.realpath(__file__).count('/'))]); sys.path.extend([_[0] for _ in os.walk(_paths[0])] + [_[0] for _ in os.walk(_paths[1] + '/HelloWord-Lib/src')])
 from util import *
 from MongoDB import *
 from Phonetic import *
+from CircularCurler import *
 
 class Youdao:
 
@@ -88,12 +90,52 @@ class Youdao:
         _['SimpleSense'] = self.curl_SimpleSense(word)
         db.save(_)
 
+class OnlineDictionary :
+
+    SOURCE_THESAURUS = 1
+    TASK_SYNONYM     = 1
+
+    def __init__(self) :
+        self.clear()
+
+    def clear(self) :
+        self._source = 0
+
+    def set_source(self, source) :
+        self._source = source
+        return self
+
+    def set_task(self, task) :
+        self._task = task
+        return self
+
+    def get_url(self) :
+        if self._source == self.SOURCE_THESAURUS :
+            if self._task == self.TASK_SYNONYM :
+                def url_THESAURUS(task) :
+                    return 'http://www.thesaurus.com/browse/%(word)s?s=t' % task['config']
+                return url_THESAURUS
+
+    def get_process(self) :
+        if self._source == self.SOURCE_THESAURUS :
+            if self._task == self.TASK_SYNONYM :
+                def process_THESAURUS(content) :
+                    content = re.sub('[ \r\n\t]+', ' ', content)
+                    data = re.findall('<div class="synonym-description"> *<em class="txt"> *([^<]+) *</em> *<strong class="ttl"> *([^<]+) *</strong> *</div>', content)
+                    if len(data) > 0 :
+                        return '#'.join(['@'.join(_) for _ in data])
+                    else :
+                        return ''
+                return process_THESAURUS
+
 if __name__ == '__main__':
-    y = Youdao()
-    p = Phonetic()
-    db = MongoDB().select_db('test')
-    for line in sys.stdin :
-        print line.strip()
-        y.import_Word(db, p, line.strip())
+    # y = Youdao()
+    # p = Phonetic()
+    # db = MongoDB().select_db('test')
+    # for line in sys.stdin :
+    #     print line.strip()
+    #     y.import_Word(db, p, line.strip())
     # print y.curl_Morphy('apple')
     # print j(y.curl_SimpleSense('take'))
+    od = OnlineDictionary()
+    od.set_source(od.SOURCE_THESAURUS).set_task(od.TASK_SYNONYM)

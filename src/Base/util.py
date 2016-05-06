@@ -76,7 +76,7 @@ def strip(data, chars = ' \n\t', encoding = 'utf-8') :
     else :
         raise Exception('strip: unknown data type')
 
-def containsEmptyString(data) :
+def contains_empty_string(data) :
     if type(data) in [str, unicode] :
         if strip(data) == '' :
             return True
@@ -96,6 +96,20 @@ def containsEmptyString(data) :
         return False
     else :
         raise Exception('containsEmptyString: unknown data type')
+
+def str_object(data) :
+    if type(data) in [str, unicode, int, float, bool] :
+        return data
+    elif type(data) == list :
+        return [str_object(datum) for datum in data]
+    elif type(data) == tuple :
+        return (str_object(datum) for datum in data)
+    elif type(data) == set :
+        return set([str_object(datum) for datum in data])
+    elif type(data) == dict :
+        return dict([(str_object(key), str_object(data[key])) for key in data.keys()])
+    else :
+        return str(data)
 
 def safe(st, encoding = 'utf-8') :
     st = strip(st)
@@ -290,4 +304,4 @@ def shell(command) :
     return (p.stdout, retval)
 
 if __name__ == '__main__':
-    print request('http://helloword.cn/service/test/report/update?since=0', getData = None, postData = '{"apple" : "123"}')['content']
+    pass
