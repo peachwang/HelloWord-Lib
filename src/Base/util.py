@@ -22,7 +22,7 @@ def request(url, getData = None, postData = None, timeout = None) :
             url += '?' + '&'.join(['%s=%s' % (str(key), str(value)) for key, value in getData.items()])
         data = None
         if postData != None :
-            data = str(postData)
+            data = j(postData, indent = 0)
         request = urllib2.Request(url, data = data)
         response = urllib2.urlopen(request, timeout = timeout)
         content = response.read()
