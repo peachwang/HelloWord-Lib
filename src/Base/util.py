@@ -25,8 +25,8 @@ class UserTypeError(TypeError):
             self.expectedTypes = [self.expectedTypes]
         if type(self.expectedTypes) is not list :
             raise UserTypeError('expected_types', expected_types, [type, list])
-        if map(type, self.expectedTypes).count(type) != len(self.expectedTypes) :
-            raise Exception('Expected_types does not contain just types.')
+        if contains_same_items(map(type, self.expectedTypes), True, type) is False :
+            raise Exception('Expected_types does not contain just types.\nexpected_types:\n%s' % j(map(str, self.expectedTypes)))
         self.value = self.__str__()
 
     def __str__(self) :
@@ -78,6 +78,16 @@ def extend(*lists) :
     for __ in lists : _.extend(__)
     return _
 
+def contains_same_items(data, check_specific_value = False, specific_value = None) :
+    if type(data) not in [list, dict] :
+        raise UserTypeError('data', data, [list, dict])
+    if type(data) is dict : data = data.values()
+    if len(data) == 0 : return True
+    if check_specific_value is True :
+        return data.count(specific_value) == len(data)
+    else :
+        return data.count(data[0]) == len(data)
+
 # ==================== Dict ====================
 def union(*dicts) :
     _ = {}
@@ -93,7 +103,8 @@ def map_to(field_names, field_values) :
         if len(field_values) == len(field_names) :
             return dict(zip(field_names, field_values))
         else :
-            raise Exception('Lengths of field_names and field_values do not equal.')
+            raise Exception('Lengths of field_names and field_values do not equal.\nfield_names:\n%s\nfield_values:\n%s' \
+                % (j(field_names), j(field_values)))
     else :
         raise UserTypeError('field_values', field_values, [int, float, bool, str, unicode, list])
 
@@ -148,12 +159,12 @@ def contains_empty_string(data) :
             return False
     elif type(data) in [list, tuple, set] :
         for datum in data :
-            if containsEmptyString(datum) :
+            if contains_empty_string(datum) :
                 return True
         return False
     elif type(data) == dict :
         for key, value in data.items() :
-            if containsEmptyString(value) :
+            if contains_empty_string(value) :
                 return True
         return False
     elif type(data) in [int, float, bool] :
@@ -198,23 +209,22 @@ def safe_print(stream, st, encoding = 'utf-8') :
 
 # =================== Matrix ===================
 
-def column(matrix, column_names, set_default = False, default = None) :
+def column(matrix, column_names, set_default = False, default = None, return_only_values = False) :
     # @todo: use find
     expected_types = [list, str, unicode, int, float, bool]
     if type(column_names) not in expected_types :
         raise UserTypeError('column_names', column_names, expected_types)
     if type(column_names) is not list :
         column_names = [column_names]
-    return find(matrix, {}, map_to(column_names, 1))
-    result = []
-    for row in matrix :
-        if row.has_key(column_name) is True :
-            result.append(row[column_name])
-        else :
-            if set_default is False :
-                return False
-            else :
-                result.append(default)
+    if set_default is True :
+        result = find(matrix, projection = map_to(column_names, 1), raise_empty_exception = False, set_default = set_default, default = default)
+    else :
+        result = find(matrix, projection = map_to(column_names, 1), raise_empty_exception = True)
+    if return_only_values is True :
+        if len(column_names) != 1 :
+            raise Exception('Can not return only values because length of column_names is not 1.\ncolumn_names:\n%s'\
+                % j(column_names))
+        result = [_.values()[0] for _ in result]
     return result
 
 # ==================== Date ====================
@@ -308,17 +318,18 @@ def load_json(fin, object_hook = None, encoding = 'utf-8') :
 def validate_criterion(data, criterion = None) :
     if criterion is None : return True
     if criterion == {} : return True
-    raise Exception('Can not handle criterion: %s.' % str(criterion))
+    raise Exception('Can not handle criterion.\ncriterion:\n%s.' % j(criterion))
 
-def perform_projection(data, projection = None, raise_empty_exception = False) :
+def perform_projection(data, projection = None, raise_empty_exception = False, set_default = False, default = None) :
     if type(data) is not dict :
         raise UserTypeError('data', data, dict)
     if projection is None : return data
     if type(projection) is not dict :
         raise UserTypeError('projection', projection, dict)
-    elif not (projection.values().count(1) == len(projection) \
-        or projection.values().count(0) == len(projection)) :
-        raise Exception('Projection cannot have a mix of inclusion and exclusion.')
+    elif not (contains_same_items(projection, True, 1) is True \
+        or contains_same_items(projection, True, 0) is True) :
+        raise Exception('Projection cannot have a mix of inclusion and exclusion.\nprojection:\n%s'\
+            % j(projection))
     else :
         if projection == {} : return data
         # @todo: recursively...
@@ -330,7 +341,10 @@ def perform_projection(data, projection = None, raise_empty_exception = False) :
                     result[field_name] = data[field_name]
                 else :
                     if raise_empty_exception is True :
-                        raise Exception('Field %s is empty, thus can not be included.' % str(field_name))
+                        raise Exception('Field(%s) is empty, thus can not be included.\ndata:\n%s' \
+                            % (str(field_name), j(data)))
+                    if set_default is True :
+                        result[field_name] = default
         else :
             result = data
             for field_name in projection.keys() :
@@ -338,21 +352,22 @@ def perform_projection(data, projection = None, raise_empty_exception = False) :
                     data.pop(field_name)
                 else :
                     if raise_empty_exception is True :
-                        raise Exception('Field %s is empty, thus can not be excluded.' % str(field_name))
+                        raise Exception('Field(%s) is empty, thus can not be excluded.\ndata:\n%s'\
+                            % (str(field_name), j(data)))
         return result
 
 def perform_cast(data, cast) :
     pass
 
-def find(data, criterion = None, projection = None) :
+def find(data, criterion = None, projection = None, raise_empty_exception = False, set_default = False, default = None) :
     if type(data) is not list :
         raise UserTypeError('data', data, list)
-    if map(type, data).count(dict) != len(data) :
-        raise Exception('Data does not contain just dicts.')
+    if contains_same_items(map(type, data), True, dict) is False :
+        raise Exception('Data does not contain just dicts.\ndata:\n%s' % j(data))
     result = []
     for datum in data :
         if validate_criterion(datum, criterion) is True:
-            result.append(perform_projection(datum, projection))
+            result.append(perform_projection(datum, projection, raise_empty_exception = raise_empty_exception, set_default = set_default, default = default))
     return result
 
 # ==================== File ====================
