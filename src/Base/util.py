@@ -209,7 +209,7 @@ def safe_print(stream, st, encoding = 'utf-8') :
 
 # =================== Matrix ===================
 
-def column(matrix, column_names, set_default = False, default = None, return_only_values = False) :
+def columns(matrix, column_names, set_default = False, default = None, return_only_values = False) :
     # @todo: use find
     expected_types = [list, str, unicode, int, float, bool]
     if type(column_names) not in expected_types :
@@ -236,6 +236,52 @@ def generate_datetime(datestr, pattern = '%Y-%m-%d %H:%M:%S') :
     return datetime.strptime(datestr, pattern)
 
 # ==================== Data ====================
+def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
+    return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
+
+def load_txt(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
+    if not is_matrix :
+        if fields == None :
+            fields = fin.readline().strip('\n').split(sep)
+        mapping_fields = dict([(_, fields[_]) for _ in range(len(fields))])
+    if primary_key is None or is_matrix : data = []
+    else : data = {}
+    for line in fin :
+        line = line.strip('\n')
+        if line == '' : continue
+        record = line.split(sep)
+        if cast is not None and type(cast) is list :
+            record = [cast[_](record[_]) for _ in range(len(record))]
+        if not is_matrix : datum = dict(zip(mapping_fields.values(), record))
+        else : datum = record
+        if cast is not None and type(cast) is dict and not is_matrix :
+            for field in cast.keys() :
+                datum[field] = cast[field](datum[field])
+        if primary_key is None or is_matrix: data.append(datum)
+        else : data[datum[primary_key]] = datum
+    return data
+
+def dump_txt(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
+    if is_matrix :
+        for datum in data :
+            safe_print(fout, sep.join(datum) + '\n')
+            fout.flush()
+    else :
+        if primary_key is not None :
+            data = data.values()
+        if fields is None :
+            fields = union(*(data)).keys()
+        if primary_key is not None :
+            fields.remove(primary_key)
+            fields = [primary_key] + fields
+        safe_print(fout, sep.join(fields) + '\n')
+        for datum in data :
+            safe_print(fout, sep.join([datum.get(field, default) for field in fields]) + '\n')
+            fout.flush()
+
+def load_json(fin, object_hook = None, encoding = 'utf-8') :
+    return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
+
 def decode_list(data):
     rv = []
     for item in data:
@@ -261,59 +307,6 @@ def decode_dict(data):
             value = decode_dict(value)
         rv[key] = value
     return rv
-
-def anti_serialize(data, seperator, mapper, caster_value = None, caster_key = None) :
-    if type(data) == str :
-        return dict([(
-            field.split(mapper)[0] if caster_key   is None else caster_key(field.split(mapper)[0]),
-            field.split(mapper)[1] if caster_value is None else caster_value(field.split(mapper)[1])
-            ) for field in data.split(seperator)])
-    if type(data) == dict :
-        return dict([(key, anti_serialize(value, seperator, mapper, caster_value, caster_key)) for (key, value) in data.items()])
-    if type(data) == list :
-        return [anti_serialize(datum, seperator, mapper, caster_value, caster_key) for datum in data]
-
-def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
-    return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
-
-def load_txt(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
-    if not is_matrix :
-        if fields == None :
-            fields = fin.readline().strip('\n').split(sep)
-        mapping_fields = dict([(_, fields[_]) for _ in range(len(fields))])
-    if primary_key is None or is_matrix : data = []
-    else : data = {}
-    for line in fin :
-        line = line.strip('\n')
-        if line == '' : continue
-        record = line.split(sep)
-        if cast is not None : record = [cast[_](record[_]) for _ in range(len(record))]
-        if not is_matrix : datum = dict(zip(mapping_fields.values(), record))
-        else : datum = record
-        if primary_key is None or is_matrix: data.append(datum)
-        else : data[datum[primary_key]] = datum
-    return data
-
-def dump_txt(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
-    if is_matrix :
-        for datum in data :
-            safe_print(fout, sep.join(datum) + '\n')
-            fout.flush()
-    else :
-        if primary_key is not None :
-            data = data.values()
-        if fields is None :
-            fields = union(*(data)).keys()
-        if primary_key is not None :
-            fields.remove(primary_key)
-            fields = [primary_key] + fields
-        safe_print(fout, sep.join(fields) + '\n')
-        for datum in data :
-            safe_print(fout, sep.join([datum.get(field, default) for field in fields]) + '\n')
-            fout.flush()
-
-def load_json(fin, object_hook = None, encoding = 'utf-8') :
-    return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
 
 def validate_criterion(data, criterion = None) :
     if criterion is None : return True
@@ -405,6 +398,25 @@ def sign(number) :
         raise UserTypeError('number', number, [int, float])
     return 0 if number == 0 else int(abs(number) / number)
 
+def vector_product(vec1, vec2) :
+    if type(vec1) is not list :
+        raise UserTypeError('vec1', vec1, list)
+    if type(vec2) is not list :
+        raise UserTypeError('vec2', vec2, list)
+    if len(vec1) != len(vec2) :
+        raise Exception('Length of two vectors do not equal.')
+    return [vec1[_] * vec2[_] for _ in range(len(vec1))]
+
+def random_choice_weighted(weight_item_mapping) :
+    total = sum(weight_item_mapping.keys())
+    position = random.randint(1, total)
+    now = 0
+    for weight, item in weight_item_mapping.items() :
+        now += weight
+        if now >= position :
+            return item
+    raise Exception('random_choice_weighted failed.')
+
 # ==================== System ====================
 def parse_argv(argv) :
     mapping  = {}
@@ -426,5 +438,13 @@ def shell(command) :
     retval = p.wait()
     return (p.stdout, retval)
 
-if __name__ == '__main__':
+if __name__ == '__main__' :
+    # weight_item_mapping = {
+    #     3 : 1,
+    #     7 : 2,
+    #     13 : 3,
+    # }
+    # data = [random_choice_weighted(weight_item_mapping) for i in range(20)]
+    # for item in weight_item_mapping.values() :
+    #     print item, data.count(item)
     pass
