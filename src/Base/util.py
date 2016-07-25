@@ -129,19 +129,21 @@ def strip(data, chars = ' \n\t', encoding = 'utf-8') :
 
 def safe(data, encoding = 'utf-8') :
     try :
-        if type(data) == str :
+        if type(data) is str :
             return data
-        elif type(data) == unicode :
+        elif type(data) is unicode :
             return data.encode(encoding)
-        elif type(data) == list :
+        elif type(data) is list :
             return [safe(datum, encoding) for datum in data]
-        elif type(data) == tuple :
+        elif type(data) is tuple :
             return (safe(datum, encoding) for datum in data)
-        elif type(data) == set :
+        elif type(data) is set :
             return set([safe(datum, encoding) for datum in data])
-        elif type(data) == dict :
+        elif type(data) is dict :
             return dict([(safe(key, encoding), safe(data[key], encoding)) for key in data.keys()])
         elif type(data) in [int, float, bool] :
+            return data
+        elif data is None :
             return data
         else :
             raise UserTypeError('data', data, [str, unicode, list, tuple, set, dict, int, float, bool])
@@ -242,12 +244,12 @@ def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-
 def load_txt(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
     if not is_matrix :
         if fields == None :
-            fields = fin.readline().strip('\n').split(sep)
+            fields = fin.readline().strip('\n\r').split(sep)
         mapping_fields = dict([(_, fields[_]) for _ in range(len(fields))])
     if primary_key is None or is_matrix : data = []
     else : data = {}
     for line in fin :
-        line = line.strip('\n')
+        line = line.strip('\n\r')
         if line == '' : continue
         record = line.split(sep)
         if cast is not None and type(cast) is list :
