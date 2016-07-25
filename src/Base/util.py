@@ -136,7 +136,7 @@ def safe(data, encoding = 'utf-8') :
         elif type(data) is list :
             return [safe(datum, encoding) for datum in data]
         elif type(data) is tuple :
-            return (safe(datum, encoding) for datum in data)
+            return tuple([safe(datum, encoding) for datum in data])
         elif type(data) is set :
             return set([safe(datum, encoding) for datum in data])
         elif type(data) is dict :
