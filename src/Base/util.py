@@ -39,16 +39,17 @@ class UserTypeError(TypeError):
 
 
 # ==================== Web ====================
-def request(url, getData = None, post_data = None, timeout = None, method = 'GET') :
-    if method == 'GET' and post_data is not None :
+
+def request(url, getData = None, postData = None, timeout = None, method = 'GET') :
+    if method == 'GET' and postData is not None :
         method = 'POST'
     try :
         if getData is not None :
             url += '?' + '&'.join(['%s=%s' % (str(key), str(value)) for key, value in getData.items()])
         data = None
-        if post_data is not None :
-            # data = re.sub('\n', '', j(post_data, indent = 0))
-            data = j(safe(post_data), indent = 0)
+        if postData is not None :
+            # data = re.sub('\n', '', j(postData, indent = 0))
+            data = j(safe(postData), indent = 0)
         request = urllib2.Request(url, data = data)
         response = urllib2.urlopen(request, timeout = timeout)
         content = response.read()
@@ -66,13 +67,14 @@ def request(url, getData = None, post_data = None, timeout = None, method = 'GET
     except KeyboardInterrupt, e :
         raise
     except Exception, e:
-        print post_data
+        print postData
         print '[Unknown Exception]', e
         return {'e' : 'UNKNOWN', 'content' : None}
     else :
         return {'e' : None, 'content' : content}
 
 # ==================== List ====================
+
 def extend(*lists) :
     _ = []
     for __ in lists : _.extend(__)
@@ -89,6 +91,7 @@ def contains_same_items(data, check_specific_value = False, specific_value = Non
         return data.count(data[0]) == len(data)
 
 # ==================== Dict ====================
+
 def union(*dicts) :
     _ = {}
     for __ in dicts : _.update(__)
@@ -109,6 +112,7 @@ def map_to(field_names, field_values) :
         raise UserTypeError('field_values', field_values, [int, float, bool, str, unicode, list])
 
 # ==================== String ====================
+
 def strip(data, chars = ' \n\t', encoding = 'utf-8') :
     if type(data) == str :
         return data.strip(chars)
@@ -229,7 +233,11 @@ def columns(matrix, column_names, set_default = False, default = None, return_on
         result = [_.values()[0] for _ in result]
     return result
 
+def column(matrix, field_name) :
+    return columns(matrix, [ field_name ], return_only_values = True)
+
 # ==================== Date ====================
+
 def get_date_str(timestamp = None) :
     if timestamp is None : timestamp = time()
     return str(datetime.fromtimestamp(timestamp))[:10].replace('-', '.').replace('T', '.').replace(':', '.')
@@ -238,6 +246,7 @@ def generate_datetime(datestr, pattern = '%Y-%m-%d %H:%M:%S') :
     return datetime.strptime(datestr, pattern)
 
 # ==================== Data ====================
+
 def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
     return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
 
@@ -366,6 +375,7 @@ def find(data, criterion = None, projection = None, raise_empty_exception = Fals
     return result
 
 # ==================== File ====================
+
 def split_filename(filename) :
     if '.' in filename :
         return re.findall('(.*/)?([^/]*)\.([^\.]+)$', filename)[0]
@@ -384,6 +394,7 @@ def change_ext(filename, ext) :
     return _[0] + _[1] + ('' if _[2] == '' else '.') + ext
 
 # ==================== Math ====================
+
 def calc_mean(data) :
     # data = map(long, list(data))
     # tot = long(0)
@@ -420,6 +431,7 @@ def random_choice_weighted(weight_item_mapping) :
     raise Exception('random_choice_weighted failed.')
 
 # ==================== System ====================
+
 def parse_argv(argv) :
     mapping  = {}
     sequence = []
@@ -441,6 +453,7 @@ def shell(command) :
     return (p.stdout, retval)
 
 if __name__ == '__main__' :
+    print unicode_to_url_hex('happ /to')
     # weight_item_mapping = {
     #     3 : 1,
     #     7 : 2,
