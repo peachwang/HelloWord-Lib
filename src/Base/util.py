@@ -37,6 +37,15 @@ class UserTypeError(TypeError):
     def getTypeStr(self, var_type) :
         return re.findall('\'([^\']+)\'', str(type(var_type)))[0]
 
+class UserException(Exception) :
+
+    def __init__(self, message = '', code = 0) :
+        self.message = message
+        self.code    = code
+
+    def __str__(self) :
+        return 'UserException (%s) : %s.' % (str(self.code), self.message)
+
 
 # ==================== Web ====================
 
@@ -79,6 +88,14 @@ def extend(*lists) :
     _ = []
     for __ in lists : _.extend(__)
     return _
+
+def unique(data) : 
+    _ = sorted(data)
+    __ = []
+    for index, item in enumerate(_) :
+        if index == 0 or type(item) != type(_[index - 1]) or item != _[index - 1] :
+            __.append(item)
+    return __
 
 def contains_same_items(data, check_specific_value = False, specific_value = None) :
     if type(data) not in [list, dict] :
