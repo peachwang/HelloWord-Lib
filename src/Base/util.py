@@ -4,7 +4,7 @@ from multiprocessing import Process, Lock
 from time import sleep, time, mktime, ctime, localtime, strftime, strptime
 from datetime import datetime, date, timedelta
 from os.path import exists, getsize, join, isfile
-from os import rename, listdir, remove
+from os import rename, listdir, remove, mkdir, makedirs
 from sys import stdin, stdout, stderr, exit
 from operator import itemgetter, attrgetter
 from threading import Thread
