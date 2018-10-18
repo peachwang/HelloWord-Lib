@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-  
-import re, socket, urllib2, json, random, sys, os, subprocess
+import re, socket, json, random, sys, os, subprocess
+# import urllib2
+# import urllib3
+import requests
 from multiprocessing import Process, Lock
-from time import sleep, time, mktime, ctime, localtime, strftime, strptime
+from time import sleep, time, gmtime, mktime, ctime, localtime, strftime, strptime
 from datetime import datetime, date, timedelta
 from os.path import exists, getsize, join, isfile
 from os import rename, listdir, remove, mkdir, makedirs
 from sys import stdin, stdout, stderr, exit
 from operator import itemgetter, attrgetter
 from threading import Thread
-from Queue import Queue
+# from Queue import Queue
 from math import *
 from copy import *
 
@@ -25,19 +28,19 @@ class UserTypeError(TypeError):
             self.expectedTypes = [self.expectedTypes]
         if type(self.expectedTypes) is not list :
             raise UserTypeError('expected_types', expected_types, [type, list])
-        if contains_same_items(map(type, self.expectedTypes), True, type) is False :
-            raise Exception('Expected_types does not contain just types.\nexpected_types:\n%s' % j(map(str, self.expectedTypes)))
+        if contains_same_items(list(map(type, self.expectedTypes)), True, type) is False :
+            raise Exception('Expected_types does not contain just types.\nexpected_types:\n%s' % j(list(map(str, self.expectedTypes))))
         self.value = self.__str__()
 
     def __str__(self) :
         expected_types = ' or '.join([self.getTypeStr(expected_type) for expected_type in self.expectedTypes])
         return 'Unexpected type(%s) of %s is given, but type(%s) is expected.' \
-            % (self.getTypeStr(self.fieldValue), self.fieldName, expected_types)
+            % (self.getTypeStr(self.fieldValue), self.fieldName, str(self.expectedTypes))
 
     def getTypeStr(self, var_type) :
         return re.findall('\'([^\']+)\'', str(type(var_type)))[0]
 
-class UserException(Exception) :
+class UserException(BaseException) :
 
     def __init__(self, message = '', code = 0) :
         self.message = message
@@ -50,6 +53,38 @@ class UserException(Exception) :
 # ==================== Web ====================
 
 def request(url, getData = None, postData = None, timeout = None, method = 'GET') :
+    if postData is not None : method = 'POST'
+    if getData is None : getData = {}
+    print(method, getData, postData)
+    if method == 'GET' :
+        response = requests.get(url, params = j(getData).encode('utf-8'))
+    elif method == 'POST' :
+        response = requests.post(url, params = j(getData).encode('utf-8'), data = j(postData).encode('utf-8'))
+    else : raise(Exception)
+    response.encoding = 'gb2312'
+    if response.encoding == 'ISO-8859-1':
+        encodings = responseuests.utils.get_encodings_from_content(response.text)
+        if encodings:
+            encoding = encodings[0]
+        else:
+            encoding = response.apparent_encoding
+
+        # encode_content = response.content.decode(encoding, 'replace').encode('utf-8', 'replace')
+        global encode_content
+        encode_content = response.content.decode(encoding, 'replace') #如果设置为replace，则会用?取代非法字符；
+        print(encode_content)
+
+    # print(str(response.content, 'ISO-8859-1'))
+    try :
+        content = json.loads(response.text)
+        print('ok')
+    except :
+        content = response.text
+    if response.status_code != 200 or (type(content) is dict and content['code'] != 2) :
+        print(j(content))
+    return response, content
+
+def request_old(url, getData = None, postData = None, timeout = None, method = 'GET') :
     if method == 'GET' and postData is not None :
         method = 'POST'
     try :
@@ -62,22 +97,22 @@ def request(url, getData = None, postData = None, timeout = None, method = 'GET'
         request = urllib2.Request(url, data = data)
         response = urllib2.urlopen(request, timeout = timeout)
         content = response.read()
-    except urllib2.HTTPError, e:
+    except (urllib2.HTTPError, e):
         # TODO
         return {'e' : 'HTTPError', 'content' : e.read()}
-    except urllib2.URLError, e :
+    except (urllib2.URLError, e) :
         if isinstance(e.reason, socket.timeout) :
             return {'e' : 'TIMEOUT', 'content' : None}
         else :
-            print '[Other Exception]', e
+            print('[Other Exception]', e)
             return {'e' : 'OTHER', 'content' : None}
-    except socket.timeout :
+    except (socket.timeout, e) :
         return {'e' : 'TIMEOUT', 'content' : None}
-    except KeyboardInterrupt, e :
+    except (KeyboardInterrupt, e) :
         raise
-    except Exception, e:
-        print postData
-        print '[Unknown Exception]', e
+    except (Exception, e):
+        print(postData)
+        print('[Unknown Exception]', e)
         return {'e' : 'UNKNOWN', 'content' : None}
     else :
         return {'e' : None, 'content' : content}
@@ -96,6 +131,16 @@ def unique(data) :
         if index == 0 or type(item) != type(_[index - 1]) or item != _[index - 1] :
             __.append(item)
     return __
+
+def intersection(*lists) :
+    _ = list(lists[0])
+    for __ in lists[1:] :
+        ___ = []
+        for index, item in enumerate(_) :
+            if item in list(__) : ___.append(item)
+        _ = ___
+    return _
+
 
 def contains_same_items(data, check_specific_value = False, specific_value = None) :
     if type(data) not in [list, dict] :
@@ -117,7 +162,8 @@ def union(*dicts) :
 def map_to(field_names, field_values) :
     if type(field_names) is not list :
         raise UserTypeError('field_names', field_names, list)
-    if type(field_values) in [int, float, bool, str, unicode] :
+    if type(field_values) in [int, float, bool, str] :
+    # if type(field_values) in [int, float, bool, str, unicode] :
         return dict(zip(field_names, [field_values] * len(field_names)))
     elif type(field_values) is list :
         if len(field_values) == len(field_names) :
@@ -128,13 +174,29 @@ def map_to(field_names, field_values) :
     else :
         raise UserTypeError('field_values', field_values, [int, float, bool, str, unicode, list])
 
+def create_fields_recursively(data, field_list, initial_value = None) :
+    if type(data) is not dict :
+        raise UserTypeError('data', data, dict)
+    if type(field_list) is str : field_list = [ field_list ]
+    current = data
+    for index, field in enumerate(field_list) :
+        if field not in current :
+            if index + 1 == len(field_list) and initial_value is not None :
+                current[field] = initial_value
+            else :
+                current[field] = {}
+        elif index + 1 < len(field_list) and type(current[field]) is not dict :
+            raise UserTypeError('current[%s]' % field, current[field], dict)
+        current = current[field]
+    return data
+
 # ==================== String ====================
 
 def strip(data, chars = ' \n\t', encoding = 'utf-8') :
     if type(data) == str :
         return data.strip(chars)
-    elif type(data) == unicode :
-        return data.encode(encoding).strip(chars).decode(encoding)
+    # elif type(data) == unicode :
+        # return data.encode(encoding).strip(chars).decode(encoding)
     elif type(data) == list :
         return [strip(datum, chars, encoding) for datum in data]
     elif type(data) == tuple :
@@ -168,9 +230,9 @@ def safe(data, encoding = 'utf-8') :
             return data
         else :
             raise UserTypeError('data', data, [str, unicode, list, tuple, set, dict, int, float, bool])
-    except Exception, e :
-        print type(data)
-        print [data]
+    except(Exception, e) :
+        print(type(data))
+        print([data])
         raise e
         exit()
 
@@ -196,12 +258,15 @@ def contains_empty_string(data) :
         raise UserTypeError('data', data, [str, unicode, list, tuple, set, dict, int, float, bool])
 
 def str_object(data) :
-    if type(data) in [str, unicode, int, float, bool] :
+    if type(data) in [str, int, float, bool] :
+    # if type(data) in [str, unicode, int, float, bool] :
         return data
+        # return str(data)
     elif type(data) == list :
         return [str_object(datum) for datum in data]
     elif type(data) == tuple :
-        return (str_object(datum) for datum in data)
+        return '(' + ', '.join(str(datum) for datum in data) + ')'
+        # return (str_object(datum) for datum in data)
     elif type(data) == set :
         return set([str_object(datum) for datum in data])
     elif type(data) == dict :
@@ -224,17 +289,18 @@ def safe_print(stream, st, encoding = 'utf-8') :
     for ch in st :
         if ord(ch) < 128 : stream.write(ch)
         else : 
-            try :
-                stream.write(ch.encode(encoding))
-            except Exception, e :
-                stream.write(ch)
+            # try :
+                # stream.write(ch.encode(encoding))
+            # except(Exception, e) :
+            stream.write(ch)
     stream.flush()
 
 # =================== Matrix ===================
 
 def columns(matrix, column_names, set_default = False, default = None, return_only_values = False) :
     # @todo: use find
-    expected_types = [list, str, unicode, int, float, bool]
+    expected_types = [list, str, int, float, bool]
+    # expected_types = [list, str, unicode, int, float, bool]
     if type(column_names) not in expected_types :
         raise UserTypeError('column_names', column_names, expected_types)
     if type(column_names) is not list :
@@ -259,13 +325,18 @@ def get_date_str(timestamp = None) :
     if timestamp is None : timestamp = time()
     return str(datetime.fromtimestamp(timestamp))[:10].replace('-', '.').replace('T', '.').replace(':', '.')
 
+def generate_datetime_str(timestamp = None, pattern = '%Y-%m-%d %H:%M:%S') :
+    if timestamp is None : timestamp = time()
+    return strftime(pattern, datetime.fromtimestamp(timestamp).timetuple())
+
 def generate_datetime(datestr, pattern = '%Y-%m-%d %H:%M:%S') :
     return datetime.strptime(datestr, pattern)
 
 # ==================== Data ====================
 
 def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
-    return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
+    return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys)
+    # return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
 
 def load_txt(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
     if not is_matrix :
@@ -313,9 +384,9 @@ def load_json(fin, object_hook = None, encoding = 'utf-8') :
 def decode_list(data):
     rv = []
     for item in data:
-        if isinstance(item, unicode):
-            item = item.encode('utf-8')
-        elif isinstance(item, list):
+        # if isinstance(item, unicode):
+            # item = item.encode('utf-8')
+        if isinstance(item, list):
             item = decode_list(item)
         elif isinstance(item, dict):
             item = decode_dict(item)
@@ -325,11 +396,11 @@ def decode_list(data):
 def decode_dict(data):
     rv = {}
     for key, value in data.iteritems():
-        if isinstance(key, unicode):
-            key = key.encode('utf-8')
-        if isinstance(value, unicode):
-            value = value.encode('utf-8')
-        elif isinstance(value, list):
+        # if isinstance(key, unicode):
+            # key = key.encode('utf-8')
+        # if isinstance(value, unicode):
+            # value = value.encode('utf-8')
+        if isinstance(value, list):
             value = decode_list(value)
         elif isinstance(value, dict):
             value = decode_dict(value)
@@ -383,7 +454,7 @@ def perform_cast(data, cast) :
 def find(data, criterion = None, projection = None, raise_empty_exception = False, set_default = False, default = None) :
     if type(data) is not list :
         raise UserTypeError('data', data, list)
-    if contains_same_items(map(type, data), True, dict) is False :
+    if contains_same_items(list(map(type, data)), True, dict) is False :
         raise Exception('Data does not contain just dicts.\ndata:\n%s' % j(data))
     result = []
     for datum in data :
@@ -470,7 +541,7 @@ def shell(command) :
     return (p.stdout, retval)
 
 if __name__ == '__main__' :
-    print unicode_to_url_hex('happ /to')
+    # print unicode_to_url_hex('happ /to')
     # weight_item_mapping = {
     #     3 : 1,
     #     7 : 2,
