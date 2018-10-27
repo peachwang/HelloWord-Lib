@@ -338,7 +338,25 @@ def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-
     return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys)
     # return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
 
-def load_txt(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
+def load_mapping(fin) :
+    data = {}
+    current = None
+    for line in fin :
+        line = line.strip('\n\r')
+        if line.strip(' ') == '' : continue
+        if '\t' not in line :
+            current = line
+            if current not in data : data[current] = []
+            continue
+        elif current is None : raise
+        else :
+            line = line.strip('\t')
+            line = re.sub(r'\t+', '\t', line)
+            data[current].append(line.split('\t'))
+    data = strip(data)
+    return data
+
+def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
     if not is_matrix :
         if fields == None :
             fields = fin.readline().strip('\n\r').split(sep)
@@ -360,7 +378,7 @@ def load_txt(fin, fields = None, primary_key = None, cast = None, is_matrix = Fa
         else : data[datum[primary_key]] = datum
     return data
 
-def dump_txt(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
+def dump_table(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
     if is_matrix :
         for datum in data :
             safe_print(fout, sep.join(datum) + '\n')
