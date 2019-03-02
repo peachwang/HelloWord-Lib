@@ -193,7 +193,9 @@ def create_fields_recursively(data, field_list, initial_value = None) :
 # ==================== String ====================
 
 def strip(data, chars = ' \n\t', encoding = 'utf-8') :
-    if type(data) == str :
+    if data is None :
+        return None
+    elif type(data) == str :
         return data.strip(chars)
     # elif type(data) == unicode :
         # return data.encode(encoding).strip(chars).decode(encoding)
@@ -208,14 +210,16 @@ def strip(data, chars = ' \n\t', encoding = 'utf-8') :
     elif type(data) in [int, float, bool] :
         return data
     else :
-        raise UserTypeError('data', data, [str, unicode, list, tuple, set, dict, int, float, bool])
+        raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
 
 def safe(data, encoding = 'utf-8') :
     try :
-        if type(data) is str :
+        if data is None :
+            return None
+        elif type(data) is str :
             return data
-        elif type(data) is unicode :
-            return data.encode(encoding)
+        # elif type(data) is unicode :
+            # return data.encode(encoding)
         elif type(data) is list :
             return [safe(datum, encoding) for datum in data]
         elif type(data) is tuple :
@@ -230,7 +234,7 @@ def safe(data, encoding = 'utf-8') :
             return data
         else :
             raise UserTypeError('data', data, [str, unicode, list, tuple, set, dict, int, float, bool])
-    except(Exception, e) :
+    except Exception :
         print(type(data))
         print([data])
         raise e
