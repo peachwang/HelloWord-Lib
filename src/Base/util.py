@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-  
 import re, socket, json, random, sys, os, subprocess
-# import urllib2
-# import urllib3
 import requests
 from multiprocessing import Process, Lock
 from time import sleep, time, gmtime, mktime, ctime, localtime, strftime, strptime
@@ -14,6 +12,13 @@ from threading import Thread
 # from Queue import Queue
 from math import *
 from copy import *
+from bcolors import OKMSG as OK, PASS, WARN, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE, HEADER, ENDC as END
+from DataModel.Int import Int
+from DataModel.Str import Str
+from DataModel.List import List
+from DataModel.Dict import Dict
+from DataModel.DateTime import DateTime
+from DataModel.Object import Object
 
 # @todo: add comments for the following functions
 # ================= Exception =================
@@ -38,7 +43,7 @@ class UserTypeError(TypeError):
             % (self.getTypeStr(self.fieldValue), self.fieldName, str(self.expectedTypes))
 
     def getTypeStr(self, var_type) :
-        return re.findall('\'([^\']+)\'', str(type(var_type)))[0]
+        return re.findall(r'\'([^\']+)\'', str(type(var_type)))[0]
 
 class UserException(BaseException) :
 
@@ -83,40 +88,6 @@ def request(url, getData = None, postData = None, timeout = None, method = 'GET'
     if response.status_code != 200 or (type(content) is dict and content['code'] != 2) :
         print(j(content))
     return response, content
-
-def request_old(url, getData = None, postData = None, timeout = None, method = 'GET') :
-    if method == 'GET' and postData is not None :
-        method = 'POST'
-    try :
-        if getData is not None :
-            url += '?' + '&'.join(['%s=%s' % (str(key), str(value)) for key, value in getData.items()])
-        data = None
-        if postData is not None :
-            # data = re.sub('\n', '', j(postData, indent = 0))
-            data = j(safe(postData), indent = 0)
-        request = urllib2.Request(url, data = data)
-        response = urllib2.urlopen(request, timeout = timeout)
-        content = response.read()
-    except (urllib2.HTTPError, e):
-        # TODO
-        return {'e' : 'HTTPError', 'content' : e.read()}
-    except (urllib2.URLError, e) :
-        if isinstance(e.reason, socket.timeout) :
-            return {'e' : 'TIMEOUT', 'content' : None}
-        else :
-            print('[Other Exception]', e)
-            return {'e' : 'OTHER', 'content' : None}
-    except (socket.timeout, e) :
-        return {'e' : 'TIMEOUT', 'content' : None}
-    except (KeyboardInterrupt, e) :
-        raise
-    except (Exception, e):
-        print(postData)
-        print('[Unknown Exception]', e)
-        return {'e' : 'UNKNOWN', 'content' : None}
-    else :
-        return {'e' : None, 'content' : content}
-
 # ==================== List ====================
 
 def extend(*lists) :
@@ -140,7 +111,6 @@ def intersection(*lists) :
             if item in list(__) : ___.append(item)
         _ = ___
     return _
-
 
 def contains_same_items(data, check_specific_value = False, specific_value = None) :
     if type(data) not in [list, dict] :
@@ -429,61 +399,6 @@ def decode_dict(data):
         rv[key] = value
     return rv
 
-def validate_criterion(data, criterion = None) :
-    if criterion is None : return True
-    if criterion == {} : return True
-    raise Exception('Can not handle criterion.\ncriterion:\n%s.' % j(criterion))
-
-def perform_projection(data, projection = None, raise_empty_exception = False, set_default = False, default = None) :
-    if type(data) is not dict :
-        raise UserTypeError('data', data, dict)
-    if projection is None : return data
-    if type(projection) is not dict :
-        raise UserTypeError('projection', projection, dict)
-    elif not (contains_same_items(projection, True, 1) is True \
-        or contains_same_items(projection, True, 0) is True) :
-        raise Exception('Projection cannot have a mix of inclusion and exclusion.\nprojection:\n%s'\
-            % j(projection))
-    else :
-        if projection == {} : return data
-        # @todo: recursively...
-        is_inclusion_mode = bool(sign(sum(projection.values())))
-        if is_inclusion_mode is True :
-            result = {}
-            for field_name in projection.keys() :
-                if data.has_key(field_name) is True :
-                    result[field_name] = data[field_name]
-                else :
-                    if raise_empty_exception is True :
-                        raise Exception('Field(%s) is empty, thus can not be included.\ndata:\n%s' \
-                            % (str(field_name), j(data)))
-                    if set_default is True :
-                        result[field_name] = default
-        else :
-            result = data
-            for field_name in projection.keys() :
-                if data.has_key(field_name) is True :
-                    data.pop(field_name)
-                else :
-                    if raise_empty_exception is True :
-                        raise Exception('Field(%s) is empty, thus can not be excluded.\ndata:\n%s'\
-                            % (str(field_name), j(data)))
-        return result
-
-def perform_cast(data, cast) :
-    pass
-
-def find(data, criterion = None, projection = None, raise_empty_exception = False, set_default = False, default = None) :
-    if type(data) is not list :
-        raise UserTypeError('data', data, list)
-    if contains_same_items(list(map(type, data)), True, dict) is False :
-        raise Exception('Data does not contain just dicts.\ndata:\n%s' % j(data))
-    result = []
-    for datum in data :
-        if validate_criterion(datum, criterion) is True:
-            result.append(perform_projection(datum, projection, raise_empty_exception = raise_empty_exception, set_default = set_default, default = default))
-    return result
-
 # ==================== File ====================
 
 def split_filename(filename) :
@@ -502,43 +417,6 @@ def add_suffix(filename, suffix) :
 def change_ext(filename, ext) :
     _ = split_filename(filename)
     return _[0] + _[1] + ('' if _[2] == '' else '.') + ext
-
-# ==================== Math ====================
-
-def calc_mean(data) :
-    # data = map(long, list(data))
-    # tot = long(0)
-    # for datum in data :
-        # tot += datum
-    return 1.0 * sum(data) / len(data)
-
-def calc_std(data) :
-    mean = calc_mean(data)
-    return sqrt(1.0 * sum([(datum - mean) * (datum - mean) for datum in data]) / len(data))
-
-def sign(number) :
-    if type(number) not in [int, float] :
-        raise UserTypeError('number', number, [int, float])
-    return 0 if number == 0 else int(abs(number) / number)
-
-def vector_product(vec1, vec2) :
-    if type(vec1) is not list :
-        raise UserTypeError('vec1', vec1, list)
-    if type(vec2) is not list :
-        raise UserTypeError('vec2', vec2, list)
-    if len(vec1) != len(vec2) :
-        raise Exception('Length of two vectors do not equal.')
-    return [vec1[_] * vec2[_] for _ in range(len(vec1))]
-
-def random_choice_weighted(weight_item_mapping) :
-    total = sum(weight_item_mapping.keys())
-    position = random.randint(1, total)
-    now = 0
-    for weight, item in weight_item_mapping.items() :
-        now += weight
-        if now >= position :
-            return item
-    raise Exception('random_choice_weighted failed.')
 
 # ==================== System ====================
 
@@ -563,13 +441,4 @@ def shell(command) :
     return (p.stdout, retval)
 
 if __name__ == '__main__' :
-    # print unicode_to_url_hex('happ /to')
-    # weight_item_mapping = {
-    #     3 : 1,
-    #     7 : 2,
-    #     13 : 3,
-    # }
-    # data = [random_choice_weighted(weight_item_mapping) for i in range(20)]
-    # for item in weight_item_mapping.values() :
-    #     print item, data.count(item)
     pass
