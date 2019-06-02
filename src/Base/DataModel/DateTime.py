@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-  
 
 from datetime import datetime
+from time import time, strftime, strptime
 
-class DateTime(datetime) :
+class DateTime() :
 
     def __init__(self, timestamp = None) :
         self.timestamp = time() if timestamp is None else timestamp
-        self.datetime = datetime.fromtimestamp(timestamp)
+        self.datetime = datetime.fromtimestamp(self.timestamp)
 
     def fromStr(self, string, pattern = '%Y-%m-%d %H:%M:%S') :
         self.datetime = datetime.strptime(string, pattern)
@@ -21,3 +22,6 @@ class DateTime(datetime) :
 
     def timeStr(self, pattern = '%H:%M:%S') :
         return self.str(pattern)
+
+if __name__ == '__main__':
+    print(DateTime().str())
