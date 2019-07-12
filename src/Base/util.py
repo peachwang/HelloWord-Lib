@@ -417,41 +417,57 @@ def add_suffix(filename, suffix) :
 def change_ext(filename, ext) :
     _ = split_filename(filename)
     return _[0] + _[1] + ('' if _[2] == '' else '.') + ext
-def inspect(data) :
+def inspect(data, max_depth = 10, depth = 0) :
+    # print(str(data)[:120])
+    if depth > max_depth :
+        if data is None : return None 
+        elif type(data) in [str, int, float, bool, tuple, set] : return data
+        elif type(data) is list : return '[ %d items folded ]' % len(data)
+        elif type(data) is dict : return '{ %d keys folded }' % len(data)
+        else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
     if data is None : return None
-    elif type(data) in [str, int, float, bool, tuple, set] :
-        return data
+    elif type(data) in [str, int, float, bool, tuple, set] : return data
     elif type(data) is list :
-        if len(data) <= 2 : return data
-        result = inspect(data[0])
+        if len(data) == 0 : return data
+        elif len(data) == 1 : return [ inspect(data[0], max_depth, depth + 1) ]
+        elif len(data) == 2 : return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1) ]
+        
+        # len >= 3
+        result_0 = inspect(data[0], max_depth, depth + 1)
         _ = '------------------------------'
-        if type(result) is dict :
-            for datum in data :
-                for key, value in datum.items() :
-                    if key not in result : result[key] = value
-                    else :
-                        if type(data[0][key]) is list : continue
-                        elif type(data[0][key]) is dict : continue
-                        else :
-                            if type(result[key]) is not list :
-                                result[key] = [
-                                    _ + 'POSSIBLE VALUES' + _, 
-                                    result[key],
-                                    value
-                                ]
-                            else :
-                                if len(result[key]) < 5 :
-                                    result[key].append(value)
-                                elif 'TOTAL' not in result[key][-1] :
-                                    result[key].append(_ + 'TOTAL %d SIMILAR ITEMS' % len(data) + _)
-                                    
-            return [result, _ + 'TOTAL %d SIMILAR ITEMS' % len(data) + _ ]
-        else :
-            return [inspect(result), _ + 'TOTAL %d SIMILAR ITEMS' % len(data) + _ ]
-    elif type(data) is dict :
-        return {key : inspect(value) for key, value in data.items()}
-    else :
-        raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+        if type(result_0) is dict :
+            for index, datum_i in enumerate(data) :
+                if type(datum_i) is not dict : raise Exception('列表中元素类型不一致(%s)', str(datum_i))
+                for key, value in datum_i.items() :
+                    if key not in result_0 :
+                        result_0[key] = inspect(value, max_depth, depth + 1) # 【补充】第0个元素中不存在的字段
+                        continue
+                    if data[0].get(key) is not None and type(data[0][key]) is list : continue # 列表类【原生】字段不扩充POSSIBLE VALUES
+                    if data[0].get(key) is not None and type(data[0][key]) is dict : continue # 字典类【原生】字段不扩充POSSIBLE VALUES
+                    if data[0].get(key) is None and type(result_0[key]) is list \
+                        and not (type(result_0[key][0]) is str and 'POSSIBLE VALUES' in result_0[key][0]) : continue # 列表类【补充】字段不扩充POSSIBLE VALUES
+                    if data[0].get(key) is None and type(result_0[key]) is dict : continue # 字典类【补充】字段不扩充POSSIBLE VALUES
+                    # 此时待补充的是非列表字典类字段
+                    if type(value) is list or type(value) is dict : raise Exception('列表中元素类型不一致(%s)', str(value))
+                    # 此时value一定为非列表字典类数据
+                    if type(result_0[key]) is not list : # 暂未扩充过，现进行首次扩充POSSIBLE VALUES
+                        result_0[key] = [
+                            _ + 'POSSIBLE VALUES' + _, 
+                            result_0[key]
+                        ]
+                        if inspect(value, max_depth, depth + 1) != result_0[key][1] :
+                            result_0[key].append(inspect(value, max_depth, depth + 1))
+                    else : # 非首次扩充POSSIBLE VALUES
+                        if len(result_0[key]) < 5 :
+                            if inspect(value, max_depth, depth + 1) not in result_0[key] :
+                                result_0[key].append(inspect(value, max_depth, depth + 1)) # 扩充
+                        if index == len(data) - 1 :
+                            result_0[key].append(_ + 'TOTAL %d SIMILAR ITEMS' % len(data) + _)
+            return [ result_0, _ + 'TOTAL %d SIMILAR DICTS' % len(data) + _ ]
+        else : # 非字典类数据，含列表
+            return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1), _ + 'TOTAL %d SIMILAR LISTS' % len(data) + _ ]
+    elif type(data) is dict : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
+    else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
 
 # ==================== System ====================
 
