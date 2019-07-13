@@ -7,13 +7,17 @@ class Base() :
     config            = {}
     is_login          = False
 
-    def __init__(self) :
-        if not self.is_login : self.login()
+    def __init__(self, login_filename = None) :
+        if not self.is_login : self.login(login_filename)
 
     @classmethod
-    def login(cls) :
+    def login(cls, login_filename = None) :
         Timer.printTiming()
-        config_login = load_json(open('../../../Taleopard-Operation/config/login.json'))
+        # print(FAIL, os.path.realpath('../Taleopard-Operation'), exists('../Taleopard-Operation'), END)
+        if login_filename is None :
+            config_login = load_json(open('../../../../../Taleopard-Operation/config/login.json'))
+        else :
+            config_login = load_json(open(login_filename))
         cls.updateConfig(config_login)
         username, password = cls.config['Username'], cls.config['Password']
         print('尝试获取教师 %s 的token...' % username, end = '')
