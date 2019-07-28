@@ -472,6 +472,12 @@ def inspect(data, max_depth = 10, depth = 0) :
     elif type(data) is dict : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
 
+# ==================== Math ====================
+
+def mean(num_list, default = None) :
+    if len(num_list) == 0 : return default
+    return 1.0 * sum(num_list) / len(num_list)
+
 # ==================== System ====================
 
 def parse_argv(argv) :
