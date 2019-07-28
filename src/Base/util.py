@@ -13,12 +13,15 @@ from threading import Thread
 from math import *
 from copy import *
 from bcolors import OKMSG as OK, PASS, WARN, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE, HEADER, ENDC as END
+GREEN, YELLOW, RED, BLUE = PASS, WARN, FAIL, BLUE
 from DataModel.Int import Int
 from DataModel.Str import Str
 from DataModel.List import List
 from DataModel.Dict import Dict
 from DataModel.DateTime import DateTime
 from DataModel.Object import Object
+from DataModel.Folder import Folder, File
+
 
 # @todo: add comments for the following functions
 # ================= Exception =================
@@ -490,6 +493,10 @@ def shell(command) :
         # print index, line.strip()
     retval = p.wait()
     return (p.stdout, retval)
+
+from Timer import Timer
+from Base import Base
+
 
 if __name__ == '__main__' :
     pass
