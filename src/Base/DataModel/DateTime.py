@@ -24,4 +24,4 @@ class DateTime() :
         return self.str(pattern)
 
 if __name__ == '__main__':
-    print(DateTime().str())
+    print(DateTime().dateStr('%y%m%d'))

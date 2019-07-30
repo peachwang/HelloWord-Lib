@@ -57,40 +57,6 @@ class UserException(BaseException) :
     def __str__(self) :
         return 'UserException (%s) : %s.' % (str(self.code), self.message)
 
-
-# ==================== Web ====================
-
-def request(url, getData = None, postData = None, timeout = None, method = 'GET') :
-    if postData is not None : method = 'POST'
-    if getData is None : getData = {}
-    print(method, getData, postData)
-    if method == 'GET' :
-        response = requests.get(url, params = j(getData).encode('utf-8'))
-    elif method == 'POST' :
-        response = requests.post(url, params = j(getData).encode('utf-8'), data = j(postData).encode('utf-8'))
-    else : raise(Exception)
-    response.encoding = 'gb2312'
-    if response.encoding == 'ISO-8859-1':
-        encodings = responseuests.utils.get_encodings_from_content(response.text)
-        if encodings:
-            encoding = encodings[0]
-        else:
-            encoding = response.apparent_encoding
-
-        # encode_content = response.content.decode(encoding, 'replace').encode('utf-8', 'replace')
-        global encode_content
-        encode_content = response.content.decode(encoding, 'replace') #如果设置为replace，则会用?取代非法字符；
-        print(encode_content)
-
-    # print(str(response.content, 'ISO-8859-1'))
-    try :
-        content = json.loads(response.text)
-        print('ok')
-    except :
-        content = response.text
-    if response.status_code != 200 or (type(content) is dict and content['code'] != 2) :
-        print(j(content))
-    return response, content
 # ==================== List ====================
 
 def extend(*lists) :
@@ -272,43 +238,6 @@ def safe_print(stream, st, encoding = 'utf-8') :
             stream.write(ch)
     stream.flush()
 
-# =================== Matrix ===================
-
-def columns(matrix, column_names, set_default = False, default = None, return_only_values = False) :
-    # @todo: use find
-    expected_types = [list, str, int, float, bool]
-    # expected_types = [list, str, unicode, int, float, bool]
-    if type(column_names) not in expected_types :
-        raise UserTypeError('column_names', column_names, expected_types)
-    if type(column_names) is not list :
-        column_names = [column_names]
-    if set_default is True :
-        result = find(matrix, projection = map_to(column_names, 1), raise_empty_exception = False, set_default = set_default, default = default)
-    else :
-        result = find(matrix, projection = map_to(column_names, 1), raise_empty_exception = True)
-    if return_only_values is True :
-        if len(column_names) != 1 :
-            raise Exception('Can not return only values because length of column_names is not 1.\ncolumn_names:\n%s'\
-                % j(column_names))
-        result = [_.values()[0] for _ in result]
-    return result
-
-def column(matrix, field_name) :
-    return columns(matrix, [ field_name ], return_only_values = True)
-
-# ==================== Date ====================
-
-def get_date_str(timestamp = None) :
-    if timestamp is None : timestamp = time()
-    return str(datetime.fromtimestamp(timestamp))[:10].replace('-', '.').replace('T', '.').replace(':', '.')
-
-def generate_datetime_str(timestamp = None, pattern = '%Y-%m-%d %H:%M:%S') :
-    if timestamp is None : timestamp = time()
-    return strftime(pattern, datetime.fromtimestamp(timestamp).timetuple())
-
-def generate_datetime(datestr, pattern = '%Y-%m-%d %H:%M:%S') :
-    return datetime.strptime(datestr, pattern)
-
 # ==================== Data ====================
 
 def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
@@ -402,24 +331,6 @@ def decode_dict(data):
         rv[key] = value
     return rv
 
-# ==================== File ====================
-
-def split_filename(filename) :
-    if '.' in filename :
-        return re.findall('(.*/)?([^/]*)\.([^\.]+)$', filename)[0]
-    else : return (filename, '')
-
-def add_prefix(filename, prefix) :
-    _ = split_filename(filename)
-    return _[0] + prefix + _[1] + ('' if _[2] == '' else '.') + _[2]
-
-def add_suffix(filename, suffix) :
-    _ = split_filename(filename)
-    return _[0] + _[1] + suffix + ('' if _[2] == '' else '.') + _[2]
-
-def change_ext(filename, ext) :
-    _ = split_filename(filename)
-    return _[0] + _[1] + ('' if _[2] == '' else '.') + ext
 def inspect(data, max_depth = 10, depth = 0) :
     # print(str(data)[:120])
     if depth > max_depth :

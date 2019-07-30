@@ -39,5 +39,27 @@ class Base() :
         cls.config.update(config)
         return cls
 
+    def get(self, url, params = {}, timeout = None) :
+        params.update(self.config['token'])
+        response = requests.get(url, params = params, timeout = timeout)
+        json_data = response.json()
+        if response.status_code != 200 or json_data['code'] != 2 :
+            print(j(json_data))
+            print(ERROR, response.status_code, json_data['code'], END)
+        else :
+            print(OK, response.status_code, json_data['code'], END)
+        return response
+
+    def post(self, url, data = None, params = {}, timeout = None) :
+        params.update(self.config['token'])
+        response = requests.post(url, data = j(data).encode('utf-8'), params = params, timeout = timeout)
+        json_data = response.json()
+        if response.status_code != 200 or json_data['code'] != 2 :
+            print(j(json_data))
+            print(ERROR, response.status_code, json_data['code'], END)
+        else :
+            print(OK, response.status_code, json_data['code'], END)
+        return response
+
 if __name__ == '__main__':
     pass
