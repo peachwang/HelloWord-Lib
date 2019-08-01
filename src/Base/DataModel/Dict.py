@@ -27,28 +27,29 @@ class Dict(dict) :
     def data(self) :
         return { key : self[key] for key in self }
 
+    def raw(self) :
+        from DataModel.List import List
+        return { key : (self[key].raw() if type(self[key]) in [ List, Dict ] else self[key]) for key in self }
+
     # def fromkeys(self, key_list, value = None) :
         '''
         Returns a new dict with keys from iterable and values equal to value.
         '''
 
-    def raw(self) :
-        pass
-
     def keys(self) :
         '''D.keys() -> a set-like object providing a view on D's keys'''
         from DataModel.List import List
-        return List(self.keys())
+        return List(dict.keys(self))
     
     def values(self) :
         '''D.values() -> an object providing a view on D's values'''
         from DataModel.List import List
-        return List(self.values())
+        return List(dict.values(self))
 
     def items(self) :
         '''D.items() -> a set-like object providing a view on D's items'''
         from DataModel.List import List
-        return List(self.items())
+        return List(dict.items(self))
 
     # def __len__(self) :
         '''
@@ -194,6 +195,10 @@ class Dict(dict) :
     def copy(self) :
         '''D.copy() -> a shallow copy of D'''
         return Dict(self)
+
+    def j(self) :
+        from util import j
+        return j(self.raw())
 
     def __format__(self, code) :
         '''default object formatter'''

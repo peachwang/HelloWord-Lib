@@ -52,7 +52,7 @@ class Base() :
 
     def post(self, url, data = None, params = {}, timeout = None) :
         params.update(self.config['token'])
-        response = requests.post(url, data = j(data).encode('utf-8'), params = params, timeout = timeout)
+        response = requests.post(url, data = data.j().encode('utf-8'), params = params, timeout = timeout)
         json_data = response.json()
         if response.status_code != 200 or json_data['code'] != 2 :
             print(j(json_data))

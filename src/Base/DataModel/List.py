@@ -31,7 +31,8 @@ class List(list) :
         return [ item for item in self ]
 
     def raw(self) :
-        pass
+        from DataModel.Dict import Dict
+        return [ item.raw() if type(item) in [ List, Dict ] else item for item in self ]
     
     # def __len__(self) :
         '''
@@ -211,6 +212,10 @@ class List(list) :
     def copy(self) :
         '''L.copy() -> list -- a shallow copy of L'''
         return List(self)
+
+    def j(self) :
+        from util import j
+        return j(self.raw())
 
     def __format__(self, code) :
         '''default object formatter'''

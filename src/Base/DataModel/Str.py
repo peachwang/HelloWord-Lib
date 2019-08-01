@@ -46,6 +46,9 @@ class Str(str) :
     def find(self, reverse = False) :
         pass
 
+    def finditer(self) :
+        pass
+
     # ===============================================================
 
     # def __contains__(self) :
