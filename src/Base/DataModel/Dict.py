@@ -32,20 +32,23 @@ class Dict(dict) :
         Returns a new dict with keys from iterable and values equal to value.
         '''
 
-    # def keys(self) :
-        '''
-        D.keys() -> a set-like object providing a view on D's keys
-        '''
-    
-    # def values(self) :
-        '''
-        D.values() -> an object providing a view on D's values
-        '''
+    def raw(self) :
+        pass
 
-    # def items(self) :
-        '''
-        D.items() -> a set-like object providing a view on D's items
-        '''
+    def keys(self) :
+        '''D.keys() -> a set-like object providing a view on D's keys'''
+        from DataModel.List import List
+        return List(self.keys())
+    
+    def values(self) :
+        '''D.values() -> an object providing a view on D's values'''
+        from DataModel.List import List
+        return List(self.values())
+
+    def items(self) :
+        '''D.items() -> a set-like object providing a view on D's items'''
+        from DataModel.List import List
+        return List(self.items())
 
     # def __len__(self) :
         '''

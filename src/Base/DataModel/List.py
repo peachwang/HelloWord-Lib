@@ -29,6 +29,9 @@ class List(list) :
 
     def data(self) :
         return [ item for item in self ]
+
+    def raw(self) :
+        pass
     
     # def __len__(self) :
         '''
@@ -76,12 +79,22 @@ class List(list) :
 
     def append(self, item) :
         '''L.append(object) -> None -- append object to end'''
-        list.append(self, item)
+        if type(item) is list :
+            list.append(self, List(item))
+        elif type(item) is dict :
+            list.append(self, Dict(item))
+        else :
+            list.append(self, item)
         return self
 
     def insert(self, index, item) :
         '''L.insert(index, object) -> None -- insert object before index'''
-        list.insert(self, index, item)
+        if type(item) is list :
+            list.insert(self, index, List(item))
+        elif type(item) is dict :
+            list.insert(self, index, Dict(item))
+        else :
+            list.insert(self, index, item)
         return self
 
     def extend(self, item_list) :
@@ -152,6 +165,9 @@ class List(list) :
         for index, item in enumerate(self) :
             self[index] = func(item, index, *args)
         return self
+
+    def enumerate(self) :
+        return enumerate(self)
 
     def reduce(self, func, init, *args) :
         result = init
@@ -371,6 +387,9 @@ if __name__ == '__main__':
     # a = List([[1,2],[3,4]])
     # a = List(List([5,4,3]), List(6,7,8,4))
     a = [1,2,3]
+    a = List([1,2,3])
+    a = List(1,2,3)
+    a = List(List())
     # b = List([4,5,6])
     b = List([4,5,6])
     print(type(a+b))
