@@ -387,9 +387,9 @@ if __name__ == '__main__':
     # a = List([[1,2],[3,4]])
     # a = List(List([5,4,3]), List(6,7,8,4))
     a = [1,2,3]
-    a = List([1,2,3])
-    a = List(1,2,3)
-    a = List(List())
+    # a = List([1,2,3])
+    # a = List(1,2,3)
+    # a = List(List())
     # b = List([4,5,6])
     b = List([4,5,6])
     print(type(a+b))

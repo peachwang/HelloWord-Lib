@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-  
-
 from util import *
-from time import time
 
-class Timer :
+class Timer(Object) :
 
     timing_total = 0
     timing_current = time()

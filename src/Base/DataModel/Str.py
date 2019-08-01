@@ -16,6 +16,9 @@ class Str(str) :
     def format(self) :
         pass
 
+    def len(self) :
+        return len(self)
+
     def split(self) :
         pass
 

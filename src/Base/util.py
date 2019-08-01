@@ -15,11 +15,14 @@ from copy import *
 from bcolors import OKMSG as OK, PASS, WARN, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE, HEADER, ENDC as END
 GREEN, YELLOW, RED, BLUE = PASS, WARN, FAIL, BLUE
 # from DataModel.Str import Str
+# from DataModel.Tuple import Tuple
 from DataModel.List import List
 from DataModel.Dict import Dict
 from DataModel.DateTime import DateTime
 from DataModel.Object import Object
-from Folder import Folder, File
+from Folder import Folder
+from File import File
+from Audio import Audio
 
 
 # @todo: add comments for the following functions
