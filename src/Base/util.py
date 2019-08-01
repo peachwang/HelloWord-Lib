@@ -14,13 +14,12 @@ from math import *
 from copy import *
 from bcolors import OKMSG as OK, PASS, WARN, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE, HEADER, ENDC as END
 GREEN, YELLOW, RED, BLUE = PASS, WARN, FAIL, BLUE
-from DataModel.Int import Int
-from DataModel.Str import Str
+# from DataModel.Str import Str
 from DataModel.List import List
 from DataModel.Dict import Dict
 from DataModel.DateTime import DateTime
 from DataModel.Object import Object
-from DataModel.Folder import Folder, File
+from Folder import Folder, File
 
 
 # @todo: add comments for the following functions
@@ -37,13 +36,14 @@ class UserTypeError(TypeError):
         if type(self.expectedTypes) is not list :
             raise UserTypeError('expected_types', expected_types, [type, list])
         if contains_same_items(list(map(type, self.expectedTypes)), True, type) is False :
-            raise Exception('Expected_types does not contain just types.\nexpected_types:\n%s' % j(list(map(str, self.expectedTypes))))
+            raise Exception('Expected_types does not contain just types.\nexpected_types:\n{}'.format(j(list(map(str, self.expectedTypes)))))
         self.value = self.__str__()
 
     def __str__(self) :
         expected_types = ' or '.join([self.getTypeStr(expected_type) for expected_type in self.expectedTypes])
-        return 'Unexpected type(%s) of %s is given, but type(%s) is expected.' \
-            % (self.getTypeStr(self.fieldValue), self.fieldName, str(self.expectedTypes))
+        return 'Unexpected type({}) of {} is given, but type({}) is expected.'.format(
+            self.getTypeStr(self.fieldValue), self.fieldName, str(self.expectedTypes)
+        )
 
     def getTypeStr(self, var_type) :
         return re.findall(r'\'([^\']+)\'', str(type(var_type)))[0]
@@ -55,7 +55,7 @@ class UserException(BaseException) :
         self.code    = code
 
     def __str__(self) :
-        return 'UserException (%s) : %s.' % (str(self.code), self.message)
+        return 'UserException ({}) : {}.'.format(str(self.code), self.message)
 
 # ==================== List ====================
 
@@ -108,26 +108,11 @@ def map_to(field_names, field_values) :
         if len(field_values) == len(field_names) :
             return dict(zip(field_names, field_values))
         else :
-            raise Exception('Lengths of field_names and field_values do not equal.\nfield_names:\n%s\nfield_values:\n%s' \
-                % (j(field_names), j(field_values)))
+            raise Exception('Lengths of field_names and field_values do not equal.\nfield_names:\n{}\nfield_values:\n{}'.format(
+                j(field_names), j(field_values)
+            ))
     else :
         raise UserTypeError('field_values', field_values, [int, float, bool, str, unicode, list])
-
-def create_fields_recursively(data, field_list, initial_value = None) :
-    if type(data) is not dict :
-        raise UserTypeError('data', data, dict)
-    if type(field_list) is str : field_list = [ field_list ]
-    current = data
-    for index, field in enumerate(field_list) :
-        if field not in current :
-            if index + 1 == len(field_list) and initial_value is not None :
-                current[field] = initial_value
-            else :
-                current[field] = {}
-        elif index + 1 < len(field_list) and type(current[field]) is not dict :
-            raise UserTypeError('current[%s]' % field, current[field], dict)
-        current = current[field]
-    return data
 
 # ==================== String ====================
 
@@ -336,8 +321,8 @@ def inspect(data, max_depth = 10, depth = 0) :
     if depth > max_depth :
         if data is None : return None 
         elif type(data) in [str, int, float, bool, tuple, set] : return data
-        elif type(data) is list : return '[ %d items folded ]' % len(data)
-        elif type(data) is dict : return '{ %d keys folded }' % len(data)
+        elif type(data) is list : return '[ {} items folded ]'.format(len(data))
+        elif type(data) is dict : return '{{ {} keys folded }}'.format(len(data))
         else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
     if data is None : return None
     elif type(data) in [str, int, float, bool, tuple, set] : return data
@@ -351,7 +336,7 @@ def inspect(data, max_depth = 10, depth = 0) :
         _ = '------------------------------'
         if type(result_0) is dict :
             for index, datum_i in enumerate(data) :
-                if type(datum_i) is not dict : raise Exception('列表中元素类型不一致(%s)', str(datum_i))
+                if type(datum_i) is not dict : raise Exception('列表中元素类型不一致({})'.format(str(datum_i)))
                 for key, value in datum_i.items() :
                     if key not in result_0 :
                         result_0[key] = inspect(value, max_depth, depth + 1) # 【补充】第0个元素中不存在的字段
@@ -362,7 +347,7 @@ def inspect(data, max_depth = 10, depth = 0) :
                         and not (type(result_0[key][0]) is str and 'POSSIBLE VALUES' in result_0[key][0]) : continue # 列表类【补充】字段不扩充POSSIBLE VALUES
                     if data[0].get(key) is None and type(result_0[key]) is dict : continue # 字典类【补充】字段不扩充POSSIBLE VALUES
                     # 此时待补充的是非列表字典类字段
-                    if type(value) is list or type(value) is dict : raise Exception('列表中元素类型不一致(%s)', str(value))
+                    if type(value) is list or type(value) is dict : raise Exception('列表中元素类型不一致({})'.format(str(value)))
                     # 此时value一定为非列表字典类数据
                     if type(result_0[key]) is not list : # 暂未扩充过，现进行首次扩充POSSIBLE VALUES
                         result_0[key] = [
@@ -376,10 +361,10 @@ def inspect(data, max_depth = 10, depth = 0) :
                             if inspect(value, max_depth, depth + 1) not in result_0[key] :
                                 result_0[key].append(inspect(value, max_depth, depth + 1)) # 扩充
                         if index == len(data) - 1 :
-                            result_0[key].append(_ + 'TOTAL %d SIMILAR ITEMS' % len(data) + _)
-            return [ result_0, _ + 'TOTAL %d SIMILAR DICTS' % len(data) + _ ]
+                            result_0[key].append('{} TOTAL {} SIMILAR ITEMS {}'.format(_, len(data), _))
+            return [ result_0, '{} TOTAL {} SIMILAR DICTS {}'.format(_, len(data), _) ]
         else : # 非字典类数据，含列表
-            return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1), _ + 'TOTAL %d SIMILAR LISTS' % len(data) + _ ]
+            return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1), '{} TOTAL {} SIMILAR LISTS {}'.formart(_, len(data), _) ]
     elif type(data) is dict : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
 

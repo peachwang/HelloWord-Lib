@@ -4,12 +4,44 @@ import re
 
 class Str(str) :
 
+    NUM_ALL = 'ALL'
+    NUM_ONE = 'ONE'
 
     def __add__(self, value) :
         '''
         Return self+value.
         '''
         return Str(str(self) + value)
+
+    def format(self) :
+        pass
+
+    def split(self) :
+        pass
+
+    def strip(self, left = True, right = True) :
+        pass
+
+    def findall(self) :
+        pass
+
+    def match(self) :
+        pass
+
+    def search(self, reverse = False) :
+        pass
+
+    def replace(self, reverse = False, num = Str.NUM_ALL) :
+        pass
+
+    def count(self) :
+        pass
+
+    def index(self, reverse = False) :
+        pass
+
+    def find(self, reverse = False) :
+        pass
 
     # ===============================================================
 
