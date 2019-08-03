@@ -7,8 +7,8 @@ class List(list) :
         if len(args) == 0 :
             raw_item_list = []
         elif len(args) == 1 :
-            if type(args[0]) is List :
                 list.__init__(self, args[0].data())
+            if isinstance(args[0], List) :
                 return
             elif type(args[0]) is list :
                 raw_item_list = args[0]
