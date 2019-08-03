@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-  
-
-from DataModel.List import List
-from DataModel.Dict import Dict
+import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 
 class Object() :
     
     def __init__(self) :
+        from Dict import Dict
         object.__setattr__(self, '_data', Dict())
 
     def __getattr__(self, name) :
@@ -13,6 +12,8 @@ class Object() :
         return self._data[name]
 
     def __setattr__(self, name, value) :
+        from Dict import Dict
+        from List import List
         if type(value) is list : self._data[name] = List(value)
         elif type(value) is dict : self._data[name] = Dict(value)
         else : self._data[name] = value
@@ -29,7 +30,12 @@ class Object() :
         return self._data.getMulti(name_list)
 
     def _has(self, name_list) :
-        return self._data.has(name_list)
+        if self._get(name_list) is None : return False
+        else : return True
+        # return self._data.has(name_list)
+    
+    def __format__(self, code) :
+        return '{}'.format(self._data)
 
 
 if __name__ == '__main__':

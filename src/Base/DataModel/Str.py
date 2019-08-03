@@ -1,53 +1,124 @@
 # -*- coding: utf-8 -*-  
-
+import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 import re
 
 class Str(str) :
 
-    NUM_ALL = 'ALL'
-    NUM_ONE = 'ONE'
+    def getRaw(self) :
+        return str(self)
 
     def __add__(self, value) :
-        '''
-        Return self+value.
-        '''
-        return Str(str(self) + value)
+        '''Return self+value.'''
+        '''NOT IN PLACE'''
+        return Str(str.__add__(self, value))
 
-    def format(self) :
-        pass
+    def copy(self) :
+        raise
+
+    def concat(self, value) :
+        '''IN PLACE'''
+        raise
+
+    def format(self, *args, **kwargs) :
+        '''NOT IN PLACE'''
+        return Str(str.format(self, *args, **kwargs))
 
     def len(self) :
         return len(self)
 
-    def split(self) :
-        pass
+    def join(self, str_list) :
+        '''NOT IN PLACE'''
+        from List import List
+        if type(str_list) not in [ list, List ] :
+            raise Exception('Unexpected type of str_list: {}'.format(str_list))
+        return Str(str.join(self, str_list))
 
-    def strip(self, left = True, right = True) :
-        pass
+    def split(self, sep) :
+        from List import List
+        if type(sep) not in [ str, Str ] :
+            raise Exception('Unexpected type of sep: {}'.format(sep))
+        return List(str.split(self, sep))
 
-    def findall(self) :
-        pass
+    def strip(self, string, left = True, right = True) :
+        '''IN PLACE'''
+
+
+
+        if type(string) not in [ str, Str ] :
+            raise Exception('Unexpected type of string: {}'.format(string))
+        if not left and right : 
+            return Str(str.rstrip(self, string))
+        elif not right and left :
+            return Str(str.lstrip(self, string))
+        elif left and right :
+            return Str(str.strip(self, string))
+        else :
+            raise Exception('Unexpected left{} and right{}'.format(left, right))
+
+    def findall(self, pattern) :
+        '''Return a list of all non-overlapping matches in the string.
+        If one or more capturing groups are present in the pattern, return
+        a list of groups; this will be a list of tuples if the pattern
+        has more than one group.
+        Empty matches are included in the result.'''
+        return re.findall()
 
     def match(self) :
-        pass
+        raise
 
     def search(self, reverse = False) :
-        pass
+        raise
 
-    def replace(self, reverse = False, num = Str.NUM_ALL) :
-        pass
+    # def replace(self, reverse = False) :
+    #     raise
 
     def count(self) :
-        pass
+        raise
 
     def index(self, reverse = False) :
-        pass
+        raise
 
     def find(self, reverse = False) :
-        pass
+        raise
 
     def finditer(self) :
-        pass
+        raise
+
+    def safe(self) :
+        raise
+
+    # def safe_print(stream, st, encoding = 'utf-8') :
+    #     for ch in st :
+    #         if ord(ch) < 128 : stream.write(ch)
+    #         else : 
+    #             # try :
+    #                 # stream.write(ch.encode(encoding))
+    #             # except(Exception, e) :
+    #             stream.write(ch)
+    #     stream.flush()
+
+    def safe_print(self) :
+        raise
+
+    # def unicode_to_url_hex(st) :
+    #     res = ''
+    #     for ch in st :
+    #         if ch == ' ' :
+    #             res += '%20'
+    #         elif ord(ch) <= 128 :
+    #             res += ch
+    #         else :
+    #             res += hex(ord(ch)).upper().replace('0X', '%u')
+    #     return res
+
+    # def __format__(self) :
+        '''S.__format__(format_spec) -> str
+        Return a formatted version of S as described by format_spec.'''
+        # return str.__str__(self)
+
+    # def __str__(self) :
+        '''Return str(self).'''
+        # return 'Str\'{}\''.format(str.__str__(self))
 
     # ===============================================================
 
@@ -65,13 +136,6 @@ class Str(str) :
     # def __eq__(self) :
         '''
         Return self==value.
-        '''
-
-    # def __format__(self) :
-        '''
-        S.__format__(format_spec) -> str
-
-        Return a formatted version of S as described by format_spec.
         '''
 
     # def __ge__(self) :
@@ -200,11 +264,6 @@ class Str(str) :
     # def __sizeof__(self) :
         '''
         S.__sizeof__() -> size of S in memory, in bytes
-        '''
-
-    # def __str__(self) :
-        '''
-        Return str(self).
         '''
 
     # def __subclasshook__(self) :
@@ -613,22 +672,3 @@ class Str(str) :
         Pad a numeric string S with zeros on the left, to fill a field
         of the specified width. The string S is never truncated.
         '''
-
-
-
-if __name__ == '__main__':
-    st1 = Str('regurgitate')
-    st2 = Str('apple')
-    print(type(st1), st1)
-    print(type(st2), st2)
-    # st = st1 + st2
-    st = 'regurgitate ' + st2
-    # st = st1 + ' apple'
-    st = Str(st)
-    print(type(st), st)
-    print('regurgitate apple' == st)
-
-    print(dir(Str))
-    # st = st.upper()
-    # form = st.extract(r'[a-zA-Z]+')
-    # assert

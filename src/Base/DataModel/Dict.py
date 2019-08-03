@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-  
+import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 
 class Dict(dict) :
 
@@ -12,44 +13,64 @@ class Dict(dict) :
                     if type(args[0][key]) is dict :
                         dict.__setitem__(self, key, Dict(args[0][key]))
                     elif type(args[0][key]) is list :
-                        from DataModel.List import List
+                        from List import List
                         dict.__setitem__(self, key, List(args[0][key]))
+                    elif type(args[0][key]) is str :
+                        from Str import Str
+                        dict.__setitem__(self, key, Str(args[0][key]))
                     else :
                         dict.__setitem__(self, key, args[0][key])
                 # dict.__init__(self, args[0])
             elif type(args[0]) is Dict :
-                dict.__init__(self, args[0].data())
+                dict.__init__(self, args[0].getData())
             else :
-                raise Exception('Unexpected args for Dict.__init__: {}'.format(str(args)))
+                raise Exception('Unexpected args for Dict.__init__: {}'.format(args))
         else :
-            raise Exception('Unexpected args for Dict.__init__: {}'.format(str(args)))
+            raise Exception('Unexpected args for Dict.__init__: {}'.format(args))
 
-    def data(self) :
+    def getData(self) :
         return { key : self[key] for key in self }
 
-    def raw(self) :
-        from DataModel.List import List
-        return { key : (self[key].raw() if type(self[key]) in [ List, Dict ] else self[key]) for key in self }
+    def getRaw(self) :
+        from List import List
+        from Str import Str
+        return { key : (self[key].getRaw() if type(self[key]) in [ List, Dict, Str ] else self[key]) for key in self }
 
-    # def fromkeys(self, key_list, value = None) :
-        '''
-        Returns a new dict with keys from iterable and values equal to value.
-        '''
+    def copy(self) :
+        '''D.copy() -> a shallow copy of D'''
+        return Dict(self)
 
-    def keys(self) :
-        '''D.keys() -> a set-like object providing a view on D's keys'''
-        from DataModel.List import List
-        return List(dict.keys(self))
-    
-    def values(self) :
-        '''D.values() -> an object providing a view on D's values'''
-        from DataModel.List import List
-        return List(dict.values(self))
+    def j(self) :
+        from util import j
+        return j(self.getRaw())
 
-    def items(self) :
-        '''D.items() -> a set-like object providing a view on D's items'''
-        from DataModel.List import List
-        return List(dict.items(self))
+    def __format__(self, code) :
+        '''default object formatter'''
+        from Str import Str
+        return "{{{}}}".format(
+            self.copy()\
+                .keys()\
+                .map(lambda key, index : '{} : {}'.format(
+                        '"{}"'.format(key) if type(key) in [ str, Str ] else '{}'.format(key),
+                        '"{}"'.format(self[key]) if type(self[key]) in [ str, Str ] else '{}'.format(self[key])
+                    )
+                )\
+                .join(', ')
+        )
+
+    def __str__(self) :
+        '''Return str(self).'''
+        from Str import Str
+        return 'Dict{{{}}}'.format(
+            self.copy()\
+                .keys()\
+                .map(lambda key, index : '{} : {}'.format(
+                        '"{}"'.format(key) if type(key) in [ str, Str ] else '{}'.format(key),
+                        '"{}"'.format(self[key]) if type(self[key]) in [ str, Str ] else str(self[key])
+                    )
+                )\
+                .join(', ')
+        )
 
     # def __len__(self) :
         '''
@@ -59,18 +80,120 @@ class Dict(dict) :
     def len(self) :
         return len(self)
 
+    # def __contains__(self) :
+        '''
+        True if D has a key k, else False.
+        '''
+
+    def has(self, key_list) :
+        from List import List
+        from Str import Str
+        if type(key_list) in [ str, Str ] :
+            return dict.__contains__(self, key_list)
+        elif type(key_list) in [ list, List ] :
+            now = self
+            for key in key_list :
+                if not dict.__contains__(now, key) : return False
+                now = now[key]
+            return True
+        else :
+            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+
+    def keys(self) :
+        '''D.keys() -> a set-like object providing a view on D's keys'''
+        from List import List
+        return List(list(dict.keys(self)))
+    
+    def values(self) :
+        '''D.values() -> an object providing a view on D's values'''
+        from List import List
+        return List(list(dict.values(self)))
+
+    def items(self) :
+        '''D.items() -> a set-like object providing a view on D's items'''
+        from List import List
+        return List(list(dict.items(self)))
+
+    # def fromkeys(self, key_list, value = None) :
+        '''
+        Returns a new dict with keys from iterable and values equal to value.
+        '''
+
+    # def __getattribute__(self) :
+        '''
+        Return getattr(self, name).
+        '''
+
+    def __getattr__(self, key) :
+        '''getattr(object, name[, default]) -> value
+        
+        Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
+        When a default argument is given, it is returned when the attribute doesn't
+        exist; without it, an exception is raised in that case.'''
+        return self[key]
+
+    # def __getitem__(self) :
+        '''
+        x.__getitem__(y) <==> x[y]
+        '''
+
+    def get(self, key_list, default = None) :
+        '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
+        from List import List
+        from Str import Str
+        if type(key_list) in [ str, Str ] :
+            return dict.get(self, key_list, default)
+        elif type(key_list) in [ list, List ] :
+            if not self.has(key_list) :
+                return default
+            else :
+                now = self
+                for key in key_list :
+                    now = now[key]
+                return now
+        else :
+            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+
+    # [ (key1,), (key2, None), key3 ]
+    def getMulti(self, key_list, default = None) :
+        from List import List
+        from Str import Str
+        if type(key_list) in [ list, List ] :
+            result = Dict()
+            for key in key_list :
+                if type(key) is tuple :
+                    if len(key) not in [1, 2] :
+                        raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+                    elif len(key) == 1 :
+                        if self.has(key[0]) : result[key[0]] = self[key[0]]
+                    elif len(key) == 2 :
+                        if self.has(key[0]) : result[key[0]] = self[key[0]]
+                        else : result[key[0]] = key[1]
+                elif type(key) in [ str, Str ] :
+                    result[key] = self[key]
+                else : raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+            return result
+        else :
+            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+
     def __setattr__(self, key, value) :
-        '''Implement setattr(self, name, value).'''
+        '''Implement setattr(self, name, value).
+        
+        Sets the named attribute on the given object to the specified value.
+        setattr(x, 'y', v) is equivalent to ``x.y = v'''
         self.__setitem__(key, value)
         return value
 
     def __setitem__(self, key, value) :
         '''Set self[key] to value.'''
-        from DataModel.List import List
+        from List import List
+        from Str import Str
         if type(value) is list :
             dict.__setitem__(self, key, List(value))
         elif type(value) is dict :
             dict.__setitem__(self, key, Dict(value))
+        elif type(value) is str :
+            dict.__setitem__(self, key, Str(value))
         else :
             dict.__setitem__(self, key, value)
         return value
@@ -81,9 +204,11 @@ class Dict(dict) :
         '''
 
     def set(self, key_list, value) :
-        if type(key_list) is str :
+        from List import List
+        from Str import Str
+        if type(key_list) in [ str, Str ] :
             self[key_list] = value
-        elif type(key_list) is list :
+        elif type(key_list) in [ list, List ] :
             now = self
             for index, key in enumerate(key_list) :
                 if key in now :
@@ -102,124 +227,45 @@ class Dict(dict) :
         If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]
         If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
         In either case, this is followed by: for k in F:  D[k] = F[k]'''
+        '''IN PLACE'''
         if type(mapping) is dict :
             dict.update(self, Dict(mapping))
         elif type(mapping) is Dict :
-            dict.update(self, mapping.data())
-        else : raise Exception('Unexpected mapping: {}'.format(str(mapping)))
+            dict.update(self, mapping.getData())
+        else :
+            print(type(mapping))
+            raise Exception('Unexpected mapping: {}'.format(str(mapping)))
         if len(args) > 0 : dict.update(self, args)
         return self
-
-    # def __contains__(self) :
-        '''
-        True if D has a key k, else False.
-        '''
-
-    def has(self, key_list) :
-        if type(key_list) is str :
-            return dict.__contains__(self, key_list)
-        elif type(key_list) is list :
-            now = self
-            for key in key_list :
-                if not dict.__contains__(now, key) : return False
-                now = now[key]
-            return True
-        else :
-            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
-
-    # def __getitem__(self) :
-        '''
-        x.__getitem__(y) <==> x[y]
-        '''
-
-    def get(self, key_list, default = None) :
-        '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
-        if type(key_list) is str :
-            return dict.get(self, key_list, default)
-        elif type(key_list) is list :
-            if not self.has(key_list) :
-                return default
-            else :
-                now = self
-                for key in key_list :
-                    now = now[key]
-                return now
-        else :
-            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
-
-    # [ (key1,), (key2, None), key3 ]
-    def getMulti(self, key_list, default = None) :
-        if type(key_list) is list :
-            result = Dict()
-            for key in key_list :
-                if type(key) is tuple :
-                    if len(key) not in [1, 2] :
-                        raise Exception('Unexpected key_list: {}'.format(str(key_list)))
-                    elif len(key) == 1 :
-                        if self.has(key[0]) : result[key[0]] = self[key[0]]
-                    elif len(key) == 2 :
-                        if self.has(key[0]) : result[key[0]] = self[key[0]]
-                        else : result[key[0]] = key[1]
-                elif type(key) is str :
-                    result[key] = self[key]
-                else : raise Exception('Unexpected key_list: {}'.format(str(key_list)))
-            return result
-        else :
-            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
-
-    # def __getattribute__(self) :
-        '''
-        Return getattr(self, name).
-        '''
-
-    def __getattr__(self, key) :
-        return self[key]
 
     # def pop(self, key) :
         '''
         D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
         If key is not found, d is returned if given, otherwise KeyError is raised
         '''
+        '''IN PLACE'''
     
     # def popitem(self) :
         '''
         D.popitem() -> (k, v), remove and return some (key, value) pair as a
         2-tuple; but raise KeyError if D is empty.
         '''
+        '''IN PLACE'''
     
+    def strip(self) :
+        '''IN PLACE'''
+        raise
+
     def clear(self) :
         '''D.clear() -> None.  Remove all items from D.'''
+        '''IN PLACE'''
         dict.clear(self)
         return self
-    
-    def copy(self) :
-        '''D.copy() -> a shallow copy of D'''
-        return Dict(self)
 
-    def j(self) :
-        from util import j
-        return j(self.raw())
+    def writeToFile(self, file) :
+        file.write(self.j())
+        return self
 
-    def __format__(self, code) :
-        '''default object formatter'''
-        return "{{{}}}".format((', ').join([ 
-            '{} : {}'.format(
-                '"{}"'.format(str(key)) if type(key) is str else str(key),
-                format(self[key])
-            )
-            for key in self
-        ])) 
-
-    def __str__(self) :
-        '''Return str(self).'''
-        return 'Dict{{{}}}'.format(', '.join([ 
-            '{} : {}'.format(
-                '"{}"'.format(str(key)) if type(key) is str else str(key),
-                str(self[key])
-            )
-            for key in self
-        ]))
-    
     # python2
     # '__class__', '__cmp__', '__contains__', '__delattr__', '__delitem__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__iter__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'clear', 'copy', 'fromkeys', 'get', 'has_key', 'items', 'iteritems', 'iterkeys', 'itervalues', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values', 'viewitems', 'viewkeys', 'viewvalues'
     # 
@@ -244,6 +290,10 @@ class Dict(dict) :
     # def __delattr__(self) :
         '''
         Implement delattr(self, name).
+
+        Deletes the named attribute from the given object.
+
+        delattr(x, 'y') is equivalent to ``del x.y''
         '''
 
     # def __delitem__(self) :
@@ -303,6 +353,13 @@ class Dict(dict) :
     # def __iter__(self) :
         '''
         Implement iter(self).
+
+        iter(iterable) -> iterator
+        iter(callable, sentinel) -> iterator
+
+        Get an iterator from an object.  In the first form, the argument must
+        supply its own iterator, or be a sequence.
+        In the second form, the callable is called until it returns the sentinel.
         '''
 
     # def __le__(self) :
@@ -355,21 +412,4 @@ class Dict(dict) :
         overrides the normal algorithm (and the outcome is cached).
 
         '''
-
-if __name__ == '__main__':
-    a = Dict({'1' : {2 : {'3' : ['4', '5', '6']}}, 'pop' : 11})
-    # a = Dict({'1' : 2})
-    a.set(['apple', 'peach'], {})
-    # import json
-    # print(json.dumps(a.items()))
-    # print(a.items())
-    print('{}'.format(a))
-    print(a)
-
-    # print(json.dumps(a))
-    # print('apple{0:\n},{1:a}'.format(a, a))
-    # print(a)
-    # print(type(a))
-    # print(a[1])
-    # print(type(a[1][2][3]))
 

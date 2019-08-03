@@ -1,28 +1,27 @@
 # -*- coding: utf-8 -*-  
-import re, socket, json, random, sys, os, subprocess
-import requests
-from multiprocessing import Process, Lock
+import re, json, sys, os, requests
 from time import sleep, time, gmtime, mktime, ctime, localtime, strftime, strptime
 from datetime import datetime, date, timedelta
 from os.path import exists, getsize, join, isfile, realpath
 from os import rename, listdir, remove, mkdir, makedirs
-from sys import stdin, stdout, stderr, exit
-from operator import itemgetter, attrgetter
-from threading import Thread
-# from Queue import Queue
+from sys import exit
 from math import *
 from copy import *
-from bcolors import OKMSG as OK, PASS, WARN, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE, HEADER, ENDC as END
-GREEN, YELLOW, RED, BLUE = PASS, WARN, FAIL, BLUE
-# from DataModel.Str import Str
-# from DataModel.Tuple import Tuple
-from DataModel.List import List
-from DataModel.Dict import Dict
-from DataModel.DateTime import DateTime
-from DataModel.Object import Object
-from Folder import Folder
-from File import File
+
+from bcolors import OKMSG as OK, PASS, WARN, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE, HEADER, ENDC
+G, Y, R, B, E = GREEN, YELLOW, RED, BLUE, END = PASS, WARN, FAIL, BLUE, ENDC
+
+sys.path.append(os.path.realpath(__file__ + '/../DataModel/'));
+
+from DateTime import DateTime
+from Dict import Dict
+from List import List
+from Object import Object
+from Str import Str
 from Audio import Audio
+from File import File
+from Folder import Folder
+from Timer import Timer
 
 
 # @todo: add comments for the following functions
@@ -84,22 +83,7 @@ def intersection(*lists) :
         _ = ___
     return _
 
-def contains_same_items(data, check_specific_value = False, specific_value = None) :
-    if type(data) not in [list, dict] :
-        raise UserTypeError('data', data, [list, dict])
-    if type(data) is dict : data = data.values()
-    if len(data) == 0 : return True
-    if check_specific_value is True :
-        return data.count(specific_value) == len(data)
-    else :
-        return data.count(data[0]) == len(data)
-
 # ==================== Dict ====================
-
-def union(*dicts) :
-    _ = {}
-    for __ in dicts : _.update(__)
-    return _
 
 def map_to(field_names, field_values) :
     if type(field_names) is not list :
@@ -188,43 +172,23 @@ def contains_empty_string(data) :
     else :
         raise UserTypeError('data', data, [str, unicode, list, tuple, set, dict, int, float, bool])
 
+# 为了防止json无法解析对象类数据
 def str_object(data) :
-    if type(data) in [str, int, float, bool] :
+    if type(data) in [ Str, str, int, float, bool] :
     # if type(data) in [str, unicode, int, float, bool] :
         return data
         # return str(data)
-    elif type(data) == list :
+    elif type(data) in [ list, List ] :
         return [str_object(datum) for datum in data]
     elif type(data) == tuple :
         return '(' + ', '.join(str(datum) for datum in data) + ')'
         # return (str_object(datum) for datum in data)
     elif type(data) == set :
         return set([str_object(datum) for datum in data])
-    elif type(data) == dict :
+    elif type(data) in [ dict, Dict ] :
         return dict([(str_object(key), str_object(data[key])) for key in data.keys()])
     else :
         return str(data)
-
-def unicode_to_url_hex(st) :
-    res = ''
-    for ch in st :
-        if ch == ' ' :
-            res += '%20'
-        elif ord(ch) <= 128 :
-            res += ch
-        else :
-            res += hex(ord(ch)).upper().replace('0X', '%u')
-    return res
-
-def safe_print(stream, st, encoding = 'utf-8') :
-    for ch in st :
-        if ord(ch) < 128 : stream.write(ch)
-        else : 
-            # try :
-                # stream.write(ch.encode(encoding))
-            # except(Exception, e) :
-            stream.write(ch)
-    stream.flush()
 
 # ==================== Data ====================
 
@@ -272,52 +236,8 @@ def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = 
         else : data[datum[primary_key]] = datum
     return data
 
-def dump_table(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
-    if is_matrix :
-        for datum in data :
-            safe_print(fout, sep.join(datum) + '\n')
-            fout.flush()
-    else :
-        if primary_key is not None :
-            data = data.values()
-        if fields is None :
-            fields = union(*(data)).keys()
-        if primary_key is not None :
-            fields.remove(primary_key)
-            fields = [primary_key] + fields
-        safe_print(fout, sep.join(fields) + '\n')
-        for datum in data :
-            safe_print(fout, sep.join([datum.get(field, default) for field in fields]) + '\n')
-            fout.flush()
-
 def load_json(fin, object_hook = None, encoding = 'utf-8') :
     return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
-
-def decode_list(data):
-    rv = []
-    for item in data:
-        # if isinstance(item, unicode):
-            # item = item.encode('utf-8')
-        if isinstance(item, list):
-            item = decode_list(item)
-        elif isinstance(item, dict):
-            item = decode_dict(item)
-        rv.append(item)
-    return rv
-
-def decode_dict(data):
-    rv = {}
-    for key, value in data.iteritems():
-        # if isinstance(key, unicode):
-            # key = key.encode('utf-8')
-        # if isinstance(value, unicode):
-            # value = value.encode('utf-8')
-        if isinstance(value, list):
-            value = decode_list(value)
-        elif isinstance(value, dict):
-            value = decode_dict(value)
-        rv[key] = value
-    return rv
 
 def inspect(data, max_depth = 10, depth = 0) :
     # print(str(data)[:120])
@@ -371,12 +291,6 @@ def inspect(data, max_depth = 10, depth = 0) :
     elif type(data) is dict : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
 
-# ==================== Math ====================
-
-def mean(num_list, default = None) :
-    if len(num_list) == 0 : return default
-    return 1.0 * sum(num_list) / len(num_list)
-
 # ==================== System ====================
 
 def parse_argv(argv) :
@@ -393,13 +307,13 @@ def parse_argv(argv) :
     return mapping, sequence
 
 def shell(command) :
+    import subprocess
     p = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
     # for index, line in enumerate(p.stdout.readlines()):
         # print index, line.strip()
     retval = p.wait()
     return (p.stdout, retval)
 
-from Timer import Timer
 from Base import Base
 
 

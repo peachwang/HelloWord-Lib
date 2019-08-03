@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import *
+from File import File
 
 class Audio(File) :
 

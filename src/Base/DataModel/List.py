@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-  
+import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 
 class List(list) :
 
@@ -7,8 +8,8 @@ class List(list) :
         if len(args) == 0 :
             raw_item_list = []
         elif len(args) == 1 :
-                list.__init__(self, args[0].data())
             if isinstance(args[0], List) :
+                list.__init__(self, args[0].getData())
                 return
             elif type(args[0]) is list :
                 raw_item_list = args[0]
@@ -21,19 +22,49 @@ class List(list) :
             if type(item) is list :
                 item_list.append(List(item))
             elif type(item) is dict :
-                from DataModel.Dict import Dict
+                from Dict import Dict
                 item_list.append(Dict(item))
+            elif type(item) is str :
+                from Str import Str
+                item_list.append(Str(item))
             else :
                 item_list.append(item)
         list.__init__(self, item_list)
 
-    def data(self) :
+    def getData(self) :
         return [ item for item in self ]
 
-    def raw(self) :
-        from DataModel.Dict import Dict
-        return [ item.raw() if type(item) in [ List, Dict ] else item for item in self ]
-    
+    def getRaw(self) :
+        from Dict import Dict
+        from Str import Str
+        return [ item.getRaw() if type(item) in [ List, Dict, Str ] else item for item in self ]
+
+    def copy(self) :
+        '''L.copy() -> list -- a shallow copy of L'''
+        return List(self)
+
+    def j(self) :
+        from util import j
+        return j(self.getRaw())
+
+    def __format__(self, code) :
+        '''default object formatter'''
+        from Str import Str
+        return '[{}]'.format(
+            self.copy()\
+                .map(lambda item, index : '"{}"'.format(item) if type(item) in [ str, Str ] else '{}'.format(item))\
+                .join(', ')
+        )
+
+    def __str__(self) :
+        '''Return str(self).'''
+        from Str import Str
+        return 'List[{}]'.format(
+            self.copy()\
+                .map(lambda item, index : '"{}"'.format(item) if type(item) in [ str, Str ] else str(item))\
+                .join(', ')
+        )
+
     # def __len__(self) :
         '''
         Return len(self).
@@ -42,12 +73,12 @@ class List(list) :
     def len(self) :
         return len(self)
 
-    # def __contains__(self) :
+    # def __contains__(self, item) :
         '''
         'x.__contains__(y) <==> y in x'
         '''
 
-    # def index(self, item) :
+    # def index(self, item, start = 0) :
         '''
         L.index(value, [start, [stop]]) -> integer -- return first index of value.
         Raises ValueError if the value is not present.
@@ -58,46 +89,101 @@ class List(list) :
         L.count(value) -> integer -- return number of occurrences of value
         '''
 
-    def __setitem__(self, key, value) :
-        '''Set self[key] to value.'''
-        from DataModel.Dict import Dict
-        if type(value) is list :
-            list.__setitem__(self, key, List(value))
-        elif type(value) is dict :
-            list.__setitem__(self, key, Dict(value))
-        else :
-            list.__setitem__(self, key, value)
-        return value
+    # def __getattribute__(self) :
+        '''
+        Return getattr(self, name).
+        '''
 
-    def set(self, key, value) :
-        self.__setitem__(key, value)
-        return self
+    # def __getattr__(self, index) :
+        '''
+        getattr(object, name[, default]) -> value
+        
+        Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
+        When a default argument is given, it is returned when the attribute doesn't
+        exist; without it, an exception is raised in that case.
+        '''
 
-    # def __getitem__(self) :
+    # def __getitem__(self, index) :
         '''
         x.__getitem__(y) <==> x[y]
         '''
 
+    # def __setattr__(self) :
+        '''
+        Implement setattr(self, name, value).
+        
+        Sets the named attribute on the given object to the specified value.
+        setattr(x, 'y', v) is equivalent to ``x.y = v''
+        '''
+
+    def __setitem__(self, index, item) :
+        '''Set self[index] to value.'''
+        from Dict import Dict
+        from Str import Str
+        if type(item) is list :
+            list.__setitem__(self, index, List(item))
+        elif type(item) is dict :
+            list.__setitem__(self, index, Dict(item))
+        elif type(item) is str :
+            list.__setitem__(self, index, Str(item))
+        else :
+            list.__setitem__(self, index, item)
+        return item
+
+    def set(self, index, item) :
+        self.__setitem__(index, item)
+        return self
+
     def append(self, item) :
         '''L.append(object) -> None -- append object to end'''
+        '''IN PLACE'''
+        from Dict import Dict
+        from Str import Str
         if type(item) is list :
             list.append(self, List(item))
         elif type(item) is dict :
             list.append(self, Dict(item))
+        elif type(item) is str :
+            list.append(self, Str(item))
         else :
             list.append(self, item)
         return self
 
     def insert(self, index, item) :
         '''L.insert(index, object) -> None -- insert object before index'''
+        '''IN PLACE'''
+        from Dict import Dict
+        from Str import Str
         if type(item) is list :
             list.insert(self, index, List(item))
         elif type(item) is dict :
             list.insert(self, index, Dict(item))
+        elif type(item) is str :
+            list.insert(self, index, Str(item))
         else :
             list.insert(self, index, item)
         return self
 
+    def __add__(self, item_list) :
+        '''Return self+value.'''
+        '''NOT IN PLACE'''
+        if type(item_list) is list :
+            return List(list.__add__(self, List(item_list)))
+        elif type(item_list) is List :
+            return List(list.__add__(self, item_list))
+        else :
+            raise Exception('Unexpected item_list: {}'.format(item_list))
+
+    def __iadd__(self, item_list) :
+        '''Implement self+=value.'''
+        '''IN PLACE'''
+        if type(item_list) is list :
+            return list.__iadd__(self, List(item_list))
+        elif type(item_list) is List :
+            return list.__iadd__(self, item_list)
+        else :
+            raise Exception('Unexpected item_list: {}'.format(item_list))
+    
     def extend(self, item_list) :
         '''L.extend(iterable) -> None -- extend list by appending elements from the iterable'''
         '''IN PLACE'''
@@ -108,33 +194,17 @@ class List(list) :
         else : raise Exception('Unexpected item_list: {}'.format(item_list))
         return self
 
-    def __add__(self, item_list) :
-        '''Return self+value.'''
-        if type(item_list) is list :
-            return List(list.__add__(self, List(item_list)))
-        elif type(item_list) is List :
-            return List(list.__add__(self, item_list))
-        else :
-            raise Exception('Unexpected item_list: {}'.format(item_list))
-
-    def __iadd__(self, item_list) :
-        '''Implement self+=value.'''
-        if type(item_list) is list :
-            return list.__iadd__(self, List(item_list))
-        elif type(item_list) is List :
-            return list.__iadd__(self, item_list)
-        else :
-            raise Exception('Unexpected item_list: {}'.format(item_list))
-    
     # def pop(self, index) :
         '''
         L.pop([index]) -> item -- remove and return item at index (default last).
         Raises IndexError if list is empty or index is out of range.
         '''
+        '''IN PLACE'''
 
     def remove(self, item) :
         '''L.remove(value) -> None -- remove first occurrence of value.
         Raises ValueError if the value is not present.'''
+        '''IN PLACE'''
         list.remove(self, item)
         return self
     
@@ -149,10 +219,10 @@ class List(list) :
         list.reverse(self)
         return self
 
-    def sort(self, key = None, reverse = False) :
-        '''L.sort(key=None, reverse=False) -> None -- stable sort *IN PLACE*'''
+    def sort(self, key_func = None, reverse = False) :
+        '''L.sort(key_func=None, reverse=False) -> None -- stable sort *IN PLACE*'''
         '''IN PLACE'''
-        list.sort(self, key = key, reverse = reverse)
+        list.sort(self, key_func = key_func, reverse = reverse)
         return self
 
     def batch(self, func_name, *args) :
@@ -170,66 +240,141 @@ class List(list) :
     def enumerate(self) :
         return enumerate(self)
 
-    def reduce(self, func, init, *args) :
-        result = init
-        for index, item in enumerate(self) :
-            result = func(result, item, index, *args)
-        return result
-
-    def sum(self, key_list_or_func_name = None) :
-        def func(result, item, index, *args) :
-            result += item
-            return result
-        if key_list_or_func_name is None :
-            return self.reduce(func, 0)
-        elif type(key_list_or_func_name) is list :
-            return self.copy().batch('get', key_list_or_func_name).reduce(func, 0)
-        elif type(key_list_or_func_name) is str :
-            return self.copy().batch(key_list_or_func_name).reduce(func, 0)
-        else : raise Exception('Unexpected key_list: {}'.format(key_list))
-
     def filter(self, func_or_func_name, *args) :
         '''IN PLACE'''
+        from Str import Str
         index = 0
-        if type(func_or_func_name) is str :
-            while index < len(self) :
+        if type(func_or_func_name) in [ str, Str ] :
+            while index < self.len() :
                 if self[index].__getattribute__(func_or_func_name)(*args) : index += 1
                 else : self.pop(index)
         else :
-            while index < len(self) :
+            while index < self.len() :
                 if func_or_func_name(self[index], *args) : index += 1
                 else : self.pop(index)
         return self
 
-    def join(self, string) :
-        pass
+    def reduce(self, func, initial_value, *args) :
+        result = initial_value
+        for index, item in enumerate(self) :
+            result = func(result, item, index, *args)
+        return result
+
+    def _reduce(self, key_list_or_func_name, func, initial_value) :
+        from List import List
+        from Str import Str
+        if key_list_or_func_name is None :
+            return self.reduce(func, initial_value)
+        elif type(key_list_or_func_name) in [ list, List ] :
+            return self.copy().batch('get', key_list_or_func_name).reduce(func, initial_value)
+        elif type(key_list_or_func_name) in [ str, Str ] :
+            return self.copy().batch(key_list_or_func_name).reduce(func, initial_value)
+        else : raise Exception('Unexpected key_list_or_func_name: {}'.format(key_list_or_func_name))
+
+    def sum(self, key_list_or_func_name = None) :
+        if self.len() == 0 : return 0
+        def func(result, item, index, *args) :
+            result += item
+            return result
+        return self._reduce(key_list_or_func_name, func, 0)
+
+    def mean(self, key_list_or_func_name = None, default = None) :
+        if self.len() == 0 : return default
+        return 1.0 * self.sum(key_list_or_func_name) / self.len()
+
+    def _initialValue(self, key_list_or_func_name) :
+        from List import List
+        from Str import Str
+        if key_list_or_func_name is None :
+            return self[0]
+        elif type(key_list_or_func_name) is [ list, List ] :
+            return self[0].get(key_list_or_func_name)
+        elif type(key_list_or_func_name) in [ str, Str ] :
+            return self[0].__getattribute__(key_list_or_func_name)()
+        else : raise Exception('Unexpected key_list_or_func_name: {}'.format(key_list_or_func_name))
+
+    def max(self, key_list_or_func_name = None) :
+        if self.len() == 0 : return None
+        def func(result, item, index, *args) :
+            if item > result : return item
+            else : return result
+        return self._reduce(key_list_or_func_name, func, self._initialValue(key_list_or_func_name))
+
+    def min(self, key_list_or_func_name = None) :
+        if self.len() == 0 : return None
+        def func(result, item, index, *args) :
+            if item < result : return item
+            else : return result
+        return self._reduce(key_list_or_func_name, func, self._initialValue(key_list_or_func_name))
+
+    def join(self, sep) :
+        from Str import Str
+        if type(sep) not in [ str, Str ] :
+            raise Exception('Unexpected type of sep: {}'.format(sep))
+        return Str(sep).join(self)
+
+    def strip(self, string = ' \t\n') :
+        '''IN PLACE'''
+        from Dict import Dict
+        from Str import Str
+        index = 0
+        while index < self.len() :
+            if type(self[index]) in [ List, Dict, Str ] :
+                self[index].strip()
+            elif type(self[index]) == tuple :
+                return (strip(datum, chars, encoding) for item in self[index])
+            elif type(self[index]) == set :
+                return set([strip(datum, chars, encoding) for datum in data])
+            index += 1
+
+        return self
+
+    def unique(self) :
+        '''IN PLACE'''
+        '''O(N^2)'''
+        index = 0
+        while index < self.len() :
+        # __eq__
+            if self.count(self[index]) == 1 : index += 1
+            else : self.pop(index)
+        return self
+
+    def union(self, item_list) :
+        '''Update a set with the union of itself and others.'''
+        '''IN PLACE'''
+        raise
+
+    def difference(self, item_list) :
+        '''Remove all elements of another list from this list.'''
+        '''IN PLACE'''
+        raise
+
+    def intersection(self, item_list) :
+        '''Update itself with the intersection of itself and another.'''
+        '''IN PLACE'''
+        raise
+
+    def isDisjointFrom(self, item_list) :
+        '''Return True if two lists have a null intersection.'''
+        raise
+
+    def isSubsetOf(self, item_list) :
+        '''Report whether another set contains this set.'''
+        raise
+
+    def isSupersetOf(self, item_list) :
+        '''Report whether this set contains another set.'''
+        raise
 
     def clear(self) :
         '''L.clear() -> None -- remove all items from L'''
+        '''IN PLACE'''
         list.clear(self)
         return self
     
-    def copy(self) :
-        '''L.copy() -> list -- a shallow copy of L'''
-        return List(self)
-
-    def j(self) :
-        from util import j
-        return j(self.raw())
-
-    def __format__(self, code) :
-        '''default object formatter'''
-        return '[{}]'.format(', '.join([
-            '"{}"'.format(str(item)) if type(item) is str else str(item)
-            for item in self
-        ]))
-
-    def __str__(self) :
-        '''Return str(self).'''
-        return 'List[{}]'.format(', '.join([
-            '"{}"'.format(str(item)) if type(item) is str else str(item)
-            for item in self
-        ]))
+    def writeToFile(self, file) :
+        file.write(self.j())
+        return self
 
     # list(map(lambda x : print('\n{}\n{}\n'.format(x, list.__getattribute__([], x).__doc__)), dir(list)))
 
@@ -251,6 +396,10 @@ class List(list) :
     # def __delattr__(self) :
         '''
         Implement delattr(self, name).
+
+        Deletes the named attribute from the given object.
+
+        delattr(x, 'y') is equivalent to ``del x.y''
         '''
 
     # def __delitem__(self) :
@@ -288,11 +437,6 @@ class List(list) :
         Return self>=value.
         '''
 
-    # def __getattribute__(self) :
-        '''
-        Return getattr(self, name).
-        '''
-
     # def __gt__(self) :
         '''
         Return self>value.
@@ -320,6 +464,13 @@ class List(list) :
     # def __iter__(self) :
         '''
         Implement iter(self).
+        
+        iter(iterable) -> iterator
+        iter(callable, sentinel) -> iterator
+
+        Get an iterator from an object.  In the first form, the argument must
+        supply its own iterator, or be a sequence.
+        In the second form, the callable is called until it returns the sentinel.
         '''
 
     # def __le__(self) :
@@ -367,11 +518,6 @@ class List(list) :
         Return value*self.
         '''
 
-    # def __setattr__(self) :
-        '''
-        Implement setattr(self, name, value).
-        '''
-
     # def __sizeof__(self) :
         '''
         L.__sizeof__() -- size of L in memory, in bytes
@@ -387,34 +533,3 @@ class List(list) :
         overrides the normal algorithm (and the outcome is cached).
 
         '''
-
-if __name__ == '__main__':
-    # a = List([[1,2],[3,4]])
-    # a = List(List([5,4,3]), List(6,7,8,4))
-    a = [1,2,3]
-    # a = List([1,2,3])
-    # a = List(1,2,3)
-    # a = List(List())
-    # b = List([4,5,6])
-    b = List([4,5,6])
-    print(type(a+b))
-    print(a+b)
-    print(a)
-    print(b)
-    a+=b
-    print(a)
-    print(b)
-    exit()
-    # b = List(a)
-    # b.append(5)
-    # c = b.filter(lambda x, i : x % 2 == 0)
-    print('{0:\t}'.format(a))
-    print(type(a))
-    print(b)
-    print(type(b))
-    # print(c)
-    # print(type(c))
-    print(a is b)
-    # print(b==c)
-    # print(a==c)
-    print(a.count(4))
