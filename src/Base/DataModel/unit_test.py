@@ -9,10 +9,34 @@ from util import str_object
 # =============== Str ===================
 
 class A(Object) :
+
+    def __init__(self) :
+        super().__init__()
+        self.key1 = 0
     
     # def __eq__(self, o) :
     #     return self.key1 == o.key1
-    pass
+    
+    # def __getattr__(self, key) :
+    #     print('A.__getattr__()')
+    #     return self.__getattribute__(key)
+
+    @property
+    def key1(self):
+        print('A.key1()')
+        self._key1 += 1
+        return self._key1
+
+    @key1.setter
+    def key1(self, value) :
+        self._key1 = value
+
+a = A()
+print(a.key1)
+# print(a.key1)
+# print(a._key1)
+# print(a._key1)
+exit()
 
 class B(Dict, Object) :
     pass
@@ -22,6 +46,7 @@ a1.key1 = 1
 a1.key2 = 2
 print('{}'.format(a1))
 print(a1)
+print(hex(id(a1)))
 
 a2 = A()
 a2.key1 = 1

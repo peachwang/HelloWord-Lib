@@ -1,7 +1,19 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
+from collections import defaultdict
+class Dict(defaultdict, dict) :
 
-class Dict(dict) :
+    def _wrapValue(self, value) :
+        if type(value) is list :
+            from List import List
+            return List(value)
+        elif type(value) is dict :
+            return Dict(value)
+        elif type(value) is str :
+            from Str import Str
+            return Str(value)
+        else :
+            return value
 
     def __init__(self, *args) :
         '''Initialize self.  See help(type(self)) for accurate signature.'''
@@ -10,23 +22,19 @@ class Dict(dict) :
         elif len(args) == 1 :
             if type(args[0]) is dict :
                 for key in args[0] :
-                    if type(args[0][key]) is dict :
-                        dict.__setitem__(self, key, Dict(args[0][key]))
-                    elif type(args[0][key]) is list :
-                        from List import List
-                        dict.__setitem__(self, key, List(args[0][key]))
-                    elif type(args[0][key]) is str :
-                        from Str import Str
-                        dict.__setitem__(self, key, Str(args[0][key]))
-                    else :
-                        dict.__setitem__(self, key, args[0][key])
-                # dict.__init__(self, args[0])
-            elif type(args[0]) is Dict :
+                    dict.__setitem__(self, key, self._wrapValue(args[0][key]))
+            elif isinstance(args[0], Dict) :
                 dict.__init__(self, args[0].getData())
             else :
                 raise Exception('Unexpected args for Dict.__init__: {}'.format(args))
         else :
             raise Exception('Unexpected args for Dict.__init__: {}'.format(args))
+
+    def getId(self) :
+        '''id(object) -> integer
+        Return the identity of an object.  This is guaranteed to be unique among
+        simultaneously existing objects.  (Hint: it's the object's memory address.)'''
+        return hex(id(self))
 
     def getData(self) :
         return { key : self[key] for key in self }
@@ -34,7 +42,7 @@ class Dict(dict) :
     def getRaw(self) :
         from List import List
         from Str import Str
-        return { key : (self[key].getRaw() if type(self[key]) in [ List, Dict, Str ] else self[key]) for key in self }
+        return { key : (self[key].getRaw() if isinstance(self[key], ( List, Dict, Str )) else self[key]) for key in self }
 
     def copy(self) :
         '''D.copy() -> a shallow copy of D'''
@@ -46,13 +54,12 @@ class Dict(dict) :
 
     def __format__(self, code) :
         '''default object formatter'''
-        from Str import Str
         return "{{{}}}".format(
             self.copy()\
                 .keys()\
                 .map(lambda key, index : '{} : {}'.format(
-                        '"{}"'.format(key) if type(key) in [ str, Str ] else '{}'.format(key),
-                        '"{}"'.format(self[key]) if type(self[key]) in [ str, Str ] else '{}'.format(self[key])
+                        '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
+                        '"{}"'.format(self[key]) if isinstance(self[key], str) else '{}'.format(self[key])
                     )
                 )\
                 .join(', ')
@@ -60,17 +67,20 @@ class Dict(dict) :
 
     def __str__(self) :
         '''Return str(self).'''
-        from Str import Str
         return 'Dict{{{}}}'.format(
             self.copy()\
                 .keys()\
                 .map(lambda key, index : '{} : {}'.format(
-                        '"{}"'.format(key) if type(key) in [ str, Str ] else '{}'.format(key),
-                        '"{}"'.format(self[key]) if type(self[key]) in [ str, Str ] else str(self[key])
+                        '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
+                        '"{}"'.format(self[key]) if isinstance(self[key], str) else str(self[key])
                     )
                 )\
                 .join(', ')
         )
+
+    def inspect(self) :
+        pass
+
 
     # def __len__(self) :
         '''
@@ -86,18 +96,16 @@ class Dict(dict) :
         '''
 
     def has(self, key_list) :
-        from List import List
-        from Str import Str
-        if type(key_list) in [ str, Str ] :
+        if isinstance(key_list, str) :
             return dict.__contains__(self, key_list)
-        elif type(key_list) in [ list, List ] :
+        elif isinstance(key_list, list) :
             now = self
             for key in key_list :
                 if not dict.__contains__(now, key) : return False
                 now = now[key]
             return True
         else :
-            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+            raise Exception('Unexpected key_list: {}'.format(key_list))
 
     def keys(self) :
         '''D.keys() -> a set-like object providing a view on D's keys'''
@@ -139,11 +147,9 @@ class Dict(dict) :
 
     def get(self, key_list, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
-        from List import List
-        from Str import Str
-        if type(key_list) in [ str, Str ] :
+        if isinstance(key_list, str) :
             return dict.get(self, key_list, default)
-        elif type(key_list) in [ list, List ] :
+        elif isinstance(key_list, list) :
             if not self.has(key_list) :
                 return default
             else :
@@ -152,29 +158,32 @@ class Dict(dict) :
                     now = now[key]
                 return now
         else :
-            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+            raise Exception('Unexpected key_list: {}'.format(key_list))
 
     # [ (key1,), (key2, None), key3 ]
-    def getMulti(self, key_list, default = None) :
-        from List import List
-        from Str import Str
-        if type(key_list) in [ list, List ] :
+    def getMulti(self, key_list, default = None, de_underscore = False) :
+        def deUnderscoure(key) :
+            if not isinstance(key, str) :
+                raise Exception('Unexpected key: {}'.format(key))
+            if de_underscore and key[0] == '_' : return key[1:]
+            else : return key
+        if isinstance(key_list, list) :
             result = Dict()
             for key in key_list :
-                if type(key) is tuple :
+                if isinstance(key, tuple) :
                     if len(key) not in [1, 2] :
-                        raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+                        raise Exception('Unexpected key_list: {}'.format(key_list))
                     elif len(key) == 1 :
-                        if self.has(key[0]) : result[key[0]] = self[key[0]]
+                        if self.has(key[0]) : result[deUnderscoure(key[0])] = self[key[0]]
                     elif len(key) == 2 :
-                        if self.has(key[0]) : result[key[0]] = self[key[0]]
-                        else : result[key[0]] = key[1]
-                elif type(key) in [ str, Str ] :
-                    result[key] = self[key]
-                else : raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+                        if self.has(key[0]) : result[deUnderscoure(key[0])] = self[key[0]]
+                        else                : result[deUnderscoure(key[0])] = key[1]
+                elif isinstance(key, str) :
+                    result[deUnderscoure(key)] = self[key]
+                else : raise Exception('Unexpected key_list: {}'.format(key_list))
             return result
         else :
-            raise Exception('Unexpected key_list: {}'.format(str(key_list)))
+            raise Exception('Unexpected key_list: {}'.format(key_list))
 
     def __setattr__(self, key, value) :
         '''Implement setattr(self, name, value).
@@ -186,16 +195,7 @@ class Dict(dict) :
 
     def __setitem__(self, key, value) :
         '''Set self[key] to value.'''
-        from List import List
-        from Str import Str
-        if type(value) is list :
-            dict.__setitem__(self, key, List(value))
-        elif type(value) is dict :
-            dict.__setitem__(self, key, Dict(value))
-        elif type(value) is str :
-            dict.__setitem__(self, key, Str(value))
-        else :
-            dict.__setitem__(self, key, value)
+        dict.__setitem__(self, key, self._wrapValue(value))
         return value
 
     # def setdefault(self) :
@@ -204,11 +204,9 @@ class Dict(dict) :
         '''
 
     def set(self, key_list, value) :
-        from List import List
-        from Str import Str
-        if type(key_list) in [ str, Str ] :
+        if isinstance(key_list, str) :
             self[key_list] = value
-        elif type(key_list) in [ list, List ] :
+        elif isinstance(key_list, list) :
             now = self
             for index, key in enumerate(key_list) :
                 if key in now :
@@ -216,7 +214,7 @@ class Dict(dict) :
                 else :
                     if index < len(key_list) - 1 :
                         now[key] = Dict()
-                        now = now[key]
+                        now      = now[key]
                     else :
                         now[key] = value
         else : raise Exception('Unexpected key_list: {}'.format(key_list))
@@ -229,12 +227,12 @@ class Dict(dict) :
         In either case, this is followed by: for k in F:  D[k] = F[k]'''
         '''IN PLACE'''
         if type(mapping) is dict :
-            dict.update(self, Dict(mapping))
-        elif type(mapping) is Dict :
+            dict.update(self, self._wrapValue(mapping))
+        elif isinstance(mapping, Dict) :
             dict.update(self, mapping.getData())
         else :
             print(type(mapping))
-            raise Exception('Unexpected mapping: {}'.format(str(mapping)))
+            raise Exception('Unexpected mapping: {}'.format(mapping))
         if len(args) > 0 : dict.update(self, args)
         return self
 

@@ -3,41 +3,50 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 
 class List(list) :
 
+    def _wrapItem(self, item) :
+        if type(item) is list :
+            return List(item)
+        elif type(item) is dict :
+            from Dict import Dict
+            return Dict(item)
+        elif type(item) is str :
+            from Str import Str
+            return Str(item)
+        else :
+            return item
+
     def __init__(self, *args) :
         '''Initialize self.  See help(type(self)) for accurate signature.'''
         if len(args) == 0 :
             raw_item_list = []
         elif len(args) == 1 :
-            if isinstance(args[0], List) :
+            if type(args[0]) is list :
+                raw_item_list = args[0]
+            elif isinstance(args[0], List) :
                 list.__init__(self, args[0].getData())
                 return
-            elif type(args[0]) is list :
-                raw_item_list = args[0]
             else :
                 raw_item_list = args
         else :
             raw_item_list = args
         item_list = []
         for item in raw_item_list :
-            if type(item) is list :
-                item_list.append(List(item))
-            elif type(item) is dict :
-                from Dict import Dict
-                item_list.append(Dict(item))
-            elif type(item) is str :
-                from Str import Str
-                item_list.append(Str(item))
-            else :
-                item_list.append(item)
+            item_list.append(self._wrapItem(item))
         list.__init__(self, item_list)
 
+    def getId(self) :
+        '''id(object) -> integer
+        Return the identity of an object.  This is guaranteed to be unique among
+        simultaneously existing objects.  (Hint: it's the object's memory address.)'''
+        return hex(id(self))
+    
     def getData(self) :
         return [ item for item in self ]
 
     def getRaw(self) :
         from Dict import Dict
         from Str import Str
-        return [ item.getRaw() if type(item) in [ List, Dict, Str ] else item for item in self ]
+        return [ item.getRaw() if isinstance(item, ( List, Dict, Str )) else item for item in self ]
 
     def copy(self) :
         '''L.copy() -> list -- a shallow copy of L'''
@@ -49,21 +58,22 @@ class List(list) :
 
     def __format__(self, code) :
         '''default object formatter'''
-        from Str import Str
         return '[{}]'.format(
             self.copy()\
-                .map(lambda item, index : '"{}"'.format(item) if type(item) in [ str, Str ] else '{}'.format(item))\
+                .map(lambda item, index : '"{}"'.format(item) if isinstance(item, str) else '{}'.format(item))\
                 .join(', ')
         )
 
     def __str__(self) :
         '''Return str(self).'''
-        from Str import Str
         return 'List[{}]'.format(
             self.copy()\
-                .map(lambda item, index : '"{}"'.format(item) if type(item) in [ str, Str ] else str(item))\
+                .map(lambda item, index : '"{}"'.format(item) if isinstance(item, str) else str(item))\
                 .join(', ')
         )
+
+    def inspect(self) :
+        pass
 
     # def __len__(self) :
         '''
@@ -103,10 +113,11 @@ class List(list) :
         exist; without it, an exception is raised in that case.
         '''
 
-    # def __getitem__(self, index) :
-        '''
-        x.__getitem__(y) <==> x[y]
-        '''
+    def __getitem__(self, index) :
+        '''x.__getitem__(y) <==> x[y]'''
+        if isinstance(index, int) : return list.__getitem__(self, index)
+        elif isinstance(index, slice) : return List(list.__getitem__(self, index))
+        else : raise Exception('Unexpected index: {}'.format(index))
 
     # def __setattr__(self) :
         '''
@@ -118,16 +129,7 @@ class List(list) :
 
     def __setitem__(self, index, item) :
         '''Set self[index] to value.'''
-        from Dict import Dict
-        from Str import Str
-        if type(item) is list :
-            list.__setitem__(self, index, List(item))
-        elif type(item) is dict :
-            list.__setitem__(self, index, Dict(item))
-        elif type(item) is str :
-            list.__setitem__(self, index, Str(item))
-        else :
-            list.__setitem__(self, index, item)
+        list.__setitem__(self, index, self._wrapItem(item))
         return item
 
     def set(self, index, item) :
@@ -137,60 +139,36 @@ class List(list) :
     def append(self, item) :
         '''L.append(object) -> None -- append object to end'''
         '''IN PLACE'''
-        from Dict import Dict
-        from Str import Str
-        if type(item) is list :
-            list.append(self, List(item))
-        elif type(item) is dict :
-            list.append(self, Dict(item))
-        elif type(item) is str :
-            list.append(self, Str(item))
-        else :
-            list.append(self, item)
+        list.append(self, self._wrapItem(item))
         return self
 
     def insert(self, index, item) :
         '''L.insert(index, object) -> None -- insert object before index'''
         '''IN PLACE'''
-        from Dict import Dict
-        from Str import Str
-        if type(item) is list :
-            list.insert(self, index, List(item))
-        elif type(item) is dict :
-            list.insert(self, index, Dict(item))
-        elif type(item) is str :
-            list.insert(self, index, Str(item))
-        else :
-            list.insert(self, index, item)
+        list.insert(self, index, self._wrapItem(item))
         return self
 
     def __add__(self, item_list) :
         '''Return self+value.'''
         '''NOT IN PLACE'''
-        if type(item_list) is list :
-            return List(list.__add__(self, List(item_list)))
-        elif type(item_list) is List :
-            return List(list.__add__(self, item_list))
+        if isinstance(item_list, list) :
+            return List(list.__add__(self, self._wrapItem(item_list)))
         else :
             raise Exception('Unexpected item_list: {}'.format(item_list))
 
     def __iadd__(self, item_list) :
         '''Implement self+=value.'''
         '''IN PLACE'''
-        if type(item_list) is list :
-            return list.__iadd__(self, List(item_list))
-        elif type(item_list) is List :
-            return list.__iadd__(self, item_list)
+        if isinstance(item_list, list) :
+            return list.__iadd__(self, self._wrapItem(item_list))
         else :
             raise Exception('Unexpected item_list: {}'.format(item_list))
     
     def extend(self, item_list) :
         '''L.extend(iterable) -> None -- extend list by appending elements from the iterable'''
         '''IN PLACE'''
-        if type(item_list) is list :
-            list.extend(self, List(item_list))
-        elif type(item_list) is List :
-            list.extend(self, item_list)
+        if isinstance(item_list, list) :
+            list.extend(self, self._wrapItem(item_list))
         else : raise Exception('Unexpected item_list: {}'.format(item_list))
         return self
 
@@ -227,8 +205,12 @@ class List(list) :
 
     def batch(self, func_name, *args) :
         '''IN PLACE'''
+        if not isinstance(func_name, str) :
+            raise Exception('Unexpected func_name: {}'.format(func_name))
         for index, item in enumerate(self) :
-            self[index] = self[index].__getattribute__(func_name)(*args)
+            attribute = self[index].__getattribute__(func_name)
+            if callable(attribute) : self[index] = attribute(*args)
+            else : self[index] = attribute
         return self
 
     def map(self, func, *args) :
@@ -242,9 +224,8 @@ class List(list) :
 
     def filter(self, func_or_func_name, *args) :
         '''IN PLACE'''
-        from Str import Str
         index = 0
-        if type(func_or_func_name) in [ str, Str ] :
+        if isinstance(func_or_func_name, str) :
             while index < self.len() :
                 if self[index].__getattribute__(func_or_func_name)(*args) : index += 1
                 else : self.pop(index)
@@ -262,12 +243,11 @@ class List(list) :
 
     def _reduce(self, key_list_or_func_name, func, initial_value) :
         from List import List
-        from Str import Str
         if key_list_or_func_name is None :
             return self.reduce(func, initial_value)
-        elif type(key_list_or_func_name) in [ list, List ] :
+        elif isinstance(key_list_or_func_name, list) :
             return self.copy().batch('get', key_list_or_func_name).reduce(func, initial_value)
-        elif type(key_list_or_func_name) in [ str, Str ] :
+        elif isinstance(key_list_or_func_name, str) :
             return self.copy().batch(key_list_or_func_name).reduce(func, initial_value)
         else : raise Exception('Unexpected key_list_or_func_name: {}'.format(key_list_or_func_name))
 
@@ -284,12 +264,11 @@ class List(list) :
 
     def _initialValue(self, key_list_or_func_name) :
         from List import List
-        from Str import Str
         if key_list_or_func_name is None :
             return self[0]
-        elif type(key_list_or_func_name) is [ list, List ] :
+        elif isinstance(key_list_or_func_name, list) :
             return self[0].get(key_list_or_func_name)
-        elif type(key_list_or_func_name) in [ str, Str ] :
+        elif isinstance(key_list_or_func_name, str) :
             return self[0].__getattribute__(key_list_or_func_name)()
         else : raise Exception('Unexpected key_list_or_func_name: {}'.format(key_list_or_func_name))
 
@@ -309,7 +288,7 @@ class List(list) :
 
     def join(self, sep) :
         from Str import Str
-        if type(sep) not in [ str, Str ] :
+        if not isinstance(sep, str) :
             raise Exception('Unexpected type of sep: {}'.format(sep))
         return Str(sep).join(self)
 
@@ -322,10 +301,15 @@ class List(list) :
             if type(self[index]) in [ List, Dict, Str ] :
                 self[index].strip()
             elif type(self[index]) == tuple :
-                return (strip(datum, chars, encoding) for item in self[index])
+                self[index] = (strip(datum, chars, encoding) for item in self[index])
             elif type(self[index]) == set :
-                return set([strip(datum, chars, encoding) for datum in data])
+                self[index] = set([strip(datum, chars, encoding) for datum in data])
             index += 1
+
+
+
+
+
 
         return self
 
@@ -364,6 +348,12 @@ class List(list) :
 
     def isSupersetOf(self, item_list) :
         '''Report whether this set contains another set.'''
+        raise
+
+    def flatten(self) :
+        raise
+
+    def bisect(self) :
         raise
 
     def clear(self) :

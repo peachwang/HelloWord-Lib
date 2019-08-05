@@ -7,6 +7,12 @@ class Str(str) :
     def getRaw(self) :
         return str(self)
 
+    def getId(self) :
+        '''id(object) -> integer
+        Return the identity of an object.  This is guaranteed to be unique among
+        simultaneously existing objects.  (Hint: it's the object's memory address.)'''
+        return hex(id(self))
+
     def __add__(self, value) :
         '''Return self+value.'''
         '''NOT IN PLACE'''
@@ -29,13 +35,13 @@ class Str(str) :
     def join(self, str_list) :
         '''NOT IN PLACE'''
         from List import List
-        if type(str_list) not in [ list, List ] :
+        if not isinstance(str_list, list) :
             raise Exception('Unexpected type of str_list: {}'.format(str_list))
         return Str(str.join(self, str_list))
 
     def split(self, sep) :
         from List import List
-        if type(sep) not in [ str, Str ] :
+        if not isinstance(sep, str) :
             raise Exception('Unexpected type of sep: {}'.format(sep))
         return List(str.split(self, sep))
 
@@ -44,7 +50,7 @@ class Str(str) :
 
 
 
-        if type(string) not in [ str, Str ] :
+        if not isinstance(string, str) :
             raise Exception('Unexpected type of string: {}'.format(string))
         if not left and right : 
             return Str(str.rstrip(self, string))

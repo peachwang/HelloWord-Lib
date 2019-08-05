@@ -28,7 +28,7 @@ class File(Object) :
         return self.write(List(line_list).join('\n'), append)
 
     def writeData(self, data, append = False) :
-        if type(data) in [ List, Dict ] :
+        if isinstance(data, ( List, Dict )) :
             return self.write(data.j(), append)
         else : raise Exception('Unexpected type of data: {}'.format(data))
 
