@@ -10,12 +10,13 @@ class Folder(Object) :
         try :
             self._path, self._sub_folder_name_list, self._sub_file_name_list = list(walk(folder_path))[0]
             self._path, self._sub_folder_name_list, self._sub_file_name_list = Str(self._path), List(self._sub_folder_name_list), List(self._sub_file_name_list)
+            self._sub_file_name_list.filter(lambda file_name : file_name != '.DS_Store')
         except Exception as e :
             raise Exception('Fail to walk folder path: {}'.format(folder_path))
         self._path.rstrip('/')
         self._name = self._path.split('/')[-1]
-        self._sub_folder_list = [ Folder('{}/{}'.format(self._path, folder_name)) for folder_name in self._sub_folder_name_list]
-        self._sub_file_list   = [ File('{}/{}'.format(self._path, file_name), self) for file_name in self._sub_file_name_list]
+        self._sub_folder_list = self._sub_folder_name_list.copy().map(lambda folder_name : Folder('{}/{}'.format(self._path, folder_name)))
+        self._sub_file_list   = self._sub_file_name_list.copy().map(lambda file_name : File('{}/{}'.format(self._path, file_name), self))
 
     @classmethod
     def mkdir(cls, path) :
