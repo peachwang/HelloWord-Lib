@@ -54,6 +54,9 @@ class Object() :
         else : return True
         # return self._data.has(name_list)
     
+    def j(self) :
+        return self._data.j()
+
     def __format__(self, code) :
         return '{}'.format(self._data)
 

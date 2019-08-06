@@ -251,7 +251,12 @@ class List(list) :
         if key_list_or_func_name is None :
             return self.reduce(func, initial_value)
         elif isinstance(key_list_or_func_name, list) :
-            return self.copy().batch('get', key_list_or_func_name).reduce(func, initial_value)
+            if self.len() == 0 : return initial_value
+            from Object import Object
+            if isinstance(self[0], Object) :
+                return self.copy().batch('_get', key_list_or_func_name).reduce(func, initial_value)
+            else :
+                return self.copy().batch('get', key_list_or_func_name).reduce(func, initial_value)
         elif isinstance(key_list_or_func_name, str) :
             return self.copy().batch(key_list_or_func_name).reduce(func, initial_value)
         else : raise Exception('Unexpected key_list_or_func_name: {}'.format(key_list_or_func_name))
@@ -275,7 +280,11 @@ class List(list) :
         if key_list_or_func_name is None :
             return self[0]
         elif isinstance(key_list_or_func_name, list) :
-            return self[0].get(key_list_or_func_name)
+            from Object import Object
+            if isinstance(self[0], Object) :
+                return self[0]._get(key_list_or_func_name)
+            else :
+                return self[0].get(key_list_or_func_name)
         elif isinstance(key_list_or_func_name, str) :
             return self[0].__getattribute__(key_list_or_func_name)()
         else : raise Exception('Unexpected key_list_or_func_name: {}'.format(key_list_or_func_name))
