@@ -22,7 +22,7 @@ class Str(str) :
         raise
 
     def concat(self, value) :
-        '''IN PLACE'''
+        '''NOT IN PLACE'''
         raise
 
     def format(self, *args, **kwargs) :
@@ -46,7 +46,7 @@ class Str(str) :
         return List(str.split(self, sep))
 
     def strip(self, string, left = True, right = True) :
-        '''IN PLACE'''
+        '''NOT IN PLACE'''
 
 
 
@@ -61,15 +61,26 @@ class Str(str) :
         else :
             raise Exception('Unexpected left{} and right{}'.format(left, right))
 
+    def range(self) :
+        from List import List
+        return self.split(',').map(
+            lambda item, index : 
+                List(range(int(item.split('-')[0]), int(item.split('-')[1]) + 1))
+                if item.count('-') == 1
+                else List(int(item))
+        ).merge()
+
     def findall(self, pattern) :
         '''Return a list of all non-overlapping matches in the string.
         If one or more capturing groups are present in the pattern, return
         a list of groups; this will be a list of tuples if the pattern
         has more than one group.
         Empty matches are included in the result.'''
-        return re.findall()
+        from List import List
+        return List(re.findall(pattern, self))
 
     def match(self) :
+        '?P<>'
         raise
 
     def search(self, reverse = False) :
@@ -78,14 +89,14 @@ class Str(str) :
     # def replace(self, reverse = False) :
     #     raise
 
-    def count(self) :
-        raise
+    # def count(self) :
+        # raise
 
-    def index(self, reverse = False) :
-        raise
+    # def index(self, reverse = False) :
+        # raise
 
-    def find(self, reverse = False) :
-        raise
+    # def find(self, reverse = False) :
+        # raise
 
     def finditer(self) :
         raise

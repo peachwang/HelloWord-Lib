@@ -23,6 +23,8 @@ class Dict(defaultdict, dict) :
             if type(args[0]) is dict :
                 for key in args[0] :
                     dict.__setitem__(self, key, self._wrapValue(args[0][key]))
+            elif type(args[0]) is zip :
+                self.__init__(dict(args[0]))
             elif isinstance(args[0], Dict) :
                 dict.__init__(self, args[0].getData())
             else :

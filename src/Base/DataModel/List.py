@@ -22,6 +22,8 @@ class List(list) :
         elif len(args) == 1 :
             if type(args[0]) is list :
                 raw_item_list = args[0]
+            elif type(args[0]) is range :
+                raw_item_list = list(args[0])
             elif isinstance(args[0], List) :
                 list.__init__(self, args[0].getData())
                 return
@@ -82,6 +84,9 @@ class List(list) :
 
     def len(self) :
         return len(self)
+
+    def empty(self) :
+        return self.len() == 0
 
     # def __contains__(self, item) :
         '''
@@ -200,7 +205,7 @@ class List(list) :
     def sort(self, key_func = None, reverse = False) :
         '''L.sort(key_func=None, reverse=False) -> None -- stable sort *IN PLACE*'''
         '''IN PLACE'''
-        list.sort(self, key_func = key_func, reverse = reverse)
+        list.sort(self, key = key_func, reverse = reverse)
         return self
 
     def batch(self, func_name, *args) :
@@ -250,6 +255,9 @@ class List(list) :
         elif isinstance(key_list_or_func_name, str) :
             return self.copy().batch(key_list_or_func_name).reduce(func, initial_value)
         else : raise Exception('Unexpected key_list_or_func_name: {}'.format(key_list_or_func_name))
+
+    def merge(self) :
+        return self.reduce(lambda result, item, index : result.extend(item), List())
 
     def sum(self, key_list_or_func_name = None) :
         if self.len() == 0 : return 0

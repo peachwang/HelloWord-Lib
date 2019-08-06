@@ -7,35 +7,37 @@ class Folder(Object) :
 
     def __init__(self, folder_path) :
         Object.__init__(self)
-        self.path, self.sub_folder_name_list, self.sub_file_name_list = list(walk(folder_path))[0]
-        self.path.rstrip('/')
-        self.name = self.path.split('/')[-1]
-        self.sub_folder_list = [ Folder('{}/{}'.format(self.path, folder_name)) for folder_name in self.sub_folder_name_list]
-        self.sub_file_list   = [ File('{}/{}'.format(self.path, file_name), self) for file_name in self.sub_file_name_list]
+        try :
+            self._path, self._sub_folder_name_list, self._sub_file_name_list = list(walk(folder_path))[0]
+            self._path, self._sub_folder_name_list, self._sub_file_name_list = Str(self._path), List(self._sub_folder_name_list), List(self._sub_file_name_list)
+        except Exception as e :
+            raise Exception('Fail to walk folder path: {}'.format(folder_path))
+        self._path.rstrip('/')
+        self._name = self._path.split('/')[-1]
+        self._sub_folder_list = [ Folder('{}/{}'.format(self._path, folder_name)) for folder_name in self._sub_folder_name_list]
+        self._sub_file_list   = [ File('{}/{}'.format(self._path, file_name), self) for file_name in self._sub_file_name_list]
 
     @classmethod
     def mkdir(cls, path) :
         os.mkdir(path)
+        return cls
 
     @classmethod
     def exists(cls, path) :
         return os.path.exists(path)
 
-    def getSubFileList(self, ext = None) :
-        if suffix is None : return self.sub_file_list
-        else :
-            return List([ file for file in self.sub_file_list if file.extIs(ext) ])
+    @property
+    def sub_file_list(self) :
+        return self._sub_file_list.copy()
 
-    def getFlatternSubFileList(self, suffix = None) :
-        file_list = self.getSubFileList(suffix)
-        for folder in self.sub_folder_list :
-            file_list.extend(folder.getFlatternSubFileList(suffix))
-        return file_list
+    @property
+    def flattern_sub_file_list(self) :
+        return self._sub_file_list.copy().extend(self._sub_folder_list.copy().batch('flattern_sub_file_list').merge())
 
     def json(self) :
         return Dict({
-            'Path' : self.path,
-            'Name' : self.name,
-            'SubFolderList' : [ folder.json() for folder in self.sub_folder_list ],
-            'SubFileList' : [ file.json() for file in self.sub_file_list ],
+            'Path'          : self._path,
+            'Name'          : self._name,
+            'SubFolderList' : self._sub_folder_list.copy().batch('json'),
+            'SubFileList'   : self._sub_file_list.copy().batch('json'),
         })
