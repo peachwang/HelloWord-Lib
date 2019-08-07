@@ -243,7 +243,11 @@ class List(list) :
     def reduce(self, func, initial_value, *args) :
         result = initial_value
         for index, item in enumerate(self) :
-            result = func(result, item, index, *args)
+            try :
+                result = func(result, item, index, *args)
+            except Exception as e :
+                print(self, result, item, index)
+                raise e
         return result
 
     def _reduce(self, key_list_or_func_name, func, initial_value) :
