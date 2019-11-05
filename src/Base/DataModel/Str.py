@@ -52,9 +52,9 @@ class Str(str) :
 
         if not isinstance(string, str) :
             raise Exception('Unexpected type of string: {}'.format(string))
-        if not left and right : 
+        if (not left) and right : 
             return Str(str.rstrip(self, string))
-        elif not right and left :
+        elif (not right) and left :
             return Str(str.lstrip(self, string))
         elif left and right :
             return Str(str.strip(self, string))
@@ -79,9 +79,9 @@ class Str(str) :
         from List import List
         return List(re.findall(pattern, self))
 
-    def match(self) :
+    def match(self, pattern) :
         '?P<>'
-        raise
+        return re.match(pattern, self)
 
     def search(self, reverse = False) :
         raise

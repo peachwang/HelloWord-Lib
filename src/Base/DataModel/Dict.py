@@ -83,6 +83,65 @@ class Dict(defaultdict, dict) :
     def inspect(self) :
         pass
 
+    # DataStructure Module
+    #   def inspect()
+    #   def compatibleTo
+    #   def validate
+    #   def difference/delta
+
+    # # move
+    # def inspect(data, max_depth = 10, depth = 0) :
+    #     # print(str(data)[:120])
+    #     if depth > max_depth :
+    #         if data is None : return None 
+    #         elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
+    #         elif isinstance(data, list) : return '[ {} items folded ]'.format(len(data))
+    #         elif isinstance(data, dict) : return '{{ {} keys folded }}'.format(len(data))
+    #         else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+    #     if data is None : return None
+    #     elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
+    #     elif isinstance(data, list) :
+    #         if len(data) == 0 : return data
+    #         elif len(data) == 1 : return List([ inspect(data[0], max_depth, depth + 1) ])
+    #         elif len(data) == 2 : return List([ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1) ])
+            
+    #         # len >= 3
+    #         result_0 = inspect(data[0], max_depth, depth + 1)
+    #         _ = '------------------------------'
+    #         if isinstance(result_0, dict) :
+    #             for index, datum_i in enumerate(data) :
+    #                 if not isinstance(datum_i, dict) : raise Exception('列表中元素类型不一致({})'.format(datum_i))
+    #                 for key, value in datum_i.items() :
+    #                     if key not in result_0 :
+    #                         result_0[key] = inspect(value, max_depth, depth + 1) # 【补充】第0个元素中不存在的字段
+    #                         continue
+    #                     if data[0].get(key) is not None and isinstance(data[0][key], list) : continue # 列表类【原生】字段不扩充POSSIBLE VALUES
+    #                     if data[0].get(key) is not None and isinstance(data[0][key], dict) : continue # 字典类【原生】字段不扩充POSSIBLE VALUES
+    #                     if data[0].get(key) is None and isinstance(result_0[key], list) \
+    #                         and not (isinstance(result_0[key][0], str) and 'POSSIBLE VALUES' in result_0[key][0]) : continue # 列表类【补充】字段不扩充POSSIBLE VALUES
+    #                     if data[0].get(key) is None and isinstance(result_0[key], dict) : continue # 字典类【补充】字段不扩充POSSIBLE VALUES
+    #                     # 此时待补充的是非列表字典类字段
+    #                     if isinstance(value, list) or isinstance(value, dict) : raise Exception('列表中元素类型不一致({})'.format(value))
+    #                     # 此时value一定为非列表字典类数据
+    #                     if not isinstance(result_0[key], list) : # 暂未扩充过，现进行首次扩充POSSIBLE VALUES
+    #                         result_0[key] = [
+    #                             _ + 'POSSIBLE VALUES' + _, 
+    #                             result_0[key]
+    #                         ]
+    #                         if inspect(value, max_depth, depth + 1) != result_0[key][1] :
+    #                             result_0[key].append(inspect(value, max_depth, depth + 1))
+    #                     else : # 非首次扩充POSSIBLE VALUES
+    #                         if len(result_0[key]) < 5 :
+    #                             if inspect(value, max_depth, depth + 1) not in result_0[key] :
+    #                                 result_0[key].append(inspect(value, max_depth, depth + 1)) # 扩充
+    #                         if index == len(data) - 1 :
+    #                             result_0[key].append('{} TOTAL {} SIMILAR ITEMS {}'.format(_, len(data), _))
+    #             return [ result_0, '{} TOTAL {} SIMILAR DICTS {}'.format(_, len(data), _) ]
+    #         else : # 非字典类数据，含列表
+    #             return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1), '{} TOTAL {} SIMILAR LISTS {}'.formart(_, len(data), _) ]
+    #     elif isinstance(data, dict) : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
+    #     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+
 
     # def __len__(self) :
         '''
@@ -251,10 +310,82 @@ class Dict(defaultdict, dict) :
         2-tuple; but raise KeyError if D is empty.
         '''
         '''IN PLACE'''
-    
+
+    # def strip(data, chars = ' \n\t', encoding = 'utf-8') :
+    #     if data is None :
+    #         return None
+    #     elif type(data) is str :
+    #         return data.strip(chars)
+    #     # elif type(data) == unicode :
+    #         # return data.encode(encoding).strip(chars).decode(encoding)
+    #     elif type(data) is list :
+    #         return [strip(datum, chars, encoding) for datum in data]
+    #     elif type(data) is tuple :
+    #         return (strip(datum, chars, encoding) for datum in data)
+    #     elif type(data) is set :
+    #         return set([strip(datum, chars, encoding) for datum in data])
+    #     elif type(data) is dict :
+    #         return dict([(key, strip(data[key], chars, encoding)) for key in data.keys()])
+    #     elif isinstance(data, (int, float, bool)) :
+    #         return data
+    #     else :
+    #         raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+
     def strip(self) :
         '''IN PLACE'''
         raise
+
+    # def safe(data, encoding = 'utf-8') :
+    #     try :
+    #         if data is None :
+    #             return None
+    #         elif type(data) is str :
+    #             return data
+    #         # elif type(data) is unicode :
+    #             # return data.encode(encoding)
+    #         elif type(data) is list :
+    #             return [safe(datum, encoding) for datum in data]
+    #         elif type(data) is tuple :
+    #             return tuple([safe(datum, encoding) for datum in data])
+    #         elif type(data) is set :
+    #             return set([safe(datum, encoding) for datum in data])
+    #         elif type(data) is dict :
+    #             return dict([(safe(key, encoding), safe(data[key], encoding)) for key in data.keys()])
+    #         elif isinstance(data, (int, float, bool)) :
+    #             return data
+    #         elif data is None :
+    #             return data
+    #         else :
+    #             raise UserTypeError('data', data, [str, unicode, list, tuple, set, dict, int, float, bool])
+    #     except Exception :
+    #         print(type(data))
+    #         print([data])
+    #         raise e
+    #         exit()
+
+    # # 为了防止json无法解析对象类数据
+    # def str_object(data) :
+
+
+
+
+
+        
+    #     if isinstance(data, (str, int, float, bool)) :
+    #     # if isinstance(data, (str, unicode, int, float, bool)) :
+    #         return data
+    #         # return str(data)
+    #     elif type(data) is list :
+    #         return [str_object(datum) for datum in data]
+    #     elif type(data) is tuple :
+    #         return '(' + ', '.join(str(datum) for datum in data) + ')'
+    #         # return (str_object(datum) for datum in data)
+    #     elif type(data) is set :
+    #         return set([str_object(datum) for datum in data])
+    #     elif type(data) is dict :
+    #         return dict([(str_object(key), str_object(data[key])) for key in data.keys()])
+    #     else :
+    #         return str(data)
 
     def clear(self) :
         '''D.clear() -> None.  Remove all items from D.'''
@@ -263,7 +394,7 @@ class Dict(defaultdict, dict) :
         return self
 
     def writeToFile(self, file) :
-        file.write(self.j())
+        file.writeString(self.j())
         return self
 
     # python2

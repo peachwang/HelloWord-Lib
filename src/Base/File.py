@@ -36,38 +36,55 @@ class File(Object) :
     def exists(cls, path) :
         return os.path.exists(path)
 
-    def write(self, string, append = False) :
+    def readLineList(self) :
+        return List(open(self._path).readlines()).strip('\n\r')
+
+    def writeString(self, string, append = False) :
         open(self._path, 'a' if append else 'w').write(string)
         return self
 
     def writeLineList(self, line_list, append = False) :
-        return self.write(List(line_list).join('\n'), append)
+        return self.writeString(List(line_list).join('\n'), append)
 
     def writeData(self, data, append = False) :
         if isinstance(data, ( List, Dict )) :
-            return self.write(data.j(), append)
+            return self.writeString(data.j(), append)
         else : raise Exception('Unexpected type of data: {}'.format(data))
 
-    def readLineList(self) :
-        pass
+    def loadJson(self, encoding = 'utf-8') :
+        data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
+        if isinstance(data, list) :
+            return List(data)
+        elif isinstance(data, dict) :
+            return Dict(data)
+        else :
+            raise
 
-    def load(self) :
-        pass
+    def dumpJson(self, data) :
+        return self.writeData(data)
 
-    def dump(self) :
-        pass
-
-    def loadTxt(self) :
-        pass
-
-    def dumpTxt(self) :
-        pass
-
-    def loadJson(self) :
-        pass
-
-    def dumpJson(self) :
-        pass
+    # # delete
+    # def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
+    #     if not is_matrix :
+    #         if fields == None :
+    #             fields = fin.readline().strip('\n\r').split(sep)
+    #         mapping_fields = dict([(_, fields[_]) for _ in range(len(fields))])
+    #     if primary_key is None or is_matrix : data = []
+    #     else : data = {}
+    #     for line in fin :
+    #         line = line.strip('\n\r')
+    #         if line == '' : continue
+    #         record = line.split(sep)
+    #         if cast is not None and isinstance(cast, list) :
+    #             record = [cast[_](record[_]) for _ in range(len(record))]
+    #         if not is_matrix : datum = dict(zip(mapping_fields.values(), record))
+    #         else : datum = record
+    #         if cast is not None and isinstance(cast, dict) and not is_matrix :
+    #             for field in cast.keys() :
+    #                 datum[field] = cast[field](datum[field])
+    #         if primary_key is None or is_matrix: data.append(datum)
+    #         else : data[datum[primary_key]] = datum
+    #     return data
 
     def loadTable(self) :
         pass
@@ -93,10 +110,26 @@ class File(Object) :
     def dumpTable(self) :
         pass
 
-    def loadMapping(self) :
-        pass
+    # # delete
+    # def load_mapping(fin) :
+    #     data = {}
+    #     current = None
+    #     for line in fin :
+    #         line = line.strip('\n\r')
+    #         if line.strip(' ') == '' : continue
+    #         if '\t' not in line :
+    #             current = line
+    #             if current not in data : data[current] = []
+    #             continue
+    #         elif current is None : raise
+    #         else :
+    #             line = line.strip('\t')
+    #             line = re.sub(r'\t+', '\t', line)
+    #             data[current].append(line.split('\t'))
+    #     data = strip(data)
+    #     return data
 
-    def dumpMapping(self) :
+    def loadMapping(self) :
         pass
 
     def json(self) :
