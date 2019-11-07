@@ -51,6 +51,10 @@ class File(Object) :
             return self.writeString(data.j(), append)
         else : raise Exception('Unexpected type of data: {}'.format(data))
 
+    def writeBytes(self, bytes_content) :
+        open(self._path, 'wb').write(bytes_content)
+        return self
+
     def loadJson(self, encoding = 'utf-8') :
         data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
         if isinstance(data, list) :

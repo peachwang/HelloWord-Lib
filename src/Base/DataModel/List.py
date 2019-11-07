@@ -12,6 +12,9 @@ class List(list) :
         elif type(item) is str :
             from Str import Str
             return Str(item)
+        elif type(item) is bytes :
+            from Str import Str
+            return Str(item.decode())
         else :
             return item
 

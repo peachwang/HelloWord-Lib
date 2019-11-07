@@ -53,6 +53,9 @@ class Object() :
         if self._get(name_list) is None : return False
         else : return True
         # return self._data.has(name_list)
+
+    def _hasNot(self, name_list) :
+        return not self._has(name_list)
     
     def j(self) :
         return self._data.j()

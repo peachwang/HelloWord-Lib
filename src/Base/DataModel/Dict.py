@@ -168,6 +168,9 @@ class Dict(defaultdict, dict) :
         else :
             raise Exception('Unexpected key_list: {}'.format(key_list))
 
+    def hasNot(self, key_list) :
+        return not self.has(key_list)
+
     def keys(self) :
         '''D.keys() -> a set-like object providing a view on D's keys'''
         from List import List
