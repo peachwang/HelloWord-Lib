@@ -1,26 +1,44 @@
 # -*- coding: utf-8 -*-  
-from datetime import datetime
-from time import time, strftime, strptime
+from util import Object
+from datetime import datetime, timedelta
+from time import time, strftime
 
-class DateTime() :
+class DateTime(Object) :
 
-    def __init__(self, timestamp = None) :
-        self.timestamp = time() if timestamp is None else timestamp
-        self.datetime = datetime.fromtimestamp(self.timestamp)
+    def __init__(self, timestamp_or_datetime = None) :
+        Object.__init__(self)
+        if timestamp_or_datetime is None :
+            self._timestamp = time()
+        elif isinstance(timestamp_or_datetime, datetime) :
+            self._timestamp = timestamp_or_datetime.timestamp()
+        elif isinstance(timestamp, (int, float)) :
+            self._timestamp = timestamp
 
     def fromStr(self, string, pattern = '%Y-%m-%d %H:%M:%S') :
-        self.datetime = datetime.strptime(string, pattern)
-        self.timestamp = self.datetime.timestamp()
+        self._timestamp = datetime.strptime(string, pattern).timestamp()
         return self
 
-    def str(self, pattern = '%Y-%m-%d %H:%M:%S') :
+    def __format__(self, pattern) :
+        if pattern == '' : pattern = '%Y-%m-%d %H:%M:%S'
         return strftime(pattern, self.datetime.timetuple())
 
-    def dateStr(self, pattern = '%Y-%m-%d') :
-        return self.str(pattern)
+    def __str__(self) :
+        return 'DateTime({})'.format(self.__format__('%Y-%m-%d %H:%M:%S'))
 
-    def timeStr(self, pattern = '%H:%M:%S') :
-        return self.str(pattern)
+    @property
+    def datetime(self):
+        return datetime.fromtimestamp(self._timestamp)
 
-if __name__ == '__main__':
-    print(DateTime().dateStr('%y%m%d'))
+    @property
+    def date_str(self) :
+        return self.__format__('%Y-%m-%d')
+
+    def dateStr(self, pattern) :
+        return self.__format__(pattern)
+
+    @property
+    def time_str(self) :
+        return self.__format__('%H:%M:%S')
+
+    def timeStr(self, pattern) :
+        return self.__format__(pattern)

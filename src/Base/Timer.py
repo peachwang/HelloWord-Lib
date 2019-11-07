@@ -12,7 +12,7 @@ class Timer(Object) :
         timing_delta = time() - cls.timing_current
         cls.timing_delta_list.append(timing_delta)
         cls.timing_total += timing_delta
-        print(Y, '当前时刻{}，用时{:.5f}秒，累计{:.2f}秒，[{}]'.format(DateTime().str(), timing_delta, cls.timing_total, msg), E)
+        print(Y, '当前时刻{}，用时{:.2f}秒，累计{:.2f}秒，[{}]'.format(DateTime(), timing_delta, cls.timing_total, msg), E)
         cls.timing_current = time()
         return timing_delta
 

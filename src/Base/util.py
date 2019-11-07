@@ -1,28 +1,21 @@
 # -*- coding: utf-8 -*-  
-import re, json, sys, os, requests
-from time import sleep, time, gmtime, mktime, ctime, localtime, strftime, strptime
-from datetime import datetime, date, timedelta
-from os.path import exists, getsize, join, isfile, realpath
-from os import rename, listdir, remove, mkdir, makedirs
-from sys import exit
-from math import *
-from copy import *
+import sys, os; sys.path.append(os.path.realpath(__file__ + '/../DataModel/'));
 
+import json, re, requests
+from sys import exit
 from bcolors import OKMSG as OK, PASS, WARN, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE, HEADER, ENDC
 G, Y, R, B, E = GREEN, YELLOW, RED, BLUE, END = PASS, WARN, FAIL, BLUE, ENDC
+# print(sys.path)
 
-sys.path.append(os.path.realpath(__file__ + '/../DataModel/'));
-
-from DateTime import DateTime
-from Dict import Dict
-from List import List
 from Object import Object
+from List import List
+from Dict import Dict
 from Str import Str
-from Audio import Audio
-from File import File
-from Folder import Folder
+from DateTime import DateTime, datetime, timedelta, time
 from Timer import Timer
-
+from File import File
+from Audio import Audio
+from Folder import Folder, makedirs as mkdir
 
 # @todo: add comments for the following functions
 # ================= Exception =================
@@ -114,18 +107,16 @@ def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-
 
 # ==================== System ====================
 
-def parse_argv(argv) :
-    mapping  = {}
-    sequence = []
-    for index, arg in enumerate(argv) :
-        if index == 0 :
-            continue
+def parse_argv(args) :
+    sequence, kwargs = List(), Dict()
+    for index, arg in enumerate(List(args)) :
+        if index == 0 : continue
         if arg[0] == '-' :
-            key, value = re.findall(r'-([^=]+)=(.*)', arg)[0]
-            mapping[key] = value
+            key, value = arg.findall(r'^-([^=]+)=(.*)$')[0]
+            kwargs[key] = value
         else :
             sequence.append(arg)
-    return mapping, sequence
+    return kwargs, sequence
 
 def shell(command) :
     import subprocess
@@ -136,7 +127,3 @@ def shell(command) :
     return (p.stdout, retval)
 
 from Base import Base
-
-
-if __name__ == '__main__' :
-    pass
