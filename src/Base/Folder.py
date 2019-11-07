@@ -15,8 +15,8 @@ class Folder(Object) :
             raise Exception('Fail to walk folder path: {}'.format(folder_path))
         self._path.rstrip('/')
         self._name = self._path.split('/')[-1]
-        self._sub_folder_list = self._sub_folder_name_list.copy().map(lambda folder_name, index : Folder('{}/{}'.format(self._path, folder_name)))
-        self._sub_file_list   = self._sub_file_name_list.copy().map(lambda file_name, index : File('{}/{}'.format(self._path, file_name), self))
+        self._sub_folder_list = self._sub_folder_name_list.copy().map(lambda folder_name : Folder('{}/{}'.format(self._path, folder_name)))
+        self._sub_file_list   = self._sub_file_name_list.copy().map(lambda file_name : File('{}/{}'.format(self._path, file_name), self))
 
     @classmethod
     def mkdir(cls, path) :

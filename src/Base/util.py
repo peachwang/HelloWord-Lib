@@ -51,9 +51,9 @@ class UserTypeError(TypeError):
         return re.findall(r'\'([^\']+)\'', str(type(var_type)))[0]
 
     def containsSameItems(self, data, check_specific_value = False, specific_value = None) :
-        if type(data) not in [list, dict] :
+        if not isinstance(data, (list, dict)) :
             raise UserTypeError('data', data, [list, dict])
-        if type(data) is dict : data = data.values()
+        if isinstance(data, dict) : data = data.values()
         if len(data) == 0 : return True
         if check_specific_value is True :
             return data.count(specific_value) == len(data)

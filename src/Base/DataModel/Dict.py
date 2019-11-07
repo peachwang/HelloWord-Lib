@@ -4,12 +4,12 @@ from collections import defaultdict
 class Dict(defaultdict, dict) :
 
     def _wrapValue(self, value) :
-        if type(value) is list :
+        if isinstance(value, list) :
             from List import List
             return List(value)
-        elif type(value) is dict :
+        elif isinstance(value, dict) :
             return Dict(value)
-        elif type(value) is str :
+        elif isinstance(value, str) :
             from Str import Str
             return Str(value)
         else :
@@ -20,10 +20,10 @@ class Dict(defaultdict, dict) :
         if len(args) == 0 :
             dict.__init__(self, {})
         elif len(args) == 1 :
-            if type(args[0]) is dict :
+            if isinstance(args[0], dict) :
                 for key in args[0] :
                     dict.__setitem__(self, key, self._wrapValue(args[0][key]))
-            elif type(args[0]) is zip :
+            elif isinstance(args[0], zip) :
                 self.__init__(dict(args[0]))
             elif isinstance(args[0], Dict) :
                 dict.__init__(self, args[0].getData())
@@ -59,7 +59,7 @@ class Dict(defaultdict, dict) :
         return "{{{}}}".format(
             self.copy()\
                 .keys()\
-                .map(lambda key, index : '{} : {}'.format(
+                .map(lambda key : '{} : {}'.format(
                         '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
                         '"{}"'.format(self[key]) if isinstance(self[key], str) else '{}'.format(self[key])
                     )
@@ -72,7 +72,7 @@ class Dict(defaultdict, dict) :
         return 'Dict{{{}}}'.format(
             self.copy()\
                 .keys()\
-                .map(lambda key, index : '{} : {}'.format(
+                .map(lambda key : '{} : {}'.format(
                         '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
                         '"{}"'.format(self[key]) if isinstance(self[key], str) else str(self[key])
                     )
@@ -290,13 +290,12 @@ class Dict(defaultdict, dict) :
         If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
         In either case, this is followed by: for k in F:  D[k] = F[k]'''
         '''IN PLACE'''
-        if type(mapping) is dict :
+        if isinstance(mapping, dict) :
             dict.update(self, self._wrapValue(mapping))
         elif isinstance(mapping, Dict) :
             dict.update(self, mapping.getData())
         else :
-            print(type(mapping))
-            raise Exception('Unexpected mapping: {}'.format(mapping))
+            raise Exception('Unexpected type{} of mapping: {}'.format(type(mapping), mapping))
         if len(args) > 0 : dict.update(self, args)
         return self
 
@@ -314,29 +313,28 @@ class Dict(defaultdict, dict) :
         '''
         '''IN PLACE'''
 
-    # def strip(data, chars = ' \n\t', encoding = 'utf-8') :
-    #     if data is None :
-    #         return None
-    #     elif type(data) is str :
-    #         return data.strip(chars)
-    #     # elif type(data) == unicode :
-    #         # return data.encode(encoding).strip(chars).decode(encoding)
-    #     elif type(data) is list :
-    #         return [strip(datum, chars, encoding) for datum in data]
-    #     elif type(data) is tuple :
-    #         return (strip(datum, chars, encoding) for datum in data)
-    #     elif type(data) is set :
-    #         return set([strip(datum, chars, encoding) for datum in data])
-    #     elif type(data) is dict :
-    #         return dict([(key, strip(data[key], chars, encoding)) for key in data.keys()])
-    #     elif isinstance(data, (int, float, bool)) :
-    #         return data
-    #     else :
-    #         raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+    def _stripValue(self, value, string) :
+        from List import List
+        from Str import Str
+        if value is None or isinstance(value, (int, float, bool, range, bytes, zip)):
+            return value
+        elif isinstance(value, (List, Dict, Str)) :
+            return value.strip(string)
+        elif isinstance(value, tuple) :
+            return (self._stripValue(_, string) for _ in value)
+        elif isinstance(value, set) :
+            return set([self._stripValue(_, string) for _ in value])
+        elif isinstance(value, object) :
+            if 'strip' in dir(value) : value.strip(string)
+            return value
+        else :
+            raise Exception('Unknown type{} of value{}'.format(type(value), value))
 
-    def strip(self) :
+    def strip(self, string = ' \t\n') :
         '''IN PLACE'''
-        raise
+        for key in self :
+            self[key] = self._stripValue(self[key], string)
+        return self
 
     # def safe(data, encoding = 'utf-8') :
     #     try :

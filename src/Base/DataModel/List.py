@@ -4,15 +4,15 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 class List(list) :
 
     def _wrapItem(self, item) :
-        if type(item) is list :
+        if isinstance(item, list) :
             return List(item)
-        elif type(item) is dict :
+        elif isinstance(item, dict) :
             from Dict import Dict
             return Dict(item)
-        elif type(item) is str :
+        elif isinstance(item, str) :
             from Str import Str
             return Str(item)
-        elif type(item) is bytes :
+        elif isinstance(item, bytes) :
             from Str import Str
             return Str(item.decode())
         else :
@@ -23,9 +23,9 @@ class List(list) :
         if len(args) == 0 :
             raw_item_list = []
         elif len(args) == 1 :
-            if type(args[0]) is list :
+            if isinstance(args[0], list) :
                 raw_item_list = args[0]
-            elif type(args[0]) is range :
+            elif isinstance(args[0], range) :
                 raw_item_list = list(args[0])
             elif isinstance(args[0], List) :
                 list.__init__(self, args[0].getData())
@@ -65,7 +65,7 @@ class List(list) :
         '''default object formatter'''
         return '[{}]'.format(
             self.copy()\
-                .map(lambda item, index : '"{}"'.format(item) if isinstance(item, str) else '{}'.format(item))\
+                .map(lambda item : '"{}"'.format(item) if isinstance(item, str) else '{}'.format(item))\
                 .join(', ')
         )
 
@@ -73,7 +73,7 @@ class List(list) :
         '''Return str(self).'''
         return 'List[{}]'.format(
             self.copy()\
-                .map(lambda item, index : '"{}"'.format(item) if isinstance(item, str) else str(item))\
+                .map(lambda item : '"{}"'.format(item) if isinstance(item, str) else str(item))\
                 .join(', ')
         )
 
@@ -282,10 +282,17 @@ class List(list) :
             else : self[index] = attribute
         return self
 
-    def map(self, func, *args) :
+    def _padIndexToArgs(func, args, index, pos = 1) :
+        func_args = inspect.getargspec(func).args
+        if len(func_args) > pos and func_args[pos] == 'index' :
+            return [ index ] + args
+        else :
+            return args
+    
+    def map(self, func, *args, **kwargs) :
         '''IN PLACE'''
         for index, item in enumerate(self) :
-            self[index] = func(item, index, *args)
+            self[index] = func(item, *(self._padIndexToArgs(func, args, index)), **kwargs)
         return self
 
     def enumerate(self) :
@@ -304,11 +311,11 @@ class List(list) :
                 else : self.pop(index)
         return self
 
-    def reduce(self, func, initial_value, *args) :
+    def reduce(self, func, initial_value, *args, **kwargs) :
         result = initial_value
         for index, item in enumerate(self) :
             try :
-                result = func(result, item, index, *args)
+                result = func(result, item, *(self._padIndexToArgs(func, args, index, 2)), **kwargs)
             except Exception as e :
                 print(self, result, item, index)
                 raise e
@@ -330,11 +337,11 @@ class List(list) :
         else : raise Exception('Unexpected key_list_or_func_name: {}'.format(key_list_or_func_name))
 
     def merge(self) :
-        return self.reduce(lambda result, item, index : result.extend(item), List())
+        return self.reduce(lambda result, item : result.extend(item), List())
 
     def sum(self, key_list_or_func_name = None) :
         if self.len() == 0 : return 0
-        def func(result, item, index, *args) :
+        def func(result, item, *args) :
             result += item
             return result
         return self._reduce(key_list_or_func_name, func, 0)
@@ -359,14 +366,14 @@ class List(list) :
 
     def max(self, key_list_or_func_name = None) :
         if self.len() == 0 : return None
-        def func(result, item, index, *args) :
+        def func(result, item, *args) :
             if item > result : return item
             else : return result
         return self._reduce(key_list_or_func_name, func, self._initialValue(key_list_or_func_name))
 
     def min(self, key_list_or_func_name = None) :
         if self.len() == 0 : return None
-        def func(result, item, index, *args) :
+        def func(result, item, *args) :
             if item < result : return item
             else : return result
         return self._reduce(key_list_or_func_name, func, self._initialValue(key_list_or_func_name))
@@ -377,47 +384,29 @@ class List(list) :
             raise Exception('Unexpected type of sep: {}'.format(sep))
         return Str(sep).join(self)
 
-    # def strip(data, chars = ' \n\t', encoding = 'utf-8') :
-    #     if data is None :
-    #         return None
-    #     elif type(data) is str :
-    #         return data.strip(chars)
-    #     # elif type(data) == unicode :
-    #         # return data.encode(encoding).strip(chars).decode(encoding)
-    #     elif type(data) is list :
-    #         return [strip(datum, chars, encoding) for datum in data]
-    #     elif type(data) is tuple :
-    #         return (strip(datum, chars, encoding) for datum in data)
-    #     elif type(data) is set :
-    #         return set([strip(datum, chars, encoding) for datum in data])
-    #     elif type(data) is dict :
-    #         return dict([(key, strip(data[key], chars, encoding)) for key in data.keys()])
-    #     elif isinstance(data, (int, float, bool)) :
-    #         return data
-    #     else :
-    #         raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+    def _stripItem(self, item, string) :
+        from Dict import Dict
+        from Str import Str
+        if item is None or isinstance(item, (int, float, bool, range, bytes, zip)):
+            return item
+        elif isinstance(item, (List, Dict, Str)) :
+            return item.strip(string)
+        elif isinstance(item, tuple) :
+            return (self._stripItem(_, string) for _ in item)
+        elif isinstance(item, set) :
+            return set([self._stripItem(_, string) for _ in item])
+        elif isinstance(item, object) :
+            if 'strip' in dir(item) : item.strip(string)
+            return item
+        else :
+            raise Exception('Unknown type{} of item{}'.format(type(item), item))
 
     def strip(self, string = ' \t\n') :
         '''IN PLACE'''
-        from Dict import Dict
-        from Str import Str
         index = 0
         while index < self.len() :
-            if type(self[index]) in [ List, Dict, Str ] :
-                self[index] = self[index].strip(string)
-            elif type(self[index]) == tuple :
-                raise
-                # self[index] = (strip(datum, chars, encoding) for item in self[index])
-            elif type(self[index]) == set :
-                raise
-                # self[index] = set([strip(datum, chars, encoding) for datum in data])
+            self[index] = self._stripItem(self[index], string)
             index += 1
-
-
-
-
-
-
         return self
 
     # def safe(data, encoding = 'utf-8') :

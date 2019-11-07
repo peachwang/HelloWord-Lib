@@ -22,8 +22,8 @@ class Object() :
     def __setattr__(self, name, value) :
         from Dict import Dict
         from List import List
-        if type(value) is list : self._data[name] = List(value)
-        elif type(value) is dict : self._data[name] = Dict(value)
+        if isinstance(value, list) : self._data[name] = List(value)
+        elif isinstance(value, dict) : self._data[name] = Dict(value)
         else : self._data[name] = value
         return value
 

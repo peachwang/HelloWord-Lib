@@ -45,6 +45,14 @@ class Str(str) :
             raise Exception('Unexpected type of sep: {}'.format(sep))
         return List(str.split(self, sep))
 
+    # def strip(self) :
+        '''
+        S.strip([chars]) -> str
+
+        Return a copy of the string S with leading and trailing
+        whitespace removed.
+        If chars is given and not None, remove characters in chars instead.
+        '''
     def strip(self, string, left = True, right = True) :
         '''NOT IN PLACE'''
 
@@ -636,15 +644,6 @@ class Str(str) :
         With optional start, test S beginning at that position.
         With optional end, stop comparing S at that position.
         prefix can also be a tuple of strings to try.
-        '''
-
-    # def strip(self) :
-        '''
-        S.strip([chars]) -> str
-
-        Return a copy of the string S with leading and trailing
-        whitespace removed.
-        If chars is given and not None, remove characters in chars instead.
         '''
 
     # def swapcase(self) :
