@@ -25,8 +25,9 @@ class Base() : # Requester
         post_data = Dict({ 'Username' : username, 'Password' : password })
         response = requests.post(url, data = post_data.j().encode('utf-8'))
         if response.status_code == 200 :
-            print(GREEN, '成功', END, end = '')
-            cls.updateConfig({ 'token' : { 'token' : response.json()['data']['Token'] } })
+            token = response.json()['data']['Token']
+            print(GREEN, '成功', token, END, end = '')
+            cls.updateConfig({ 'token' : { 'token' : token } })
             cls.is_login = True
         else :
             print(RED, '失败', response.status_code, END)
