@@ -48,6 +48,10 @@ class File(Object) :
             return self.write(data.j(), append)
         else : raise Exception('Unexpected type of data: {}'.format(data))
 
+    def writeBytes(self, bytes_content) :
+        open(self._path, 'wb').write(bytes_content)
+        return self
+
     def readLineList(self) :
         pass
 
