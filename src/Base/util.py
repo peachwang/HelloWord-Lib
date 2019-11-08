@@ -101,6 +101,26 @@ def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = 
 def load_json(fin, object_hook = None, encoding = 'utf-8') :
     return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
 
+def json_serialize(data) :
+    if isinstance(data, (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
+        raise Exception('Unexpected type{} of data{}'.format(type(data), data))
+    elif isinstance(data, (str, int, float, bool)) :
+        return data
+    elif isinstance(data, list) :
+        return [ json_serialize(item) for item in data ]
+    elif isinstance(data, dict) :
+        return { json_serialize(key) : json_serialize(data[key]) for key in data }
+    elif isinstance(data, tuple) :
+        return 'tuple({})'.format(', '.join(str(json_serialize(item)) for item in data))
+    elif isinstance(data, set) :
+        return 'set{{{}}}'.format(', '.join(str(json_serialize(item)) for item in data))
+    elif isinstance(data, (range, bytes, object)) :
+        return '{}'.format(data)
+    elif isinstance(data, zip) :
+        return 'zip{}'.format(json_serialize(list(data)))
+    elif isinstance(data, datetime) :
+        return 'datetime({})'.format(data)
+
 def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
     # return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
     return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys)

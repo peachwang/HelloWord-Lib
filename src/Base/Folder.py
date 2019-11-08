@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
-from util import *
-from File import File
-from os import rename, listdir, remove, mkdir, makedirs, walk
+from util import List, Dict, Str, Object
+from File import File, realpath
+from os import path, rename, listdir, remove, makedirs, walk
 
 class Folder(Object) :
 
@@ -18,14 +18,23 @@ class Folder(Object) :
         self._sub_folder_list = self._sub_folder_name_list.copy().map(lambda folder_name : Folder('{}/{}'.format(self._path, folder_name)))
         self._sub_file_list   = self._sub_file_name_list.copy().map(lambda file_name : File('{}/{}'.format(self._path, file_name), self))
 
+    def j(self) :
+        return '{}'.format(self)
+
+    def __format__(self, code) :
+        return 'Folder({})'.format(realpath(self._path))
+
+    def __str__(self) :
+        return self.__format__('')
+
     @classmethod
     def mkdir(cls, path) :
-        os.mkdir(path)
+        makedirs(path, exist_ok = True)
         return cls
 
     @classmethod
     def exists(cls, path) :
-        return os.path.exists(path)
+        return path.exists(path)
 
     @property
     def sub_file_list(self) :
@@ -42,3 +51,4 @@ class Folder(Object) :
             'SubFolderList' : self._sub_folder_list.copy().batch('json'),
             'SubFileList'   : self._sub_file_list.copy().batch('json'),
         })
+

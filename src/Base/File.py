@@ -1,25 +1,40 @@
 # -*- coding: utf-8 -*-  
-from util import *
-from os.path import getsize, join, isfile, realpath
+from util import List, Dict, Str, Object
+from os.path import exists, getsize, isfile, realpath
 
 class File(Object) :
 
     def __init__(self, file_path, folder = None) :
         Object.__init__(self)
-        self._folder = folder
-        self._path   = file_path
-        _ = file_path.split('/')
-        self._name   = _[-1]
-        self._ext    = self._name.split('.')[-1]
-        self._name   = self._name[ : - len(self._ext) - 1]
+        file_path           = Str(file_path)
+        self._folder        = folder
+        self._path          = file_path
+        _                   = file_path.split('/')
+        self._name          = _[-1]
+        self._ext           = self._name.split('.')[-1] if '.' in self._name else Str('')
+        self._name          = self._name[ : - self._ext.len() - 1]
+        self._folder_path   = _[ : -1].join('/')
 
+    def j(self) :
+        return '{}'.format(self)
+
+    def __format__(self, code) :
+        return 'File({})'.format(realpath(self._path))
+
+    def __str__(self) :
+        return self.__format__('')
+
+    @property
+    def path(self) :
+        return self._path
+    
     @property
     def folder(self) :
         return self._folder
 
     @property
-    def path(self) :
-        return self._path
+    def folder_path(self) :
+        return self._folder_path
 
     @property
     def name(self) :
@@ -34,7 +49,11 @@ class File(Object) :
 
     @classmethod
     def exists(cls, path) :
-        return os.path.exists(path)
+        return exists(path)
+
+    @property
+    def size(self) :
+        return getsize(self._path)
 
     def readLineList(self) :
         return List(open(self._path).readlines()).strip('\n\r')
@@ -48,8 +67,9 @@ class File(Object) :
 
     def writeData(self, data, append = False) :
         if isinstance(data, ( List, Dict )) :
-            return self.writeString(data.j(), append)
-        else : raise Exception('Unexpected type of data: {}'.format(data))
+            data.writeToFile(self)
+            return self
+        else : raise Exception('Unexpected type{} of data: {}'.format(type(data), data))
 
     def writeBytes(self, bytes_content) :
         open(self._path, 'wb').write(bytes_content)
@@ -67,7 +87,6 @@ class File(Object) :
     def dumpJson(self, data) :
         return self.writeData(data)
 
-    # # delete
     # def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
     #     if not is_matrix :
     #         if fields == None :
@@ -91,7 +110,7 @@ class File(Object) :
     #     return data
 
     def loadTable(self) :
-        pass
+        raise
 
     # def dump_table(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
     #     if is_matrix :
@@ -112,7 +131,7 @@ class File(Object) :
     #             fout.flush()
 
     def dumpTable(self) :
-        pass
+        raise
 
     # # delete
     # def load_mapping(fin) :
@@ -134,7 +153,7 @@ class File(Object) :
     #     return data
 
     def loadMapping(self) :
-        pass
+        raise
 
     def json(self) :
         return Dict({

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import Object
+from util import Object, j
 from datetime import datetime, timedelta
 from time import time, strftime
 
@@ -17,6 +17,12 @@ class DateTime(Object) :
     def fromStr(self, string, pattern = '%Y-%m-%d %H:%M:%S') :
         self._timestamp = datetime.strptime(string, pattern).timestamp()
         return self
+
+    def getRaw(self) :
+        return self.datetime
+
+    def j(self) :
+        return str(self.datetime)
 
     def __format__(self, pattern) :
         if pattern == '' : pattern = '%Y-%m-%d %H:%M:%S'

@@ -4,6 +4,9 @@ from pydub import AudioSegment
 
 class Audio(File) :
 
+    def j(self) :
+        return '{}'.format(self)
+
     def len(self) :
         pass
 
