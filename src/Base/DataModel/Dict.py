@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
+from types import GeneratorType
 from collections import defaultdict
+from functools import wraps
 
 class Dict(defaultdict, dict) :
 
@@ -19,15 +21,16 @@ class Dict(defaultdict, dict) :
 
     @_importTypes
     def _wrapValue(self, value) :
-        if type(value) is list        : return List(value)
-        elif type(value) is dict      : return Dict(value)
-        elif type(value) is str       : return Str(value)
-        elif type(value) is tuple     : return tuple([ self._wrapItem(_) for _ in value ])
-        elif type(value) is set       : return set([ self._wrapItem(_) for _ in value ])
-        elif type(value) is datetime  : return DateTime(value)
+        if isinstance(value, list)        : return List(value)
+        elif isinstance(value, dict)      : return Dict(value)
+        elif isinstance(value, str)       : return Str(value)
+        elif isinstance(value, bytes)     : return Str(value.decode())
+        elif isinstance(value, tuple)     : return tuple([ self._wrapItem(_) for _ in value ])
+        elif isinstance(value, set)       : return set([ self._wrapItem(_) for _ in value ])
+        elif isinstance(value, datetime)  : return DateTime(value)
         else : return value
 
-    def __init__(self, *args) :
+    def __init__(self, *args, **kwargs) :
         '''Initialize self.  See help(type(self)) for accurate signature.'''
         if len(args) == 0 :
             dict.__init__(self, {})
@@ -35,16 +38,15 @@ class Dict(defaultdict, dict) :
             if isinstance(args[0], dict) :
                 for key in args[0] :
                     dict.__setitem__(self, key, self._wrapValue(args[0][key]))
-            elif isinstance(args[0], zip) :
-                self.__init__(dict(args[0]))
-            elif isinstance(args[0], GeneratorType) :
+            elif isinstance(args[0], (zip, GeneratorType)) :
                 self.__init__(dict(args[0]))
             elif isinstance(args[0], Dict) :
-                dict.__init__(self, args[0].getData())
+                dict.__init__(self, args[0]._getData())
             else :
                 raise Exception('Unexpected args for Dict.__init__: {}'.format(args))
         else :
             raise Exception('Unexpected args for Dict.__init__: {}'.format(args))
+        if len(kwargs) > 0 : dict.update(self, Dict(kwargs))
 
     def fromkeys(self, key_list, value = None) :
         '''Returns a new dict with keys from iterable and values equal to value.'''
@@ -72,15 +74,15 @@ class Dict(defaultdict, dict) :
         return hex(id(self))
 
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
-    def getData(self) :
+    def _getData(self) :
         return { key : self[key] for key in self }
 
     # 原生化 list, dict, str, Object._data, datetime
     @_importTypes
     def getRaw(self) :
-        return { key : (self[key].getRaw()\
-                if isinstance(self[key], (List, Dict, Str, Object, DateTime, File, Folder, Audio))\
-                else self[key] # str, int, float, bool, tuple, set, range, bytes, zip, datetime, object
+        return { key : (self[key].getRaw()
+                if isinstance(self[key], (List, Dict, Str, Object, DateTime, File, Folder, Audio))
+                else self[key] # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
             ) for key in self
         }
 
@@ -88,9 +90,9 @@ class Dict(defaultdict, dict) :
     @_importTypes
     def j(self) :
         from util import j, json_serialize
-        return j({ json_serialize(key) : (self[key].j()\
-                if isinstance(self[key], (List, Dict, Str, Object, DateTime, File, Folder, Audio))\
-                else json_serialize(self[key]) # int, float, bool, tuple, set, range, bytes, zip, datetime, object
+        return j({ json_serialize(key) : (self[key].j()
+                if isinstance(self[key], (List, Dict, Str, Object, DateTime, File, Folder, Audio))
+                else json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
             ) for key in self
         })
 
@@ -156,7 +158,7 @@ class Dict(defaultdict, dict) :
         #                     continue
         #                 if data[0].get(key) is not None and isinstance(data[0][key], list) : continue # 列表类【原生】字段不扩充POSSIBLE VALUES
         #                 if data[0].get(key) is not None and isinstance(data[0][key], dict) : continue # 字典类【原生】字段不扩充POSSIBLE VALUES
-        #                 if data[0].get(key) is None and isinstance(result_0[key], list) \
+        #                 if data[0].get(key) is None and isinstance(result_0[key], list)
         #                     and not (isinstance(result_0[key][0], str) and 'POSSIBLE VALUES' in result_0[key][0]) : continue # 列表类【补充】字段不扩充POSSIBLE VALUES
         #                 if data[0].get(key) is None and isinstance(result_0[key], dict) : continue # 字典类【补充】字段不扩充POSSIBLE VALUES
         #                 # 此时待补充的是非列表字典类字段
@@ -206,7 +208,7 @@ class Dict(defaultdict, dict) :
                 now = now[key]
             return True
         else :
-            raise Exception('Unexpected type{} of key_list: {}'.format(type(key_list), key_list))
+            raise Exception('Unexpected type({}) of key_list: {}'.format(type(key_list), key_list))
 
     def hasNot(self, key_list) :
         return not self.has(key_list)
@@ -239,17 +241,16 @@ class Dict(defaultdict, dict) :
         exist; without it, an exception is raised in that case.'''
         return self[key]
 
-    # def __getitem__(self) :
-        '''
-        x.__getitem__(y) <==> x[y]
-        '''
+    def __getitem__(self, key) :
+        '''x.__getitem__(y) <==> x[y]'''
+        return self.get(key)
 
     def get(self, key_list, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
         if isinstance(key_list, str) :
             return dict.get(self, key_list, default)
         elif isinstance(key_list, list) :
-            if not self.has(key_list) :
+            if self.hasNot(key_list) :
                 return default
             else :
                 now = self
@@ -257,7 +258,7 @@ class Dict(defaultdict, dict) :
                     now = now[key]
                 return now
         else :
-            raise Exception('Unexpected type{} of key_list: {}'.format(type(key_list), key_list))
+            raise Exception('Unexpected type({}) of key_list: {}'.format(type(key_list), key_list))
 
     # [ (key1,), (key2, None), key3 ]
     def getMulti(self, key_list, default = None, de_underscore = False) :
@@ -282,7 +283,7 @@ class Dict(defaultdict, dict) :
                 else : raise Exception('Unexpected key_list: {}'.format(key_list))
             return result
         else :
-            raise Exception('Unexpected type{} of key_list: {}'.format(type(key_list), key_list))
+            raise Exception('Unexpected type({}) of key_list: {}'.format(type(key_list), key_list))
 
     def __setattr__(self, key, value) :
         '''Implement setattr(self, name, value).
@@ -322,7 +323,7 @@ class Dict(defaultdict, dict) :
                     else :
                         now[key] = value
         else :
-            raise Exception('Unexpected type{} of key_list: {}'.format(type(key_list), key_list))
+            raise Exception('Unexpected type({}) of key_list: {}'.format(type(key_list), key_list))
         return self
 
     def update(self, mapping, **kwargs) :
@@ -332,12 +333,12 @@ class Dict(defaultdict, dict) :
         In either case, this is followed by: for k in F:  D[k] = F[k]'''
         '''IN PLACE'''
         if isinstance(mapping, dict) :
-            dict.update(self, self._wrapValue(mapping))
+            dict.update(self, Dict(mapping))
         elif isinstance(mapping, Dict) :
-            dict.update(self, mapping.getData())
+            dict.update(self, mapping)
         else :
-            raise Exception('Unexpected type{} of mapping: {}'.format(type(mapping), mapping))
-        if len(kwargs) > 0 : dict.update(self, Dict(kwargs).getData())
+            raise Exception('Unexpected type({}) of mapping: {}'.format(type(mapping), mapping))
+        if len(kwargs) > 0 : dict.update(self, Dict(kwargs))
         return self
 
     def pop(self, key_list, default = 'NONE') :
@@ -364,7 +365,7 @@ class Dict(defaultdict, dict) :
                 else :
                     return dict.pop(now, key_list[-1], default)
         else :
-            raise Exception('Unexpected type{} of key_list: {}'.format(type(key_list), key_list))
+            raise Exception('Unexpected type({}) of key_list: {}'.format(type(key_list), key_list))
 
     def popitem(self) :
         '''D.popitem() -> (k, v), remove and return some (key, value) pair as a
@@ -393,34 +394,6 @@ class Dict(defaultdict, dict) :
         for key in self :
             self[key] = self._stripValue(self[key], string)
         return self
-
-    # def safe(data, encoding = 'utf-8') :
-    #     try :
-    #         if data is None :
-    #             return None
-    #         elif type(data) is str :
-    #             return data
-    #         # elif type(data) is unicode :
-    #             # return data.encode(encoding)
-    #         elif type(data) is list :
-    #             return [safe(datum, encoding) for datum in data]
-    #         elif type(data) is tuple :
-    #             return tuple([safe(datum, encoding) for datum in data])
-    #         elif type(data) is set :
-    #             return set([safe(datum, encoding) for datum in data])
-    #         elif type(data) is dict :
-    #             return dict([(safe(key, encoding), safe(data[key], encoding)) for key in data.keys()])
-    #         elif isinstance(data, (int, float, bool)) :
-    #             return data
-    #         elif data is None :
-    #             return data
-    #         else :
-    #             raise UserTypeError('data', data, [str, unicode, list, tuple, set, dict, int, float, bool])
-    #     except Exception :
-    #         print(type(data))
-    #         print([data])
-    #         raise e
-    #         exit()
 
     def clear(self) :
         '''D.clear() -> None.  Remove all items from D.'''

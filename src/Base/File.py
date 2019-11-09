@@ -69,7 +69,7 @@ class File(Object) :
         if isinstance(data, ( List, Dict )) :
             data.writeToFile(self)
             return self
-        else : raise Exception('Unexpected type{} of data: {}'.format(type(data), data))
+        else : raise Exception('Unexpected type({}) of data: {}'.format(type(data), data))
 
     def writeBytes(self, bytes_content) :
         open(self._path, 'wb').write(bytes_content)

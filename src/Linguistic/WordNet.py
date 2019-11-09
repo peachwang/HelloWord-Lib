@@ -115,7 +115,7 @@ class WordNet :
     def load_data(self) :
         timing = time()
         _ = dict([
-            (__, load_txt(open(join(self.path_data, self.filename[__]), 'r'), self.fields[__])) \
+            (__, load_txt(open(join(self.path_data, self.filename[__]), 'r'), self.fields[__]))
                 for __ in self.fields.keys()
         ])
         # sys.stdout.write('%.2f\n' % (time() - timing));sys.stdout.flush();
@@ -239,7 +239,7 @@ class WordNet :
         timing = time()
         _ = deepcopy(sense)
         _['Synset']   = [word for word in _['Synset'].values()]
-        Examples = [{'ExampleCode' : ExampleCode, 'Example' : Example} \
+        Examples = [{'ExampleCode' : ExampleCode, 'Example' : Example}
             for ExampleCode, Example in _['Examples'].items()]
         _['Examples'] = Examples
         _ = {'Content' : _}
