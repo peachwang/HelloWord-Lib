@@ -2,10 +2,101 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 import re
 
-class Str(str) :
+# https://docs.python.org/3/library/re.html
 
-    def getRaw(self) :
-        return str(self)
+SRE_MATCH_TYPE = type(re.match('', ''))
+
+class _Match(SRE_MATCH_TYPE) :
+        # '?P<>'
+        # Pattern.groupindex
+        # A dictionary mapping any symbolic group names defined by (?P<id>) to group numbers.
+        # The dictionary is empty if no symbolic groups were used in the pattern.
+    
+    def __init__(self, match) :
+        self._match = match
+
+    @property
+    def match(self) :
+        return self._match
+
+    @property
+    def string(self) :
+        '''The string passed to match() or search().'''
+        return self._match.string
+
+    def format(self, template) :
+        '''Return the string obtained by doing backslash substitution on the
+        template string template, as done by the sub() method. Escapes such as \n
+        are converted to the appropriate characters, and numeric backreferences
+        (\1, \2) and named backreferences (\g<1>, \g<name>) are replaced by the
+        contents of the corresponding group.
+        (?P<name>...)
+        '''
+        return Str(self._match.expand(template))
+
+    def oneGroup(self, group) :
+        '''Returns one or more subgroups of the match. If there is a single
+        argument, the result is a single string; if there are multiple arguments,
+        the result is a tuple with one item per argument. Without arguments,
+        group1 defaults to zero (the whole match is returned). If a groupN
+        argument is zero, the corresponding return value is the entire matching
+        string; if it is in the inclusive range [1..99], it is the string matching
+        the corresponding parenthesized group. If a group number is negative or
+        larger than the number of groups defined in the pattern, an IndexError
+        exception is raised. If a group is contained in a part of the pattern that
+        did not match, the corresponding result is None. If a group is contained in
+        a part of the pattern that matched multiple times, the last match is returned.
+        If the regular expression uses the (?P<name>...) syntax, the groupN arguments
+        may also be strings identifying groups by their group name. If a string
+        argument is not used as a group name in the pattern, an IndexError exception
+        is raised. Named groups can also be referred to by their index.
+        (?P<name>...)
+        '''
+        _ = self._match.group(group)
+        return Str(_) if _ is not None else _
+
+    def __getitem__(self, group) :
+        '''m[group] <--> m.group(group)
+        This is identical to m.group(group). This allows easier access to an
+        individual group from a match.'''
+        return self._match.__getitem__(group)
+
+    def allGroupTuple(self, default = None) :
+        '''(?P<name>...)
+        Return a tuple containing all the subgroups of the match, from 1 up to
+        however many groups are in the pattern. The default argument is used for
+        groups that did not participate in the match; it defaults to None.
+        '''
+        return (Str(group) if isinstance(group, str) else group for group in self._match.groups(default))
+
+    def namedGroupDict(self, default = None) :
+        '''Return a dictionary containing all the named subgroups of the match,
+        keyed by the subgroup name. The default argument is used for groups that
+        did not participate in the match; it defaults to None.'''
+        from Dict import Dict
+        return Dict(self._match.groupdict(default))
+
+    def startOfGroup(self, group = 0) :
+        '''Return the indices of the start of the substring matched by group;
+        group defaults to zero (meaning the whole matched substring).
+        Return -1 if group exists but did not contribute to the match.
+        For a match object m, and a group g that did contribute to the match,
+        the substring matched by group g (equivalent to m.group(g)) is
+        m.string[m.start(g):m.end(g)]. Note that m.start(group) will equal
+        m.end(group) if group matched a null string.'''
+        return self._match.start(group)
+
+    def endOfGroup(self, group = 0) :
+        '''Return the indices of the end of the substring matched by group;'''
+        return self._match.end(group)
+
+    def spanOfGroup(self, group = 0) :
+        '''For a match m, return the 2-tuple (m.start(group), m.end(group)).
+        Note that if group did not contribute to the match, this is (-1, -1).
+        group defaults to zero, the entire match.'''
+        return self._match.span(group)
+
+class Str(str) :
 
     def getId(self) :
         '''id(object) -> integer
@@ -13,53 +104,277 @@ class Str(str) :
         simultaneously existing objects.  (Hint: it's the object's memory address.)'''
         return hex(id(self))
 
-    def __add__(self, value) :
-        '''Return self+value.'''
-        '''NOT IN PLACE'''
-        return Str(str.__add__(self, value))
+    def getRaw(self) :
+        return str(self)
 
-    def copy(self) :
-        raise
+    def j(self) :
+        return '"{}"'.format(self)
 
-    def concat(self, value) :
-        '''NOT IN PLACE'''
-        raise
-
+    # def __format__(self) :
+        '''S.__format__(format_spec) -> str
+        Return a formatted version of S as described by format_spec.'''
+        # return str.__str__(self)
+    
     def format(self, *args, **kwargs) :
+        '''S.format(*args, **kwargs) -> str
+        Return a formatted version of S, using substitutions from args and kwargs.
+        The substitutions are identified by braces ('{' and '}').'''
         '''NOT IN PLACE'''
         return Str(str.format(self, *args, **kwargs))
+
+    # def __str__(self) :
+        '''Return str(self).'''
+        # return 'Str\'{}\''.format(str.__str__(self))
+    
+    def center(self, width, fillchar = ' ') :
+        '''S.center(width[, fillchar]) -> str
+        Return S centered in a string of length width. Padding is
+        done using the specified fill character (default is a space)'''
+        '''NOT IN PLACE'''
+        return Str(str.center(self, width, fillchar))
+
+    def __getitem__(self, index) :
+        '''Return self[key].'''
+        return Str(str.__getitem__(self, index))
+
+    def __add__(self, string) :
+        '''Return self+value.'''
+        '''NOT IN PLACE'''
+        return Str(str.__add__(self, string))
+
+    def __rmul__(self, times) :
+        '''Return self*value.'''
+        '''NOT IN PLACE'''
+        return Str(str.__rmul__(self, times))
+
+    def concat(self, string) :
+        '''NOT IN PLACE'''
+        return self.__add__(string)
+
+    # def __len__(self) :
+        '''
+        Return len(self).
+        '''
 
     def len(self) :
         return len(self)
 
+    # def __contains__(self) :
+        '''
+        Return key in self.
+        '''
+
+    def count(self, sub_or_pattern, start = 0, end = -1, re = False, flags = 0) :
+        '''S.count(sub[, start[, end]]) -> int
+        Return the number of non-overlapping occurrences of substring sub in
+        string S[start:end].  Optional arguments start and end are
+        interpreted as in slice notation.'''
+        if re :
+            return self.findall(sub_or_pattern, flags).len()
+        else :
+            return str.count(self, sub_or_pattern, start, end)
+
+    def index(self, sub, start = 0, end = -1, reverse = False) :
+        '''S.index(sub[, start[, end]]) -> int
+        Return the lowest or highest index in S where substring sub is found, 
+        such that sub is contained within S[start:end].  Optional
+        arguments start and end are interpreted as in slice notation.
+        Raises ValueError when the substring is not found.'''
+        if not reverse :
+            return str.index(sub, start, end)
+        else :
+            return str.rindex(sub, start, end)
+
+    # def find(self, sub, start = 0, end = -1, reverse = False) :
+        '''S.find(sub[, start[, end]]) -> int
+        Return the lowest or highest index in S where substring sub is found,
+        such that sub is contained within S[start:end].  Optional
+        arguments start and end are interpreted as in slice notation.
+        Return -1 on failure.'''
+        # if not reverse :
+        #     return str.find(sub, start, end)
+        # else :
+        #     return str.find(sub, start, end)
+
+    def leftMatch(self, pattern, flags = 0) :
+        '''If zero or more characters at the beginning of string match the
+        regular expression pattern, return a corresponding match object.
+        Return None if the string does not match the pattern;
+        note that this is different from a zero-length match.
+        Note that even in MULTILINE mode, re.match() will only match at the
+        beginning of the string and not at the beginning of each line.
+        If you want to locate a match anywhere in string, use search() instead'''
+        _ = re.match(pattern, self, flags)
+        return _Match(_) if _ else None
+    
+    def fullMatch(self, pattern, flags = 0) :
+        '''If the whole string matches the regular expression pattern,
+        return a corresponding match object. Return None if the string
+        does not match the pattern; note that this is different from
+        a zero-length match.'''
+        _ = re.fullmatch(pattern, self, flags)
+        return _Match(_) if _ else None
+
+    def searchOneMatch(self, pattern, reverse = False, flags = 0) :
+        '''Scan through string looking for the first location where the regular
+        expression pattern produces a match, and return a corresponding match
+        object. Return None if no position in the string matches the pattern;
+        note that this is different from finding a zero-length match at some
+        point in the string.'''
+        _ = re.search(pattern, self, flags)
+        return _Match(_) if _ else None
+
+    def findAllMatches(self, pattern, flags = 0) :
+        '''Return an iterator yielding match objects over all non-overlapping
+        matches for the RE pattern in string. The string is scanned left-to-right,
+        and matches are returned in the order found. Empty matches are included
+        in the result.'''
+        from List import List
+        return List(_Match(match) for match in re.finditer(pattern, self, flags))
+
+    def findall(self, pattern, flags = 0) :
+        '''Return all non-overlapping matches of pattern in string,
+        as a list of strings. The string is scanned left-to-right,
+        and matches are returned in the order found. If one or more
+        groups are present in the pattern, return a list of groups;
+        this will be a list of tuples if the pattern has more than
+        one group. Empty matches are included in the result. Non-empty
+        matches can now start just after a previous empty match.'''
+        from List import List
+        return List(re.findall(pattern, self, flags))
+
+    def replace(self, sub_or_pattern, replacement, re, count = None, flags = 0) :
+        '''S.replace(old, new[, count]) -> str
+        Return a copy of S with all occurrences of substring
+        old replaced by new.  If the optional argument count is
+        given, only the first count occurrences are replaced.'''
+        if re :
+            return self._sub(sub_or_pattern, replacement, count, flags)
+        else :
+            return Str(self.replace(sub_or_pattern, replacement, count))
+
+    def _sub(self, pattern, repl_str_or_func, count = 0, flags = 0) :
+        # https://docs.python.org/3/library/re.html
+        '''Return the string obtained by replacing the leftmost
+        non-overlapping occurrences of pattern in string by the replacement
+        repl. If the pattern isn’t found, string is returned unchanged. repl
+        can be a string or a function; if it is a string, any backslash escapes
+        in it are processed. That is, \n is converted to a single newline
+        character, \r is converted to a carriage return, and so forth. Unknown
+        escapes of ASCII letters are reserved for future use and treated as
+        errors. Other unknown escapes such as \& are left alone. Backreferences,
+        such as \6, are replaced with the substring matched by group 6
+        in the pattern.
+        If repl is a function, it is called for every non-overlapping occurrence
+        of pattern. The function takes a single match object argument, and
+        returns the replacement string.
+        The pattern may be a string or a pattern object.
+        The optional argument count is the maximum number of pattern occurrences
+        to be replaced; count must be a non-negative integer. If omitted or zero,
+        all occurrences will be replaced. Empty matches for the pattern are
+        replaced only when not adjacent to a previous empty match,
+        so sub('x*', '-', 'abxd') returns '-a-b--d-'.
+        In string-type repl arguments, in addition to the character escapes and
+        backreferences described above, \g<name> will use the substring matched
+        by the group named name, as defined by the (?P<name>...) syntax.
+        \g<number> uses the corresponding group number; \g<2> is therefore
+        equivalent to \2, but isn’t ambiguous in a replacement such as \g<2>0.
+        \20 would be interpreted as a reference to group 20, not a reference to
+        group 2 followed by the literal character '0'. The backreference \g<0>
+        substitutes in the entire substring matched by the RE.'''
+        return Str(re.sub(pattern, repl_str_or_func, self, count, flags))
+
+    def _subn(self, pattern, repl_str_or_func, count = 0, flags = 0) :
+        '''Perform the same operation as sub(), but return a tuple
+        (new_string, number_of_subs_made).'''
+        _ = re.subn(pattern, repl_str_or_func, self, count, flags)
+        return (Str(_[0]), _[1])
+
     def join(self, str_list) :
+        '''S.join(iterable) -> str
+        Return a string which is the concatenation of the strings in the
+        iterable.  The separator between elements is S.'''
         '''NOT IN PLACE'''
         from List import List
         if not isinstance(str_list, list) :
-            raise Exception('Unexpected type of str_list: {}'.format(str_list))
+            raise Exception('Unexpected type({}) of str_list: {}'.format(type(str_list), str_list))
         return Str(str.join(self, str_list))
 
-    def split(self, sep) :
+    # def rsplit(self) :
+        '''
+        S.rsplit(sep=None, maxsplit=-1) -> list of strings
+
+        Return a list of the words in S, using sep as the
+        delimiter string, starting at the end of the string and
+        working to the front.  If maxsplit is given, at most maxsplit
+        splits are done. If sep is not specified, any whitespace string
+        is a separator.
+        '''
+    
+    def split(self, sep_or_pattern, maxsplit = -1, reverse = False, re = False, flags = 0) :
+        '''S.split(sep=None, maxsplit=-1) -> list of strings
+        Return a list of the words in S, using sep as the
+        delimiter string.  If maxsplit is given, at most maxsplit
+        splits are done. If sep is not specified or is None, any
+        whitespace string is a separator and empty strings are
+        removed from the result.
+        Split string by the occurrences of pattern. If capturing parentheses
+        are used in pattern, then the text of all groups in the pattern are also
+        returned as part of the resulting list. If maxsplit is nonzero, at most
+        maxsplit splits occur, and the remainder of the string is returned as
+        the final element of the list.
+        >>> re.split(r'(\W+)', 'Words, words, words.')
+        ['Words', ', ', 'words', ', ', 'words', '.', '']
+        If there are capturing groups in the separator and it matches at the
+        start of the string, the result will start with an empty string.
+        The same holds for the end of the string:
+        >>> re.split(r'(\W+)', '...words, words...')
+        ['', '...', 'words', ', ', 'words', '...', '']
+        That way, separator components are always found at the same relative
+        indices within the result list. Empty matches for the pattern split
+        the string only when not adjacent to a previous empty match.
+        >>> re.split(r'\b', 'Words, words, words.')
+        ['', 'Words', ', ', 'words', ', ', 'words', '.']
+        >>> re.split(r'\W*', '...words...')
+        ['', '', 'w', 'o', 'r', 'd', 's', '', '']
+        >>> re.split(r'(\W*)', '...words...')
+        ['', '...', '', '', 'w', '', 'o', '', 'r', '', 'd', '', 's', '...', '', '', '']
+        '''
         from List import List
         if not isinstance(sep, str) :
-            raise Exception('Unexpected type of sep: {}'.format(sep))
-        return List(str.split(self, sep))
+            raise Exception('Unexpected type({}) of sep: {}'.format(type(sep), sep))
+        if re :
+            if reverse : raise Exception('Can not split a string reversely using re.')
+            return List(re.split(sep_or_pattern, self, maxsplit, flags))
+        else :
+            if not reverse :
+                return List(str.split(self, sep_or_pattern, maxsplit))
+            else :
+                return List(str.rsplit(self, sep_or_pattern, maxsplit))
 
-    # def strip(self) :
+    # def lstrip(self) :
         '''
-        S.strip([chars]) -> str
+        S.lstrip([chars]) -> str
 
-        Return a copy of the string S with leading and trailing
-        whitespace removed.
+        Return a copy of the string S with leading whitespace removed.
         If chars is given and not None, remove characters in chars instead.
         '''
-    def strip(self, string, left = True, right = True) :
+
+    # def rstrip(self) :
+        '''
+        S.rstrip([chars]) -> str
+
+        Return a copy of the string S with trailing whitespace removed.
+        If chars is given and not None, remove characters in chars instead.
+        '''
+
+    def strip(self, string = ' \t\n', left = True, right = True) :
+        '''S.strip([chars]) -> str
+        Return a copy of the string S with leading and trailing whitespace removed.
+        If chars is given and not None, remove characters in chars instead.'''
         '''NOT IN PLACE'''
-
-
-
         if not isinstance(string, str) :
-            raise Exception('Unexpected type of string: {}'.format(string))
+            raise Exception('Unexpected type({}) of string: {}'.format(type(string), string))
         if (not left) and right : 
             return Str(str.rstrip(self, string))
         elif (not right) and left :
@@ -71,85 +386,53 @@ class Str(str) :
 
     def range(self) :
         from List import List
-        return self.split(',').map(
-            lambda item, index : 
-                List(range(int(item.split('-')[0]), int(item.split('-')[1]) + 1))
-                if item.count('-') == 1
-                else List(int(item))
+        return self.split(r' *, *', re = True).map(
+            lambda part : 
+                List(range(int(part.split('-')[0]), int(part.split('-')[1]) + 1))
+                if part.count('-') == 1
+                else List(int(part))
         ).merge()
 
-    def findall(self, pattern) :
-        '''Return a list of all non-overlapping matches in the string.
-        If one or more capturing groups are present in the pattern, return
-        a list of groups; this will be a list of tuples if the pattern
-        has more than one group.
-        Empty matches are included in the result.'''
-        from List import List
-        return List(re.findall(pattern, self))
+    def toUrl(self) :
+        result = Str()
+        for char in self :
+            if char == ' ' :
+                result += Str('%20')
+            elif ord(char) <= 128 :
+                result += Str(char)
+            else :
+                result += Str(hex(ord(char))).upper().replace('0X', '%u')
+        return result
 
-    def match(self, pattern) :
-        '?P<>'
-        return re.match(pattern, self)
+    # python2
+    # ['__add__', '__class__', '__contains__', '__delattr__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getnewargs__', '__getslice__', '__gt__', '__hash__', '__init__', '__le__', '__len__', '__lt__', '__mod__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__rmod__', '__rmul__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '_formatter_field_name_split', '_formatter_parser', 'capitalize', 'center', 'count', 'decode', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'index', 'isalnum', 'isalpha', 'isdigit', 'islower', 'isspace', 'istitle', 'isupper', 'join', 'ljust', 'lower', 'lstrip', 'partition', 'replace', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit', 'rstrip', 'split', 'splitlines', 'startswith', 'strip', 'swapcase', 'title', 'translate', 'upper', 'zfill']
 
-    def search(self, reverse = False) :
-        raise
-
-    # def replace(self, reverse = False) :
-    #     raise
-
-    # def count(self) :
-        # raise
-
-    # def index(self, reverse = False) :
-        # raise
-
-    # def find(self, reverse = False) :
-        # raise
-
-    def finditer(self) :
-        raise
-
-    def safe(self) :
-        raise
-
-    # def safe_print(stream, st, encoding = 'utf-8') :
-    #     for ch in st :
-    #         if ord(ch) < 128 : stream.write(ch)
-    #         else : 
-    #             # try :
-    #                 # stream.write(ch.encode(encoding))
-    #             # except(Exception, e) :
-    #             stream.write(ch)
-    #     stream.flush()
-
-    def safe_print(self) :
-        raise
-
-    # def unicode_to_url_hex(st) :
-    #     res = ''
-    #     for ch in st :
-    #         if ch == ' ' :
-    #             res += '%20'
-    #         elif ord(ch) <= 128 :
-    #             res += ch
-    #         else :
-    #             res += hex(ord(ch)).upper().replace('0X', '%u')
-    #     return res
-
-    # def __format__(self) :
-        '''S.__format__(format_spec) -> str
-        Return a formatted version of S as described by format_spec.'''
-        # return str.__str__(self)
-
-    # def __str__(self) :
-        '''Return str(self).'''
-        # return 'Str\'{}\''.format(str.__str__(self))
+    # python3
+    # ['__add__', '__class__', '__contains__', '__delattr__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getnewargs__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__mod__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__rmod__', '__rmul__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', 'capitalize', 'casefold', 'center', 'count', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'format_map', 'index', 'isalnum', 'isalpha', 'isdecimal', 'isdigit', 'isidentifier', 'islower', 'isnumeric', 'isprintable', 'isspace', 'istitle', 'isupper', 'join', 'ljust', 'lower', 'lstrip', 'maketrans', 'partition', 'replace', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit', 'rstrip', 'split', 'splitlines', 'startswith', 'strip', 'swapcase', 'title', 'translate', 'upper', 'zfill']
 
     # ===============================================================
 
-    # def __contains__(self) :
+    # def __class__(self) :
         '''
-        Return key in self.
+        str(object='') -> str
+        str(bytes_or_buffer[, encoding[, errors]]) -> str
+
+        Create a new string object from the given object. If encoding or
+        errors is specified, then the object must expose a data buffer
+        that will be decoded using the given encoding and error handler.
+        Otherwise, returns the result of object.__str__() (if defined)
+        or repr(object).
+        encoding defaults to sys.getdefaultencoding().
+        errors defaults to 'strict'.
+        '''
+
+    # def __delattr__(self) :
+        '''
+        Implement delattr(self, name).
+
+        Deletes the named attribute from the given object.
+
+        delattr(x, 'y') is equivalent to ``del x.y''
         '''
 
     # def __dir__(self) :
@@ -171,11 +454,6 @@ class Str(str) :
     # def __getattribute__(self) :
         '''
         Return getattr(self, name).
-        '''
-
-    # def __getitem__(self) :
-        '''
-        Return self[key].
         '''
 
     # def __getnewargs__(self) :
@@ -226,11 +504,6 @@ class Str(str) :
         Return self<=value.
         '''
 
-    # def __len__(self) :
-        '''
-        Return len(self).
-        '''
-
     # def __lt__(self) :
         '''
         Return self<value.
@@ -276,11 +549,6 @@ class Str(str) :
         Return value%self.
         '''
 
-    # def __rmul__(self) :
-        '''
-        Return self*value.
-        '''
-
     # def __setattr__(self) :
         '''
         Implement setattr(self, name, value).
@@ -317,23 +585,6 @@ class Str(str) :
         Return a version of S suitable for caseless comparisons.
         '''
 
-    # def center(self) :
-        '''
-        S.center(width[, fillchar]) -> str
-
-        Return S centered in a string of length width. Padding is
-        done using the specified fill character (default is a space)
-        '''
-
-    # def count(self) :
-        '''
-        S.count(sub[, start[, end]]) -> int
-
-        Return the number of non-overlapping occurrences of substring sub in
-        string S[start:end].  Optional arguments start and end are
-        interpreted as in slice notation.
-        '''
-
     # def encode(self) :
         '''
         S.encode(encoding='utf-8', errors='strict') -> bytes
@@ -364,42 +615,12 @@ class Str(str) :
         If tabsize is not given, a tab size of 8 characters is assumed.
         '''
 
-    # def find(self) :
-        '''
-        S.find(sub[, start[, end]]) -> int
-
-        Return the lowest index in S where substring sub is found,
-        such that sub is contained within S[start:end].  Optional
-        arguments start and end are interpreted as in slice notation.
-
-        Return -1 on failure.
-        '''
-
-    # def format(self) :
-        '''
-        S.format(*args, **kwargs) -> str
-
-        Return a formatted version of S, using substitutions from args and kwargs.
-        The substitutions are identified by braces ('{' and '}').
-        '''
-
     # def format_map(self) :
         '''
         S.format_map(mapping) -> str
 
         Return a formatted version of S, using substitutions from mapping.
         The substitutions are identified by braces ('{' and '}').
-        '''
-
-    # def index(self) :
-        '''
-        S.index(sub[, start[, end]]) -> int
-
-        Return the lowest index in S where substring sub is found, 
-        such that sub is contained within S[start:end].  Optional
-        arguments start and end are interpreted as in slice notation.
-
-        Raises ValueError when the substring is not found.
         '''
 
     # def isalnum(self) :
@@ -496,14 +717,6 @@ class Str(str) :
         at least one cased character in S, False otherwise.
         '''
 
-    # def join(self) :
-        '''
-        S.join(iterable) -> str
-
-        Return a string which is the concatenation of the strings in the
-        iterable.  The separator between elements is S.
-        '''
-
     # def ljust(self) :
         '''
         S.ljust(width[, fillchar]) -> str
@@ -517,14 +730,6 @@ class Str(str) :
         S.lower() -> str
 
         Return a copy of the string S converted to lowercase.
-        '''
-
-    # def lstrip(self) :
-        '''
-        S.lstrip([chars]) -> str
-
-        Return a copy of the string S with leading whitespace removed.
-        If chars is given and not None, remove characters in chars instead.
         '''
 
     # def maketrans(self) :
@@ -549,37 +754,6 @@ class Str(str) :
         found, return S and two empty strings.
         '''
 
-    # def replace(self) :
-        '''
-        S.replace(old, new[, count]) -> str
-
-        Return a copy of S with all occurrences of substring
-        old replaced by new.  If the optional argument count is
-        given, only the first count occurrences are replaced.
-        '''
-
-    # def rfind(self) :
-        '''
-        S.rfind(sub[, start[, end]]) -> int
-
-        Return the highest index in S where substring sub is found,
-        such that sub is contained within S[start:end].  Optional
-        arguments start and end are interpreted as in slice notation.
-
-        Return -1 on failure.
-        '''
-
-    # def rindex(self) :
-        '''
-        S.rindex(sub[, start[, end]]) -> int
-
-        Return the highest index in S where substring sub is found,
-        such that sub is contained within S[start:end].  Optional
-        arguments start and end are interpreted as in slice notation.
-
-        Raises ValueError when the substring is not found.
-        '''
-
     # def rjust(self) :
         '''
         S.rjust(width[, fillchar]) -> str
@@ -595,36 +769,6 @@ class Str(str) :
         Search for the separator sep in S, starting at the end of S, and return
         the part before it, the separator itself, and the part after it.  If the
         separator is not found, return two empty strings and S.
-        '''
-
-    # def rsplit(self) :
-        '''
-        S.rsplit(sep=None, maxsplit=-1) -> list of strings
-
-        Return a list of the words in S, using sep as the
-        delimiter string, starting at the end of the string and
-        working to the front.  If maxsplit is given, at most maxsplit
-        splits are done. If sep is not specified, any whitespace string
-        is a separator.
-        '''
-
-    # def rstrip(self) :
-        '''
-        S.rstrip([chars]) -> str
-
-        Return a copy of the string S with trailing whitespace removed.
-        If chars is given and not None, remove characters in chars instead.
-        '''
-
-    # def split(self) :
-        '''
-        S.split(sep=None, maxsplit=-1) -> list of strings
-
-        Return a list of the words in S, using sep as the
-        delimiter string.  If maxsplit is given, at most maxsplit
-        splits are done. If sep is not specified or is None, any
-        whitespace string is a separator and empty strings are
-        removed from the result.
         '''
 
     # def splitlines(self) :
