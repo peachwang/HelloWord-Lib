@@ -120,6 +120,10 @@ class List(list) :
                 .join(', ')
         )
 
+    def stat(self, msg = '') :
+        print('{}{}个'.format('' if msg == '' else '{}: '.format(msg), self.len()))
+        return self
+
     def inspect(self) :
         raise
 
@@ -285,7 +289,7 @@ class List(list) :
         '''L.pop([index]) -> item -- remove and return item at index (default last).
         Raises IndexError if list is empty or index is out of range.'''
         '''IN PLACE'''
-        return self.pop(index)
+        return list.pop(self, index)
 
     def remove(self, item) :
         '''L.remove(value) -> None -- remove first occurrence of value.
@@ -498,6 +502,10 @@ class List(list) :
             raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
         return self.filter(lambda item, item_list : item in item_list, List(item_list))
 
+    def __and__(self, item_list) :
+        '''x.__and__(y) <==> x&y'''
+        return self.copy().intersection(item_list)
+
     def difference(self, item_list) :
         '''Remove all elements of another list from this list.'''
         '''IN PLACE'''
@@ -506,6 +514,10 @@ class List(list) :
             raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
         return self.filter(lambda item, item_list : item not in item_list, List(item_list))
 
+    def __sub__(self, item_list) :
+        '''x.__sub__(y) <==> x-y'''
+        return self.copy().difference(item_list)
+
     def union(self, item_list) :
         '''Update a set with the union of itself and others.'''
         '''IN PLACE'''
@@ -513,6 +525,10 @@ class List(list) :
         if not isinstance(item_list, list) :
             raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
         return self.extend(List(item_list).difference(self))
+
+    def __or__(self, item_list) :
+        '''x.__or__(y) <==> x|y'''
+        return self.union(item_list)
 
     def isDisjointFrom(self, item_list) :
         '''Return True if two lists have a null intersection.'''
@@ -524,10 +540,37 @@ class List(list) :
         '''O(N^2)???'''
         return self.copy().difference(item_list).len() == 0
 
+    def __le__(self, item_list) :
+        '''Return self<=value.'''
+        return self.isSubsetOf(item_list)
+
+    def __lt__(self, item_list) :
+        '''Return self<value.'''
+        raise
+
     def isSupersetOf(self, item_list) :
         '''Report whether this set contains another set.'''
         '''O(N^2)???'''
         return item_list.copy().difference(self).len() == 0
+
+    def __ge__(self, item_list) :
+        '''Return self>=value.'''
+        return self.isSupersetOf(item_list)
+
+    def __gt__(self, item_list) :
+        '''Return self>value.'''
+        raise
+
+    def isSameSetOf(self, item_list) :
+        return self.isSubsetOf(item_list) and self.isSupersetOf(item_list)
+
+    def __eq__(self, item_list) :
+        '''Return self==value.'''
+        raise
+
+    def __ne__(self, item_list) :
+        '''Return self!=value.'''
+        raise
 
     def flatten(self) :
         '''IN PLACE'''
@@ -583,21 +626,6 @@ class List(list) :
         default dir() implementation
         '''
 
-    # def __eq__(self) :
-        '''
-        Return self==value.
-        '''
-
-    # def __ge__(self) :
-        '''
-        Return self>=value.
-        '''
-
-    # def __gt__(self) :
-        '''
-        Return self>value.
-        '''
-
     # def __hash__(self) :
         '''
         None
@@ -629,24 +657,9 @@ class List(list) :
         In the second form, the callable is called until it returns the sentinel.
         '''
 
-    # def __le__(self) :
-        '''
-        Return self<=value.
-        '''
-
-    # def __lt__(self) :
-        '''
-        Return self<value.
-        '''
-
     # def __mul__(self, value) :
         '''
         Return self*value
-        '''
-
-    # def __ne__(self) :
-        '''
-        Return self!=value.
         '''
 
     # def __new__(self) :

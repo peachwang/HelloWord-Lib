@@ -147,6 +147,10 @@ class Dict(dict) :
                 .join(', ')
         )
 
+    def stat(self, msg = '') :
+        print('{}{}条'.format('' if msg == '' else '{}: '.format(msg), self.len()))
+        return self
+
     # 返回拉平后的字段tuple的列表，统计字段类型和可能的取值，数组长度，存在性检验
     def inspect(self, max_depth = 10, depth = 0) :
         raise
@@ -568,4 +572,3 @@ class Dict(dict) :
         overrides the normal algorithm (and the outcome is cached).
 
         '''
-

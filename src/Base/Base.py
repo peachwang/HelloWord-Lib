@@ -11,8 +11,8 @@ class Base() : # Requester
     def __init__(cls, login_filename = None) :
         if not self._is_login : self.login(login_filename)
 
-    @Timer.timeitOnce
     @classmethod
+    @Timer.timeitOnce
     def login(cls, login_filename = None) :
         if login_filename is None :
             config_login = File('../../../Taleopard-Operation/config/login.json').loadJson()
@@ -54,13 +54,13 @@ class Base() : # Requester
             return response
         return wrapper
 
-    @request
     @classmethod
+    @request
     def get(cls, url, params = {}, timeout = None) :
         return requests.get(url, params = params, timeout = timeout)
 
-    @request
     @classmethod
+    @request
     def post(cls, url, data = None, params = {}, timeout = None) :
         return requests.post(url, data = data.j().encode('utf-8'), params = params, timeout = timeout)
 
