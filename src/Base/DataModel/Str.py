@@ -6,7 +6,7 @@ import re
 
 SRE_MATCH_TYPE = type(re.match('', ''))
 
-class _Match(SRE_MATCH_TYPE) :
+class _Match() :
         # '?P<>'
         # Pattern.groupindex
         # A dictionary mapping any symbolic group names defined by (?P<id>) to group numbers.

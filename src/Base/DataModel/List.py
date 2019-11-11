@@ -15,11 +15,18 @@ class List(list) :
             from File import File
             from Folder import Folder
             from Audio import Audio
+            # 本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
             return func(self, *args, **kwargs)
         return wrapper
 
-    @_importTypes
     def _wrapItem(self, item) :
+        from Dict import Dict
+        from Str import Str
+        from Object import Object
+        from DateTime import DateTime, datetime
+        from File import File
+        from Folder import Folder
+        from Audio import Audio
         if isinstance(item, list)       : return List(item)
         elif isinstance(item, dict)     : return Dict(item)
         elif isinstance(item, str)      : return Str(item)
@@ -61,8 +68,14 @@ class List(list) :
         return [ item for item in self ]
 
     # 原生化 list, dict, str, Object._data, datetime
-    @_importTypes
     def getRaw(self) :
+        from Dict import Dict
+        from Str import Str
+        from Object import Object
+        from DateTime import DateTime, datetime
+        from File import File
+        from Folder import Folder
+        from Audio import Audio
         return [ (item.getRaw()
                 if isinstance(item, (List, Dict, Str, Object, DateTime, File, Folder, Audio))
                 else item # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
@@ -70,8 +83,14 @@ class List(list) :
         ]
 
     # 可读化
-    @_importTypes
     def j(self) :
+        from Dict import Dict
+        from Str import Str
+        from Object import Object
+        from DateTime import DateTime, datetime
+        from File import File
+        from Folder import Folder
+        from Audio import Audio
         from util import j, json_serialize
         return j([ (item.j()
                 if isinstance(item, (List, Dict, Str, Object, DateTime, File, Folder, Audio))
@@ -290,7 +309,7 @@ class List(list) :
         return enumerate(self)
 
     # pos为index在func的参数表里的下标
-    def _padIndexToArgs(func, args, index, pos) :
+    def _padIndexToArgs(self, func, args, index, pos) :
         import inspect
         func_args = inspect.getargspec(func).args
         if len(func_args) > pos and func_args[pos] == 'index' :
@@ -315,8 +334,14 @@ class List(list) :
             self[index] = func(item, *(self._padIndexToArgs(func, args, index, 1)), **kwargs)
         return self
 
-    @_importTypes
     def _stripItem(self, item, string) :
+        from Dict import Dict
+        from Str import Str
+        from Object import Object
+        from DateTime import DateTime, datetime
+        from File import File
+        from Folder import Folder
+        from Audio import Audio
         if item is None or isinstance(item, (int, float, bool, range, bytes, zip, datetime)):
             return item
         elif isinstance(item, (List, Dict, Str)) : # can't be list, dict, str

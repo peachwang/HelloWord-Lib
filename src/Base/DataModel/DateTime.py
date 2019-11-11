@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import Object, j
+from Object import Object
 from datetime import datetime, timedelta
 from time import time, strftime
 
