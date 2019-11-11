@@ -4,7 +4,7 @@ from pydub import AudioSegment
 
 class Audio(File) :
 
-    def j(self) :
+    def jsonSerialize(self) :
         return '{}'.format(self)
 
     def len(self) :

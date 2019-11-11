@@ -82,8 +82,7 @@ class List(list) :
             ) for item in self
         ]
 
-    # 可读化
-    def j(self) :
+    def jsonSerialize(self) :
         from Dict import Dict
         from Str import Str
         from Object import Object
@@ -91,26 +90,33 @@ class List(list) :
         from File import File
         from Folder import Folder
         from Audio import Audio
-        from util import j, json_serialize
-        return j([ (item.j()
-                if isinstance(item, (List, Dict, Str, Object, DateTime, File, Folder, Audio))
-                else json_serialize(item) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
-            ) for item in self
-        ])
+        from util import json_serialize
+        _ = []
+        for item in self :
+            if isinstance(item, (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
+                _.append(item.jsonSerialize())
+            else :
+                _.append(json_serialize(item)) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
+        return _
+
+    # 可读化
+    def j(self) :
+        from util import j
+        return j(self.jsonSerialize())
 
     def __format__(self, code) :
         '''default object formatter'''
         return '[{}]'.format(
-            self.copy()\
-                .map(lambda item : '"{}"'.format(item) if isinstance(item, str) else '{}'.format(item))\
+            self.copy()
+                .map(lambda item : '"{}"'.format(item) if isinstance(item, str) else '{}'.format(item))
                 .join(', ')
         )
 
     def __str__(self) :
         '''Return str(self).'''
         return 'List[{}]'.format(
-            self.copy()\
-                .map(lambda item : '"{}"'.format(item) if isinstance(item, str) else str(item))\
+            self.copy()
+                .map(lambda item : '"{}"'.format(item) if isinstance(item, str) else str(item))
                 .join(', ')
         )
 
@@ -334,6 +340,27 @@ class List(list) :
             self[index] = func(item, *(self._padIndexToArgs(func, args, index, 1)), **kwargs)
         return self
 
+    def valueList(self, key_list_or_func_name) :
+        if self.len() == 0 : return self
+        if isinstance(key_list_or_func_name, list) :
+            from Object import Object
+            if isinstance(self[0], Object) :
+                return self.batch('_get', key_list_or_func_name)
+            else :
+                return self.batch('get', key_list_or_func_name)
+        elif isinstance(key_list_or_func_name, str) :
+            def getValue(item) :
+                from Dict import Dict
+                from Object import Object
+                if isinstance(item, (Dict, Object)) :
+                    attribute = item.__getattr__(key_list_or_func_name)
+                else :
+                    attribute = item.__getattribute__(key_list_or_func_name)
+                if callable(attribute) : return attribute()
+                else : return attribute
+            return self.map(lambda item : getValue(item))
+        else : raise Exception('Unexpected type({}) of key_list_or_func_name: {}'.format(type(key_list_or_func_name), key_list_or_func_name))
+
     def _stripItem(self, item, string) :
         from Dict import Dict
         from Str import Str
@@ -373,6 +400,27 @@ class List(list) :
                 else : self.pop(index)
         return self
 
+    def filterByValue(self, key_list_or_func_name, value) :
+        if key_list_or_func_name is None :
+            return self.filter(lambda item : item == value)
+        elif isinstance(key_list_or_func_name, list) :
+            from Object import Object
+            if isinstance(self[0], Object) :
+                return self.filter(lambda item : item._get(key_list_or_func_name) == value)
+            else :
+                return self.filter(lambda item : item.get(key_list_or_func_name) == value)
+        elif isinstance(key_list_or_func_name, str) :
+            def getValue(item) :
+                from Object import Object
+                if isinstance(item, Object) :
+                    attribute = item.__getattr__(key_list_or_func_name)
+                else :
+                    attribute = item.__getattribute__(key_list_or_func_name)
+                if callable(attribute) : return attribute()
+                else : return attribute
+            return self.filter(lambda item : getValue(item) == value)
+        else : raise Exception('Unexpected type({}) of key_list_or_func_name: {}'.format(type(key_list_or_func_name), key_list_or_func_name))
+
     def reduce(self, func, initial_value, *args, **kwargs) :
         '''NOT IN PLACE'''
         result = initial_value
@@ -382,22 +430,15 @@ class List(list) :
 
     def merge(self) :
         '''IN PLACE'''
-        self.__init__(self.reduce(lambda result, item : result.extend(item), List()))
-        return self
+        _ = self.copy().reduce(lambda result, item : result.extend(item), List())
+        return self.clear().extend(_)
 
     def _reduce(self, key_list_or_func_name, func, initial_value) :
         '''NOT IN PLACE'''
         if key_list_or_func_name is None :
             return self.reduce(func, initial_value)
-        elif isinstance(key_list_or_func_name, list) :
-            if self.len() == 0 : return initial_value
-            from Object import Object
-            if isinstance(self[0], Object) :
-                return self.copy().batch('_get', key_list_or_func_name).reduce(func, initial_value)
-            else :
-                return self.copy().batch('get', key_list_or_func_name).reduce(func, initial_value)
-        elif isinstance(key_list_or_func_name, str) :
-            return self.copy().batch(key_list_or_func_name).reduce(func, initial_value)
+        elif isinstance(key_list_or_func_name, (list, str)) :
+            return self.copy().valueList(key_list_or_func_name).reduce(func, initial_value)
         else : raise Exception('Unexpected type({}) of key_list_or_func_name: {}'.format(type(key_list_or_func_name), key_list_or_func_name))
 
     def sum(self, key_list_or_func_name = None) :
@@ -446,8 +487,8 @@ class List(list) :
     def unique(self) :
         '''IN PLACE'''
         '''O(??)'''
-        self.__init__(list(set(self)))
-        return self
+        _ = list(set(self))
+        return self.clear().extend(_)
 
     def intersection(self, item_list) :
         '''Update itself with the intersection of itself and another.'''

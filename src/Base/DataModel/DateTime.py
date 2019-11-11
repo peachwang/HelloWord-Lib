@@ -21,7 +21,7 @@ class DateTime(Object) :
     def getRaw(self) :
         return self.datetime
 
-    def j(self) :
+    def jsonSerialize(self) :
         return str(self.datetime)
 
     def __format__(self, pattern) :

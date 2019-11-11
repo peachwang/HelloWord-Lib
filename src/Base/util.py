@@ -103,7 +103,7 @@ def load_json(fin, object_hook = None, encoding = 'utf-8') :
 
 def json_serialize(data) :
     if isinstance(data, (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
-        raise Exception('Unexpected type({}) of data{}'.format(type(data), data))
+        return data.jsonSerialize()
     elif isinstance(data, (str, int, float, bool)) :
         return data
     elif isinstance(data, list) :

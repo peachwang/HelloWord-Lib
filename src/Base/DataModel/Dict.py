@@ -4,7 +4,7 @@ from types import GeneratorType
 from collections import defaultdict
 from functools import wraps
 
-class Dict(defaultdict, dict) :
+class Dict(dict) :
 
     def _importTypes(func) :
         @wraps(func)
@@ -99,8 +99,7 @@ class Dict(defaultdict, dict) :
             ) for key in self
         }
 
-    # 可读化
-    def j(self) :
+    def jsonSerialize(self) :
         from List import List
         from Str import Str
         from Object import Object
@@ -108,36 +107,43 @@ class Dict(defaultdict, dict) :
         from File import File
         from Folder import Folder
         from Audio import Audio
-        from util import j, json_serialize
-        return j({ json_serialize(key) : (self[key].j()
-                if isinstance(self[key], (List, Dict, Str, Object, DateTime, File, Folder, Audio))
-                else json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
-            ) for key in self
-        })
+        from util import json_serialize
+        _ = {}
+        for key in self :
+            if isinstance(self[key], (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
+                _[json_serialize(key)] = self[key].jsonSerialize()
+            else :
+                _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
+        return _
+
+    # 可读化
+    def j(self) :
+        from util import j
+        return j(self.jsonSerialize())
 
     def __format__(self, code) :
         '''default object formatter'''
         return "{{{}}}".format(
-            self.copy()\
-                .keys()\
+            self.copy()
+                .keys()
                 .map(lambda key : '{} : {}'.format(
                         '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
                         '"{}"'.format(self[key]) if isinstance(self[key], str) else '{}'.format(self[key])
                     )
-                )\
+                )
                 .join(', ')
         )
 
     def __str__(self) :
         '''Return str(self).'''
         return 'Dict{{{}}}'.format(
-            self.copy()\
-                .keys()\
+            self.copy()
+                .keys()
                 .map(lambda key : '{} : {}'.format(
                         '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
                         '"{}"'.format(self[key]) if isinstance(self[key], str) else str(self[key])
                     )
-                )\
+                )
                 .join(', ')
         )
 

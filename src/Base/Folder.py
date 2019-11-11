@@ -18,7 +18,7 @@ class Folder(Object) :
         self._sub_folder_list = self._sub_folder_name_list.copy().map(lambda folder_name : Folder('{}/{}'.format(self._path, folder_name)))
         self._sub_file_list   = self._sub_file_name_list.copy().map(lambda file_name : File('{}/{}'.format(self._path, file_name), self))
 
-    def j(self) :
+    def jsonSerialize(self) :
         return '{}'.format(self)
 
     def __format__(self, code) :

@@ -107,8 +107,8 @@ class Str(str) :
     def getRaw(self) :
         return str(self)
 
-    def j(self) :
-        return '"{}"'.format(self)
+    def jsonSerialize(self) :
+        return '{}'.format(self)
 
     # def __format__(self) :
         '''S.__format__(format_spec) -> str
@@ -341,8 +341,8 @@ class Str(str) :
         ['', '...', '', '', 'w', '', 'o', '', 'r', '', 'd', '', 's', '...', '', '', '']
         '''
         from List import List
-        if not isinstance(sep, str) :
-            raise Exception('Unexpected type({}) of sep: {}'.format(type(sep), sep))
+        if not isinstance(sep_or_pattern, str) :
+            raise Exception('Unexpected type({}) of sep_or_pattern: {}'.format(type(sep_or_pattern), sep_or_pattern))
         if re :
             if reverse : raise Exception('Can not split a string reversely using re.')
             return List(re.split(sep_or_pattern, self, maxsplit, flags))

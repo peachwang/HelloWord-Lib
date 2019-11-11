@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object
+from util import List, Dict, Str, Object, json
 from os.path import exists, getsize, isfile, realpath
 
 class File(Object) :
@@ -15,7 +15,7 @@ class File(Object) :
         self._name          = self._name[ : - self._ext.len() - 1]
         self._folder_path   = _[ : -1].join('/')
 
-    def j(self) :
+    def jsonSerialize(self) :
         return '{}'.format(self)
 
     def __format__(self, code) :

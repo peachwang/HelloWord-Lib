@@ -34,7 +34,7 @@ class Object() :
     def getRaw(self) :
         return self._data
 
-    def j(self) :
+    def jsonSerialize(self) :
         return '<{} at {}>{}'.format(self.__class__, self.getId(), self._data.j())
 
     def __format__(self, code) :
