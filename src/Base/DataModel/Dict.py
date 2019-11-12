@@ -121,11 +121,15 @@ class Dict(dict) :
         from util import j
         return j(self.jsonSerialize())
 
+    def print(self, color = '') :
+        from util import E
+        print(color, self.j(), E if color != '' else '')
+        return self
+
     def __format__(self, code) :
         '''default object formatter'''
         return "{{{}}}".format(
-            self.copy()
-                .keys()
+            self.keys()
                 .map(lambda key : '{} : {}'.format(
                         '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
                         '"{}"'.format(self[key]) if isinstance(self[key], str) else '{}'.format(self[key])
@@ -137,8 +141,7 @@ class Dict(dict) :
     def __str__(self) :
         '''Return str(self).'''
         return 'Dict{{{}}}'.format(
-            self.copy()
-                .keys()
+            self.keys()
                 .map(lambda key : '{} : {}'.format(
                         '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
                         '"{}"'.format(self[key]) if isinstance(self[key], str) else str(self[key])
@@ -370,6 +373,10 @@ class Dict(dict) :
         if len(kwargs) > 0 : dict.update(self, Dict(kwargs))
         return self
 
+    def updated(self, mapping, **kwargs) :
+        '''NOT IN PLACE'''
+        return self.copy().update(mapping, **kwargs)
+
     def pop(self, key_list, default = 'NONE') :
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
         If key is not found, d is returned if given, otherwise KeyError is raised'''
@@ -429,6 +436,10 @@ class Dict(dict) :
         for key in self :
             self[key] = self._stripValue(self[key], string)
         return self
+
+    def stripped(self, string = ' \t\n') :
+        '''NOT IN PLACE'''
+        return self.copy().strip(string)
 
     def clear(self) :
         '''D.clear() -> None.  Remove all items from D.'''

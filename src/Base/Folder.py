@@ -15,11 +15,21 @@ class Folder(Object) :
             raise Exception('Fail to walk folder path: {}'.format(folder_path))
         self._path.rstrip('/')
         self._name = self._path.split('/')[-1]
-        self._sub_folder_list = self._sub_folder_name_list.copy().map(lambda folder_name : Folder('{}/{}'.format(self._path, folder_name)))
-        self._sub_file_list   = self._sub_file_name_list.copy().map(lambda file_name : File('{}/{}'.format(self._path, file_name), self))
+        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder('{}/{}'.format(self._path, folder_name)))
+        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name : File('{}/{}'.format(self._path, file_name), self))
 
     def jsonSerialize(self) :
         return '{}'.format(self)
+
+    # 可读化
+    def j(self) :
+        from util import j
+        return j(self.jsonSerialize())
+
+    def print(self, color = '') :
+        from util import E
+        print(color, self.j(), E if color != '' else '')
+        return self
 
     def __format__(self, code) :
         return 'Folder({})'.format(realpath(self._path))
@@ -42,13 +52,13 @@ class Folder(Object) :
 
     @property
     def flattern_sub_file_list(self) :
-        return self._sub_file_list.copy().extend(self._sub_folder_list.copy().batch('flattern_sub_file_list').merge())
+        return self._sub_file_list.extended(self._sub_folder_list.flattern_sub_file_list.merge())
 
     def json(self) :
         return Dict({
             'Path'          : self._path,
             'Name'          : self._name,
-            'SubFolderList' : self._sub_folder_list.copy().batch('json'),
-            'SubFileList'   : self._sub_file_list.copy().batch('json'),
+            'SubFolderList' : self._sub_folder_list.json(),
+            'SubFileList'   : self._sub_file_list.json(),
         })
 

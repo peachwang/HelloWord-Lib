@@ -85,7 +85,7 @@ class Timer(Object) :
         cls._global_total += timing_delta
         if delta is None :
             # print(Y, '{}间隔({:.5f}s) 累计({:.2f}s) [{}] [当前({}) 堆栈({})]'.format(
-            print(Y, '{}间隔({:.5f}s) 累计({:.5f}s) [ {} ]'.format(
+            print(Y, '{}累计({:.5f}s) 间隔({:.5f}s) [ {} ]'.format(
                 '\t' * indent,
                 timing_delta,
                 cls._global_total,
@@ -95,7 +95,7 @@ class Timer(Object) :
             ), E)
         else :
             # print(Y, '{}本轮({:.5f}s) 累计({:.2f}s) [{}] [当前({})]'.format(
-            print(Y, '{}本轮({:.5f}s) 累计({:.5f}s) [ {} ]'.format(
+            print(Y, '{}累计({:.5f}s) 本轮({:.5f}s) [ {} ]'.format(
                 '\t' * indent,
                 delta,
                 cls._global_total,

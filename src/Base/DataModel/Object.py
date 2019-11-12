@@ -37,6 +37,16 @@ class Object() :
     def jsonSerialize(self) :
         return '<{} at {}>{}'.format(self.__class__, self.getId(), self._data.j())
 
+    # 可读化
+    def j(self) :
+        from util import j
+        return j(self.jsonSerialize())
+
+    def print(self, color = '') :
+        from util import E
+        print(color, self.j(), E if color != '' else '')
+        return self
+
     def __format__(self, code) :
         # 防止自嵌套死循环
         if self.getId() in Object._id_list :

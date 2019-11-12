@@ -18,6 +18,16 @@ class File(Object) :
     def jsonSerialize(self) :
         return '{}'.format(self)
 
+    # 可读化
+    def j(self) :
+        from util import j
+        return j(self.jsonSerialize())
+
+    def print(self, color = '') :
+        from util import E
+        print(color, self.j(), E if color != '' else '')
+        return self
+
     def __format__(self, code) :
         return 'File({})'.format(realpath(self._path))
 

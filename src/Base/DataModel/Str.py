@@ -7,10 +7,10 @@ import re
 SRE_MATCH_TYPE = type(re.match('', ''))
 
 class _Match() :
-        # '?P<>'
-        # Pattern.groupindex
-        # A dictionary mapping any symbolic group names defined by (?P<id>) to group numbers.
-        # The dictionary is empty if no symbolic groups were used in the pattern.
+    # '?P<>'
+    # Pattern.groupindex
+    # A dictionary mapping any symbolic group names defined by (?P<id>) to group numbers.
+    # The dictionary is empty if no symbolic groups were used in the pattern.
     
     def __init__(self, match) :
         self._match = match
@@ -109,6 +109,16 @@ class Str(str) :
 
     def jsonSerialize(self) :
         return '{}'.format(self)
+
+    # 可读化
+    def j(self) :
+        from util import j
+        return j(self.jsonSerialize())
+
+    def print(self, color = '') :
+        from util import E
+        print(color, self.j(), E if color != '' else '')
+        return self
 
     # def __format__(self) :
         '''S.__format__(format_spec) -> str
