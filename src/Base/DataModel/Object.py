@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from functools import wraps
+from shared import ensureArgsType
 
 class Object() :
 
@@ -10,19 +11,31 @@ class Object() :
         from Dict import Dict
         object.__setattr__(self, '_data', Dict())
 
+    # @
+    # def _registerProperty(self, property_name_list) :
+    #     if 
+
     def __getattr__(self, name) :
         if name == '_data' : return self.__getattribute__('_data')
         if name == '__class__' : return self.__getattribute__('__class__')
         return self._data[name]
 
-    def __setattr__(self, name, value) :
+    def _wrapValue(self, value) :
         from Dict import Dict
         from List import List
         from Str import Str
-        if isinstance(value, list) : self._data[name] = List(value)
-        elif isinstance(value, dict) : self._data[name] = Dict(value)
-        elif isinstance(value, str) : self._data[name] = Str(value)
-        else : self._data[name] = value
+        from DateTime import DateTime, datetime
+        if isinstance(value, list)        : return List(value)
+        elif isinstance(value, dict)      : return Dict(value)
+        elif isinstance(value, str)       : return Str(value)
+        elif isinstance(value, bytes)     : return Str(value.decode())
+        elif isinstance(value, tuple)     : return tuple([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, set)       : return set([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, datetime)  : return DateTime(value)
+        else : return value
+
+    def __setattr__(self, name, value) :
+        self._data[name] = self._wrapValue(value)
         return value
 
     def getId(self) :
@@ -76,11 +89,11 @@ class Object() :
 
     @_warnNonPrivateName
     def _get(self, name_list, default = None) : 
-        return self._data.get(name_list, default)
+        return self._data.get(name_list, default) # 字段可以不存在
 
     @_warnNonPrivateName
     def _getMulti(self, name_list) :
-        return self._data.getMulti(name_list, de_underscore = True)
+        return self._data.getMulti(name_list, de_underscore = True) # 字段可以不存在
 
     def _has(self, name_list) :
         if self._get(name_list) is None : return False

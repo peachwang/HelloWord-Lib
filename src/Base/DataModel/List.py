@@ -1,39 +1,34 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from types import GeneratorType
-from functools import wraps
+from shared import ensureArgsType
 
 class List(list) :
 
-    def _importTypes(func) :
-        @wraps(func)
-        def wrapper(self, *args, **kwargs) :
-            from Dict import Dict
-            from Str import Str
-            from Object import Object
-            from DateTime import DateTime, datetime
-            from File import File
-            from Folder import Folder
-            from Audio import Audio
-            # 本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
-            return func(self, *args, **kwargs)
-        return wrapper
+    _has_imported_types = False
+
+    def _importTypes(self) :
+        if self._has_imported_types : return
+        self.List = List
+        from Dict import Dict; self.Dict = Dict
+        from Str import Str; self.Str = Str
+        from Object import Object; self.Object = Object
+        from DateTime import DateTime, datetime; self.DateTime, self.datetime = DateTime, datetime
+        from File import File; self.File = File
+        from Folder import Folder; self.Folder = Folder
+        from Audio import Audio; self.Audio = Audio
+        # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
+        self._has_imported_types = True
 
     def _wrapItem(self, item) :
-        from Dict import Dict
-        from Str import Str
-        from Object import Object
-        from DateTime import DateTime, datetime
-        from File import File
-        from Folder import Folder
-        from Audio import Audio
-        if isinstance(item, list)       : return List(item)
-        elif isinstance(item, dict)     : return Dict(item)
-        elif isinstance(item, str)      : return Str(item)
-        elif isinstance(item, bytes)    : return Str(item.decode())
-        elif isinstance(item, tuple)    : return tuple([ self._wrapItem(_) for _ in item ])
-        elif isinstance(item, set)      : return set([ self._wrapItem(_) for _ in item ])
-        elif isinstance(item, datetime) : return DateTime(item)
+        self._importTypes()
+        if isinstance(item, list)            : return self.List(item)
+        elif isinstance(item, dict)          : return self.Dict(item)
+        elif isinstance(item, str)           : return self.Str(item)
+        elif isinstance(item, bytes)         : return self.Str(item.decode())
+        elif isinstance(item, tuple)         : return tuple([ self._wrapItem(_) for _ in item ])
+        elif isinstance(item, set)           : return set([ self._wrapItem(_) for _ in item ])
+        elif isinstance(item, self.datetime) : return self.DateTime(item)
         else : return item
 
     def __init__(self, *args) :
@@ -69,31 +64,19 @@ class List(list) :
 
     # 原生化 list, dict, str, Object._data, datetime
     def getRaw(self) :
-        from Dict import Dict
-        from Str import Str
-        from Object import Object
-        from DateTime import DateTime, datetime
-        from File import File
-        from Folder import Folder
-        from Audio import Audio
+        self._importTypes()
         return [ (item.getRaw()
-                if isinstance(item, (List, Dict, Str, Object, DateTime, File, Folder, Audio))
+                if isinstance(item, (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio))
                 else item # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
             ) for item in self
         ]
 
     def jsonSerialize(self) :
-        from Dict import Dict
-        from Str import Str
-        from Object import Object
-        from DateTime import DateTime, datetime
-        from File import File
-        from Folder import Folder
-        from Audio import Audio
+        self._importTypes()
         from util import json_serialize
         _ = []
         for item in self :
-            if isinstance(item, (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
+            if isinstance(item, (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio)) :
                 _.append(item.jsonSerialize())
             else :
                 _.append(json_serialize(item)) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
@@ -112,14 +95,14 @@ class List(list) :
     def __format__(self, code) :
         '''default object formatter'''
         return '[{}]'.format(
-            self.mapped(lambda item : '"{}"'.format(item) if isinstance(item, str) else '{}'.format(item))
+            self.mapped(lambda item : f'"{item}"' if isinstance(item, str) else f'{item}')
                 .join(', ')
         )
 
     def __str__(self) :
         '''Return str(self).'''
         return 'List[{}]'.format(
-            self.mapped(lambda item : '"{}"'.format(item) if isinstance(item, str) else str(item))
+            self.mapped(lambda item : f'"{item}"' if isinstance(item, str) else str(item))
                 .join(', ')
         )
 
@@ -139,6 +122,7 @@ class List(list) :
 
     # # move
     # def inspect(data, max_depth = 10, depth = 0) :
+    # https://docs.python.org/3/library/reprlib.html
     #     # print(str(data)[:120])
     #     if depth > max_depth :
     #         if data is None : return None 
@@ -368,24 +352,22 @@ class List(list) :
 
     def valueList(self, key_list_or_func_name) :
         '''NOT IN PLACE'''
+        self._importTypes()
         if self.len() == 0 : return self.copy()
         if isinstance(key_list_or_func_name, list) :
-            from Object import Object
-            if isinstance(self[0], Object) :
+            if isinstance(self[0], self.Object) :
                 return self.batched('_get', key_list_or_func_name)
             else :
                 return self.batched('get', key_list_or_func_name)
         elif isinstance(key_list_or_func_name, str) :
             def getValue(item) :
-                from Dict import Dict
-                from Object import Object
-                if isinstance(item, (Dict, Object)) :
+                if isinstance(item, (self.Dict, self.Object)) :
                     attribute = item.__getattr__(key_list_or_func_name)
                 else :
                     attribute = item.__getattribute__(key_list_or_func_name)
                 if callable(attribute) : return attribute()
                 else : return attribute
-            return self.mapped(lambda item : getValue(item))
+            return self.mapped(getValue)
         else : raise Exception('Unexpected type({}) of key_list_or_func_name: {}'.format(type(key_list_or_func_name), key_list_or_func_name))
 
     def json(self) :
@@ -394,16 +376,10 @@ class List(list) :
         return self.valueList('json')
 
     def _stripItem(self, item, string) :
-        from Dict import Dict
-        from Str import Str
-        from Object import Object
-        from DateTime import DateTime, datetime
-        from File import File
-        from Folder import Folder
-        from Audio import Audio
-        if item is None or isinstance(item, (int, float, bool, range, bytes, zip, datetime)):
+        self._importTypes()
+        if item is None or isinstance(item, (int, float, bool, range, bytes, zip, self.datetime)):
             return item
-        elif isinstance(item, (List, Dict, Str)) : # can't be list, dict, str
+        elif isinstance(item, (self.List, self.Dict, self.Str)) : # can't be list, dict, str
             return item.strip(string)
         elif isinstance(item, tuple) :
             return (self._stripItem(_, string) for _ in item)
@@ -442,18 +418,17 @@ class List(list) :
 
     def filterByValue(self, key_list_or_func_name, value) :
         '''IN PLACE'''
+        self._importTypes()
         if key_list_or_func_name is None :
             return self.filter(lambda item : item == value)
         elif isinstance(key_list_or_func_name, list) :
-            from Object import Object
-            if isinstance(self[0], Object) :
+            if isinstance(self[0], self.Object) :
                 return self.filter(lambda item : item._get(key_list_or_func_name) == value)
             else :
                 return self.filter(lambda item : item.get(key_list_or_func_name) == value)
         elif isinstance(key_list_or_func_name, str) :
             def getValue(item) :
-                from Object import Object
-                if isinstance(item, Object) :
+                if isinstance(item, self.Object) :
                     attribute = item.__getattr__(key_list_or_func_name)
                 else :
                     attribute = item.__getattribute__(key_list_or_func_name)
@@ -473,7 +448,10 @@ class List(list) :
             result = func(result, item, *(self._padIndexToArgs(func, args, index, 2)), **kwargs)
         return result
 
+    # itertools.def accumulate(iterable, func=operator.add, *, initial=None):
+
     def merge(self) :
+        '''Merge items of the items of self'''
         '''IN PLACE'''
         _ = self.reduce(lambda result, item : result.extend(item), List())
         return self.clear().extend(_)
@@ -481,6 +459,11 @@ class List(list) :
     def merged(self) :
         '''NOT IN PLACE'''
         return self.copy().merge()
+
+    def groupby(self) :
+        raise
+        # itertools.groupby(iterable, key=None)
+
 
     def _reduce(self, key_list_or_func_name, func, initial_value) :
         '''NOT IN PLACE'''
@@ -505,8 +488,7 @@ class List(list) :
         if key_list_or_func_name is None :
             return self[0]
         elif isinstance(key_list_or_func_name, list) :
-            from Object import Object
-            if isinstance(self[0], Object) :
+            if isinstance(self[0], self.Object) :
                 return self[0]._get(key_list_or_func_name)
             else :
                 return self[0].get(key_list_or_func_name)
@@ -534,10 +516,10 @@ class List(list) :
 
     def join(self, sep) :
         '''NOT IN PLACE'''
-        from Str import Str
+        self._importTypes()
         if not isinstance(sep, str) :
             raise Exception('Unexpected type({}) of sep: {}'.format(type(sep), sep))
-        return Str(sep).join(self)
+        return self.Str(sep).join(self)
 
     def unique(self) :
         '''IN PLACE'''
@@ -549,7 +531,11 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().unique()
 
-    def intersect(self, item_list) :
+    # 789
+    @ensureArgsType
+    # 456
+    def intersect(self, item_list -> list) :
+        # 123
         '''Update itself with the intersection of itself and another.'''
         '''IN PLACE'''
         '''O(N^2)???'''

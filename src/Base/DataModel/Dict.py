@@ -2,39 +2,33 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from types import GeneratorType
 from collections import defaultdict
-from functools import wraps
 
 class Dict(dict) :
 
-    def _importTypes(func) :
-        @wraps(func)
-        def wrapper(self, *args, **kwargs) :
-            from List import List
-            from Str import Str
-            from Object import Object
-            from DateTime import DateTime, datetime
-            from File import File
-            from Folder import Folder
-            from Audio import Audio
-            # 本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
-            return func(self, *args, **kwargs)
-        return wrapper
+    _has_imported_types = False
 
-    def _wrapValue(self, value, **kwargs) :
-        from List import List
-        from Str import Str
-        from Object import Object
-        from DateTime import DateTime, datetime
-        from File import File
-        from Folder import Folder
-        from Audio import Audio
-        if isinstance(value, list)        : return List(value)
-        elif isinstance(value, dict)      : return Dict(value)
-        elif isinstance(value, str)       : return Str(value)
-        elif isinstance(value, bytes)     : return Str(value.decode())
-        elif isinstance(value, tuple)     : return tuple([ self._wrapItem(_) for _ in value ])
-        elif isinstance(value, set)       : return set([ self._wrapItem(_) for _ in value ])
-        elif isinstance(value, datetime)  : return DateTime(value)
+    def _importTypes(self) :
+        if self.__getattribute__('_has_imported_types') : return
+        from List import List; dict.__setattr__(self, 'List', List)
+        dict.__setattr__(self, 'Dict', Dict)
+        from Str import Str; dict.__setattr__(self, 'Str', Str)
+        from Object import Object; dict.__setattr__(self, 'Object', Object)
+        from DateTime import DateTime, datetime; dict.__setattr__(self, 'DateTime', DateTime); dict.__setattr__(self, 'datetime', datetime)
+        from File import File; dict.__setattr__(self, 'File', File)
+        from Folder import Folder; dict.__setattr__(self, 'Folder', Folder)
+        from Audio import Audio; dict.__setattr__(self, 'Audio', Audio)
+        # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
+        dict.__setattr__(self, '_has_imported_types', True)
+
+    def _wrapValue(self, value) :
+        self._importTypes()
+        if isinstance(value, list)        : return self.List(value)
+        elif isinstance(value, dict)      : return self.Dict(value)
+        elif isinstance(value, str)       : return self.Str(value)
+        elif isinstance(value, bytes)     : return self.Str(value.decode())
+        elif isinstance(value, tuple)     : return tuple([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, set)       : return set([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, self.datetime)  : return self.DateTime(value)
         else : return value
 
     def __init__(self, *args, **kwargs) :
@@ -86,31 +80,11 @@ class Dict(dict) :
 
     # 原生化 list, dict, str, Object._data, datetime
     def getRaw(self) :
-        from List import List
-        from Str import Str
-        from Object import Object
-        from DateTime import DateTime, datetime
-        from File import File
-        from Folder import Folder
-        from Audio import Audio
-        return { key : (self[key].getRaw()
-                if isinstance(self[key], (List, Dict, Str, Object, DateTime, File, Folder, Audio))
-                else self[key] # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
-            ) for key in self
-        }
-
-    def jsonSerialize(self) :
-        from List import List
-        from Str import Str
-        from Object import Object
-        from DateTime import DateTime, datetime
-        from File import File
-        from Folder import Folder
-        from Audio import Audio
+        self._importTypes()
         from util import json_serialize
         _ = {}
         for key in self :
-            if isinstance(self[key], (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
+            if isinstance(self[key], (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio)) :
                 _[json_serialize(key)] = self[key].jsonSerialize()
             else :
                 _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
@@ -131,8 +105,8 @@ class Dict(dict) :
         return "{{{}}}".format(
             self.keys()
                 .map(lambda key : '{} : {}'.format(
-                        '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
-                        '"{}"'.format(self[key]) if isinstance(self[key], str) else '{}'.format(self[key])
+                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else '{}'.format(key),
+                        '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else '{}'.format(self[key])
                     )
                 )
                 .join(', ')
@@ -143,8 +117,8 @@ class Dict(dict) :
         return 'Dict{{{}}}'.format(
             self.keys()
                 .map(lambda key : '{} : {}'.format(
-                        '"{}"'.format(key) if isinstance(key, str) else '{}'.format(key),
-                        '"{}"'.format(self[key]) if isinstance(self[key], str) else str(self[key])
+                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else '{}'.format(key),
+                        '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else str(self[key])
                     )
                 )
                 .join(', ')
@@ -229,7 +203,8 @@ class Dict(dict) :
         '''
 
     def has(self, key_list) :
-        if isinstance(key_list, str) :
+        self._importTypes()
+        if isinstance(key_list, (str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             return dict.__contains__(self, key_list)
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -247,18 +222,18 @@ class Dict(dict) :
 
     def keys(self) :
         '''D.keys() -> a set-like object providing a view on D's keys'''
-        from List import List
-        return List(list(dict.keys(self)))
+        self._importTypes()
+        return self.List(list(dict.keys(self)))
     
     def values(self) :
         '''D.values() -> an object providing a view on D's values'''
-        from List import List
-        return List(list(dict.values(self)))
+        self._importTypes()
+        return self.List(list(dict.values(self)))
 
     def items(self) :
         '''D.items() -> a set-like object providing a view on D's items'''
-        from List import List
-        return List(list(dict.items(self)))
+        self._importTypes()
+        return self.List(list(dict.items(self)))
 
     # def __getattribute__(self) :
         '''
@@ -279,7 +254,8 @@ class Dict(dict) :
 
     def get(self, key_list, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
-        if isinstance(key_list, str) :
+        self._importTypes()
+        if isinstance(key_list, (str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             return dict.get(self, key_list, default)
         elif isinstance(key_list, list) :
             if self.hasNot(key_list) :
@@ -292,6 +268,7 @@ class Dict(dict) :
         else :
             raise Exception('Unexpected type({}) of key_list: {}'.format(type(key_list), key_list))
 
+    # operator.attrgetter(*attrs)
     # [ (key1,), (key2, None), key3 ]
     def getMulti(self, key_list, default = None, de_underscore = False) :
         def deUnderscoure(key) :
@@ -339,7 +316,8 @@ class Dict(dict) :
 
     def set(self, key_list, value) :
         '''IN PLACE'''
-        if isinstance(key_list, str) :
+        self._importTypes()
+        if isinstance(key_list, (str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             self[key_list] = value
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -381,7 +359,8 @@ class Dict(dict) :
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
         If key is not found, d is returned if given, otherwise KeyError is raised'''
         '''IN PLACE'''
-        if isinstance(key_list, str) :
+        self._importTypes()
+        if isinstance(key_list, (str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             if default == 'NONE' :
                 return dict.pop(self, key_list)
             else :
@@ -410,16 +389,10 @@ class Dict(dict) :
         return dict.popitem(self)
 
     def _stripValue(self, value, string) :
-        from List import List
-        from Str import Str
-        from Object import Object
-        from DateTime import DateTime, datetime
-        from File import File
-        from Folder import Folder
-        from Audio import Audio
-        if value is None or isinstance(value, (int, float, bool, range, bytes, zip, datetime)):
+        self._importTypes()
+        if value is None or isinstance(value, (int, float, bool, range, bytes, zip, self.datetime)):
             return value
-        elif isinstance(value, (List, Dict, Str)) : # can't be list, dict, str
+        elif isinstance(value, (self.List, self.Dict, self.Str)) : # can't be list, dict, str
             return value.strip(string)
         elif isinstance(value, tuple) :
             return (self._stripValue(_, string) for _ in value)
