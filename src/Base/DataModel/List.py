@@ -64,6 +64,7 @@ class List(list) :
 
     # 原生化 list, dict, str, Object._data, datetime
     def getRaw(self) :
+        '''NOT IN PLACE'''
         self._importTypes()
         return [ (item.getRaw()
                 if isinstance(item, (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio))
@@ -72,6 +73,7 @@ class List(list) :
         ]
 
     def jsonSerialize(self) :
+        '''NOT IN PLACE'''
         self._importTypes()
         from util import json_serialize
         _ = []

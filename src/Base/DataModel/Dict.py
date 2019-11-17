@@ -80,6 +80,7 @@ class Dict(dict) :
 
     # 原生化 list, dict, str, Object._data, datetime
     def getRaw(self) :
+        '''NOT IN PLACE'''
         self._importTypes()
         from util import json_serialize
         _ = {}
@@ -88,6 +89,18 @@ class Dict(dict) :
                 _[json_serialize(key)] = self[key].jsonSerialize()
             else :
                 _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
+        return _
+
+    def jsonSerialize(self) :
+        '''NOT IN PLACE'''
+        self._importTypes()
+        from util import json_serialize
+        _ = {}
+        for key in self :
+            if isinstance(self[key], (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio)) :
+                _[json_serialize(key)] = self[key].jsonSerialize()
+            else :
+                _[json_serialize(key)] = json_serialize(item) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
         return _
 
     # 可读化
@@ -235,10 +248,13 @@ class Dict(dict) :
         self._importTypes()
         return self.List(list(dict.items(self)))
 
-    # def __getattribute__(self) :
+    # def __getattribute__(self, key) :
         '''
         Return getattr(self, name).
         '''
+        # if key in ['List', 'Dict', 'Str', 'Object'] :
+            # print(f'__getattribute__ {key}')
+        # return dict.__getattribute__(self, key)
 
     def __getattr__(self, key) :
         '''getattr(object, name[, default]) -> value
@@ -246,6 +262,8 @@ class Dict(dict) :
         Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
         When a default argument is given, it is returned when the attribute doesn't
         exist; without it, an exception is raised in that case.'''
+        # if key in ['List', 'Dict', 'Str', 'Object'] :
+            # print(f'__getattr__ {key}')
         return self[key]
 
     def __getitem__(self, key) :
