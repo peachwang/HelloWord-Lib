@@ -20,7 +20,7 @@ class Base() : # Requester
             config_login = File(login_filename).loadJson()
         cls.updateConfig(config_login)
         username, password = cls._config.Username, cls._config.Password
-        print('尝试获取教师 {} 的token...'.format(username), end = '')
+        print(f'尝试获取教师 {username} 的token...', end = '')
         url = 'https://v.helloword.cn/hw/api/v2/u/login'
         post_data = Dict( Username = username, Password = password )
 

@@ -3,10 +3,12 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../DataModel/'));
 
 import json, re, requests
 from sys import exit
-from bcolors import OKMSG as OK, PASS, WARN, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE, HEADER, ENDC
-G, Y, R, B, E = GREEN, YELLOW, RED, BLUE, END = PASS, WARN, FAIL, BLUE, ENDC
+from bcolors import OKMSG as OK, PASS, WARN, ERR, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE as U, HEADER, ITALIC as I, BITALIC, BLUEIC, ENDC
+G, Y, R, B, P, E = GREEN, YELLOW, RED, BLUE, PINK, END = PASS, WARN, FAIL, BLUE, HEADER, ENDC
 # print(sys.path)
 
+from shared import ensureArgsType
+from typing import Optional, Union
 from Object import Object
 from List import List
 from Dict import Dict
@@ -31,14 +33,12 @@ class UserTypeError(TypeError):
         if not isinstance(self.expectedTypes, list) :
             raise UserTypeError('expected_types', expected_types, [type, list])
         if self.containsSameItems(list(map(type, self.expectedTypes)), True, type) is False :
-            raise Exception('Expected_types does not contain just types.\nexpected_types:\n{}'.format(j(list(map(str, self.expectedTypes)))))
+            raise Exception(f'Expected_types does not contain just types.\nexpected_types:\n{j(list(map(str, self.expectedTypes)))}')
         self.value = self.__str__()
 
     def __str__(self) :
         expected_types = ' or '.join([self.getTypeStr(expected_type) for expected_type in self.expectedTypes])
-        return 'Unexpected type({}) of {} is given, but type({}) is expected.'.format(
-            self.getTypeStr(self.fieldValue), self.fieldName, str(self.expectedTypes)
-        )
+        return f'Unexpected type({self.getTypeStr(self.fieldValue)}) of {self.fieldName} is given, but type({str(self.expectedTypes)}) is expected.'
 
     def getTypeStr(self, var_type) :
         return re.findall(r'\'([^\']+)\'', str(type(var_type)))[0]
@@ -115,11 +115,12 @@ def json_serialize(data) :
     elif isinstance(data, set) :
         return 'set{{{}}}'.format(', '.join(str(json_serialize(item)) for item in data))
     elif isinstance(data, (range, bytes, object)) :
-        return '{}'.format(data)
+        return f'{data}'
     elif isinstance(data, zip) :
-        return 'zip{}'.format(json_serialize(list(data)))
+        return f'zip{json_serialize(list(data))}'
     elif isinstance(data, datetime) :
-        return 'datetime({})'.format(data)
+        return f'datetime({data})'
+    else : raise Exception(f'Unknown {type(data)=} of {data=}')
 
 def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
     # return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)

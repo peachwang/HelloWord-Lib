@@ -38,6 +38,6 @@ class Stream(Object) :
                 if is_ordered : tag_list = tag_list[tag_list.index(tag_1) : ]
             else : # 二级及以下的tag
                 if self._stream_list.len() == 0 :
-                    raise Exception('位置错误的line({})'.format(line.raw))
+                    raise Exception(f'位置错误的line({line.raw})')
                 self._stream_list[-1]._appendLine(line)
         return self

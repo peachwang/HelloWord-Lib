@@ -2,17 +2,20 @@
 from Object import Object
 from datetime import datetime, timedelta
 from time import time, strftime
+from shared import ensureArgsType, Optional, Union
 
 class DateTime(Object) :
 
-    def __init__(self, timestamp_or_datetime = None) :
+    @ensureArgsType
+    def __init__(self, timestamp_or_datetime: Optional[Union[datetime, int, float]] = None) :
         Object.__init__(self)
         if timestamp_or_datetime is None :
             self._timestamp = time()
         elif isinstance(timestamp_or_datetime, datetime) :
             self._timestamp = timestamp_or_datetime.timestamp()
-        elif isinstance(timestamp, (int, float)) :
-            self._timestamp = timestamp
+        elif isinstance(timestamp_or_datetime, (int, float)) :
+            self._timestamp = timestamp_or_datetime
+        else : raise
 
     def fromStr(self, string, pattern = '%Y-%m-%d %H:%M:%S') :
         self._timestamp = datetime.strptime(string, pattern).timestamp()
@@ -39,7 +42,7 @@ class DateTime(Object) :
         return strftime(pattern, self.datetime.timetuple())
 
     def __str__(self) :
-        return 'DateTime({})'.format(self.__format__('%Y-%m-%d %H:%M:%S'))
+        return f'DateTime({self.__format__("%Y-%m-%d %H:%M:%S")})'
 
     @property
     def datetime(self):

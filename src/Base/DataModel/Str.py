@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 import re
+from shared import ensureArgsType, Optional, Union
+from Object import Object
 
 # https://docs.python.org/3/library/re.html
 
 SRE_MATCH_TYPE = type(re.match('', ''))
 
-class _Match() :
+class _Match(Object) :
     # '?P<>'
     # Pattern.groupindex
     # A dictionary mapping any symbolic group names defined by (?P<id>) to group numbers.
     # The dictionary is empty if no symbolic groups were used in the pattern.
     
     def __init__(self, match) :
+        Object.__init__(self)
+        self._registerProperty(['match'])
         self._match = match
-
-    @property
-    def match(self) :
-        return self._match
 
     @property
     def string(self) :
@@ -108,7 +108,7 @@ class Str(str) :
         return str(self)
 
     def jsonSerialize(self) :
-        return '{}'.format(self)
+        return f'{self}'
 
     # 可读化
     def j(self) :
@@ -300,14 +300,12 @@ class Str(str) :
         _ = re.subn(pattern, repl_str_or_func, self, count, flags)
         return (Str(_[0]), _[1])
 
-    def join(self, str_list) :
+    @ensureArgsType
+    def join(self, str_list: list) :
         '''S.join(iterable) -> str
         Return a string which is the concatenation of the strings in the
         iterable.  The separator between elements is S.'''
         '''NOT IN PLACE'''
-        from List import List
-        if not isinstance(str_list, list) :
-            raise Exception('Unexpected type({}) of str_list: {}'.format(type(str_list), str_list))
         return Str(str.join(self, str_list))
 
     # def rsplit(self) :
@@ -321,7 +319,8 @@ class Str(str) :
         is a separator.
         '''
     
-    def split(self, sep_or_pattern, maxsplit = -1, reverse = False, re = False, flags = 0) :
+    # @ensureArgsType
+    def split(self, sep_or_pattern: str, maxsplit: int = -1, reverse = False, re = False, flags = 0) :
         '''S.split(sep=None, maxsplit=-1) -> list of strings
         Return a list of the words in S, using sep as the
         delimiter string.  If maxsplit is given, at most maxsplit
@@ -351,8 +350,6 @@ class Str(str) :
         ['', '...', '', '', 'w', '', 'o', '', 'r', '', 'd', '', 's', '...', '', '', '']
         '''
         from List import List
-        if not isinstance(sep_or_pattern, str) :
-            raise Exception('Unexpected type({}) of sep_or_pattern: {}'.format(type(sep_or_pattern), sep_or_pattern))
         if re :
             if reverse : raise Exception('Can not split a string reversely using re.')
             return List(re.split(sep_or_pattern, self, maxsplit, flags))
@@ -378,13 +375,12 @@ class Str(str) :
         If chars is given and not None, remove characters in chars instead.
         '''
 
-    def strip(self, string = ' \t\n', left = True, right = True) :
+    # @ensureArgsType
+    def strip(self, string: str = ' \t\n', left: bool = True, right: bool = True) :
         '''S.strip([chars]) -> str
         Return a copy of the string S with leading and trailing whitespace removed.
         If chars is given and not None, remove characters in chars instead.'''
         '''NOT IN PLACE'''
-        if not isinstance(string, str) :
-            raise Exception('Unexpected type({}) of string: {}'.format(type(string), string))
         if (not left) and right : 
             return Str(str.rstrip(self, string))
         elif (not right) and left :
@@ -392,9 +388,10 @@ class Str(str) :
         elif left and right :
             return Str(str.strip(self, string))
         else :
-            raise Exception('Unexpected left{} and right{}'.format(left, right))
+            raise Exception(f'Unexpected {left=} and {right=}')
 
     def range(self) :
+        '''NOT IN PLACE'''
         from List import List
         return self.split(r' *, *', re = True).map(
             lambda part : 
@@ -404,6 +401,7 @@ class Str(str) :
         ).merge()
 
     def toUrl(self) :
+        '''NOT IN PLACE'''
         result = Str()
         for char in self :
             if char == ' ' :
@@ -413,6 +411,59 @@ class Str(str) :
             else :
                 result += Str(hex(ord(char))).upper().replace('0X', '%u')
         return result
+
+    def lower(self) :
+        '''S.lower() -> str
+        Return a copy of the string S converted to lowercase.'''
+        '''NOT IN PLACE'''
+        return Str(str.lower(self))
+
+    def upper(self) :
+        '''S.upper() -> str
+        Return a copy of S converted to uppercase.'''
+        '''NOT IN PLACE'''
+        return Str(str.upper(self))
+
+    def title(self) :
+        '''S.title() -> str
+        Return a titlecased version of S, i.e. words start with title case
+        characters, all remaining cased characters have lower case.'''
+        '''NOT IN PLACE'''
+        return Str(str.title(self))
+
+    def capitalize(self) :
+        '''S.capitalize() -> str
+        Return a capitalized version of S, i.e. make the first character
+        have upper case and the rest lower case.'''
+        '''NOT IN PLACE'''
+        return Str(str.capitalize(self))
+
+    def swapcase(self) :
+        '''S.swapcase() -> str
+        Return a copy of S with uppercase characters converted to lowercase
+        and vice versa.'''
+        '''NOT IN PLACE'''
+        return Str(str.swapcase(self))
+
+    def casefold(self) :
+        '''S.casefold() -> str
+        Return a version of S suitable for caseless comparisons.'''
+        '''NOT IN PLACE'''
+        return Str(str.casefold(self))
+
+    def ljust(self, width, fillchar = None) :
+        '''S.ljust(width[, fillchar]) -> str
+        Return S left-justified in a Unicode string of length width. Padding is
+        done using the specified fill character (default is a space).'''
+        '''NOT IN PLACE'''
+        return Str(str.ljust(self, width, fillchar))
+
+    def rjust(self, width, fillchar = None) :
+        '''S.rjust(width[, fillchar]) -> str
+        Return S right-justified in a string of length width. Padding is
+        done using the specified fill character (default is a space).'''
+        '''NOT IN PLACE'''
+        return Str(str.rjust(self, width, fillchar))
 
     # python2
     # ['__add__', '__class__', '__contains__', '__delattr__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getnewargs__', '__getslice__', '__gt__', '__hash__', '__init__', '__le__', '__len__', '__lt__', '__mod__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__rmod__', '__rmul__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '_formatter_field_name_split', '_formatter_parser', 'capitalize', 'center', 'count', 'decode', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'index', 'isalnum', 'isalpha', 'isdigit', 'islower', 'isspace', 'istitle', 'isupper', 'join', 'ljust', 'lower', 'lstrip', 'partition', 'replace', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit', 'rstrip', 'split', 'splitlines', 'startswith', 'strip', 'swapcase', 'title', 'translate', 'upper', 'zfill']
@@ -580,21 +631,6 @@ class Str(str) :
 
         '''
 
-    # def capitalize(self) :
-        '''
-        S.capitalize() -> str
-
-        Return a capitalized version of S, i.e. make the first character
-        have upper case and the rest lower case.
-        '''
-
-    # def casefold(self) :
-        '''
-        S.casefold() -> str
-
-        Return a version of S suitable for caseless comparisons.
-        '''
-
     # def encode(self) :
         '''
         S.encode(encoding='utf-8', errors='strict') -> bytes
@@ -727,21 +763,6 @@ class Str(str) :
         at least one cased character in S, False otherwise.
         '''
 
-    # def ljust(self) :
-        '''
-        S.ljust(width[, fillchar]) -> str
-
-        Return S left-justified in a Unicode string of length width. Padding is
-        done using the specified fill character (default is a space).
-        '''
-
-    # def lower(self) :
-        '''
-        S.lower() -> str
-
-        Return a copy of the string S converted to lowercase.
-        '''
-
     # def maketrans(self) :
         '''
         Return a translation table usable for str.translate().
@@ -762,14 +783,6 @@ class Str(str) :
         Search for the separator sep in S, and return the part before it,
         the separator itself, and the part after it.  If the separator is not
         found, return S and two empty strings.
-        '''
-
-    # def rjust(self) :
-        '''
-        S.rjust(width[, fillchar]) -> str
-
-        Return S right-justified in a string of length width. Padding is
-        done using the specified fill character (default is a space).
         '''
 
     # def rpartition(self) :
@@ -800,22 +813,6 @@ class Str(str) :
         prefix can also be a tuple of strings to try.
         '''
 
-    # def swapcase(self) :
-        '''
-        S.swapcase() -> str
-
-        Return a copy of S with uppercase characters converted to lowercase
-        and vice versa.
-        '''
-
-    # def title(self) :
-        '''
-        S.title() -> str
-
-        Return a titlecased version of S, i.e. words start with title case
-        characters, all remaining cased characters have lower case.
-        '''
-
     # def translate(self) :
         '''
         S.translate(table) -> str
@@ -826,13 +823,6 @@ class Str(str) :
         mapping Unicode ordinals to Unicode ordinals, strings, or None. If
         this operation raises LookupError, the character is left untouched.
         Characters mapped to None are deleted.
-        '''
-
-    # def upper(self) :
-        '''
-        S.upper() -> str
-
-        Return a copy of S converted to uppercase.
         '''
 
     # def zfill(self) :

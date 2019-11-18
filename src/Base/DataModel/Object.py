@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from functools import wraps
-from shared import ensureArgsType
+from shared import ensureArgsType, Optional, Union
 
 class Object() :
 
@@ -11,13 +11,19 @@ class Object() :
         from Dict import Dict
         object.__setattr__(self, '_data', Dict())
 
-    # @
-    # def _registerProperty(self, property_name_list) :
-    #     if 
+    @ensureArgsType
+    def _registerProperty(self, property_name_list: list) :
+        from List import List
+        if hasattr(self, '_property_name_list') :
+            self.__getattribute__('_property_name_list').extend(property_name_list)
+        else :
+            object.__setattr__(self, '_property_name_list', List(property_name_list))
 
     def __getattr__(self, name) :
         if name == '_data' : return self.__getattribute__('_data')
         if name == '__class__' : return self.__getattribute__('__class__')
+        if name in self.__getattribute__('_property_name_list') :
+            return self._data[f'_{name}']
         return self._data[name]
 
     def _wrapValue(self, value) :
@@ -48,7 +54,7 @@ class Object() :
         return self._data
 
     def jsonSerialize(self) :
-        return '<{} at {}>{}'.format(self.__class__, self.getId(), self._data.j())
+        return f'<{self.__class__} at {self.getId()}>{self._data.j()}'
 
     # 可读化
     def j(self) :
@@ -65,12 +71,12 @@ class Object() :
         if self.getId() in Object._id_list :
             return object.__str__(self)
         Object._id_list.append(self.getId())
-        result = '{}'.format(self._data)
+        result = f'{self._data}'
         Object._id_list.remove(self.getId())
         return result
 
     def __str__(self) :
-        return '<{} at {}>{}'.format(self.__class__, self.getId(), self._data)
+        return f'<{self.__class__} at {self.getId()}>{self._data}'
 
     def _update(self, mapping) :
         self._data.update(mapping)
@@ -81,9 +87,9 @@ class Object() :
         def wrapper(self, *args, **kwargs) :
             from util import Y, E
             if isinstance(args[0], str) and args[0][0] != '_' :
-                print(Y, 'Object {}\'s method {} is handling non-private name: {}'.format(self.__class__, func.__name__, args[0]), E)
+                print(Y, f'Object {self.__class__}\'s method {func.__name__} is handling non-private name: {args[0]}', E)
             elif isinstance(args[0], list) and (len(args[0]) == 0 or not isinstance(args[0][0], str) or args[0][0][0] != '_') :
-                print(Y, 'Object method {} is handling non-private name in name_list: {}'.format(func.__name__, args[0]), E)
+                print(Y, f'Object method {func.__name__} is handling non-private name in name_list: {args[0]}', E)
             return func(self, *args, **kwargs)
         return wrapper
 

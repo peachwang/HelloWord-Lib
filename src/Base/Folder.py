@@ -12,14 +12,15 @@ class Folder(Object) :
             self._path, self._sub_folder_name_list, self._sub_file_name_list = Str(self._path), List(self._sub_folder_name_list), List(self._sub_file_name_list)
             self._sub_file_name_list.filter(lambda file_name : file_name != '.DS_Store')
         except Exception as e :
-            raise Exception('Fail to walk folder path: {}'.format(folder_path))
+            raise e
+            # raise Exception(f'Fail to walk folder path: {folder_path=}')
         self._path.rstrip('/')
         self._name = self._path.split('/')[-1]
-        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder('{}/{}'.format(self._path, folder_name)))
-        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name : File('{}/{}'.format(self._path, file_name), self))
+        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}'))
+        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name : File(f'{self._path}/{file_name}', self))
 
     def jsonSerialize(self) :
-        return '{}'.format(self)
+        return f'{self}'
 
     # 可读化
     def j(self) :
@@ -32,7 +33,7 @@ class Folder(Object) :
         return self
 
     def __format__(self, code) :
-        return 'Folder({})'.format(realpath(self._path))
+        return f'Folder({realpath(self._path)})'
 
     def __str__(self) :
         return self.__format__('')

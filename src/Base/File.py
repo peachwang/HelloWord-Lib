@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, json
+from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType
 from os.path import exists, getsize, isfile, realpath
 
 class File(Object) :
 
     def __init__(self, file_path, folder = None) :
         Object.__init__(self)
+        self._registerProperty(['path', 'folder', 'folder_path', 'name', 'ext'])
         file_path           = Str(file_path)
         self._folder        = folder
         self._path          = file_path
@@ -16,7 +17,7 @@ class File(Object) :
         self._folder_path   = _[ : -1].join('/')
 
     def jsonSerialize(self) :
-        return '{}'.format(self)
+        return f'{self}'
 
     # 可读化
     def j(self) :
@@ -29,30 +30,10 @@ class File(Object) :
         return self
 
     def __format__(self, code) :
-        return 'File({})'.format(realpath(self._path))
+        return f'File({realpath(self._path)})'
 
     def __str__(self) :
         return self.__format__('')
-
-    @property
-    def path(self) :
-        return self._path
-    
-    @property
-    def folder(self) :
-        return self._folder
-
-    @property
-    def folder_path(self) :
-        return self._folder_path
-
-    @property
-    def name(self) :
-        return self._name
-
-    @property
-    def ext(self) :
-        return self._ext
 
     def extIs(self, ext) :
         return self._ext == ext
@@ -75,11 +56,10 @@ class File(Object) :
     def writeLineList(self, line_list, append = False) :
         return self.writeString(List(line_list).join('\n'), append)
 
-    def writeData(self, data, append = False) :
-        if isinstance(data, ( List, Dict )) :
-            data.writeToFile(self)
-            return self
-        else : raise Exception('Unexpected type({}) of data: {}'.format(type(data), data))
+    @ensureArgsType
+    def writeData(self, data: Union[List, Dict]) :
+        data.writeToFile(self)
+        return self
 
     def writeBytes(self, bytes_content) :
         open(self._path, 'wb').write(bytes_content)
@@ -91,8 +71,7 @@ class File(Object) :
             return List(data)
         elif isinstance(data, dict) :
             return Dict(data)
-        else :
-            raise
+        else : raise
 
     def dumpJson(self, data) :
         return self.writeData(data)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from types import GeneratorType
-from shared import ensureArgsType
+from shared import ensureArgsType, Optional, Union
 
 class List(list) :
 
@@ -109,7 +109,7 @@ class List(list) :
         )
 
     def stat(self, msg = '') :
-        print('{}{}个'.format('' if msg == '' else '{}: '.format(msg), self.len()))
+        print(f"{'' if msg == '' else f'{msg}: '}{self.len()}个")
         return self
 
     def inspect(self) :
@@ -211,11 +211,12 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.valueList(key_or_func_name)
 
-    def __getitem__(self, index) :
+    # @ensureArgsType
+    def __getitem__(self, index: Union[int, slice]) :
         '''x.__getitem__(y) <==> x[y]'''
         if isinstance(index, int) : return list.__getitem__(self, index)
         elif isinstance(index, slice) : return List(list.__getitem__(self, index))
-        else : raise Exception('Unexpected type({}) of index: {}'.format(type(index), index))
+        else : raise
 
     # def __setattr__(self) :
         '''
@@ -248,29 +249,26 @@ class List(list) :
         list.insert(self, index, self._wrapItem(item))
         return self
 
-    def __add__(self, item_list) :
+    @ensureArgsType
+    def __add__(self, item_list: list) :
         '''Return self+value.'''
         '''NOT IN PLACE'''
-        if isinstance(item_list, list) :
-            return List(list.__add__(self, List(item_list)))
-        else :
-            raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
+        return List(list.__add__(self, List(item_list)))
 
-    def __iadd__(self, item_list) :
+    @ensureArgsType
+    def __iadd__(self, item_list: list) :
         '''Implement self+=value.'''
         '''IN PLACE'''
-        if isinstance(item_list, list) :
-            return list.__iadd__(self, List(item_list))
-        else :
-            raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
+        return list.__iadd__(self, List(item_list))
     
-    def extend(self, item_list) :
+    @ensureArgsType
+    def extend(self, item_list: Optional[list]) :
         '''L.extend(iterable) -> None -- extend list by appending elements from the iterable'''
         '''IN PLACE'''
         if isinstance(item_list, list) :
             list.extend(self, List(item_list))
         elif item_list is None : return self
-        else : raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
+        else : raise
         return self
 
     def extended(self, item_list) :
@@ -327,10 +325,9 @@ class List(list) :
         else :
             return args
 
-    def batch(self, func_name, *args, **kwargs) :
+    @ensureArgsType
+    def batch(self, func_name: str, *args, **kwargs) :
         '''IN PLACE'''
-        if not isinstance(func_name, str) :
-            raise Exception('Unexpected type({}) of func_name: {}'.format(type(func_name), func_name))
         for index, item in enumerate(self) :
             attribute = self[index].__getattribute__(func_name)
             if callable(attribute) :
@@ -352,7 +349,8 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().map(func, *args, **kwargs)
 
-    def valueList(self, key_list_or_func_name) :
+    @ensureArgsType
+    def valueList(self, key_list_or_func_name: Union[list, str]) :
         '''NOT IN PLACE'''
         self._importTypes()
         if self.len() == 0 : return self.copy()
@@ -370,7 +368,7 @@ class List(list) :
                 if callable(attribute) : return attribute()
                 else : return attribute
             return self.mapped(getValue)
-        else : raise Exception('Unexpected type({}) of key_list_or_func_name: {}'.format(type(key_list_or_func_name), key_list_or_func_name))
+        else : raise
 
     def json(self) :
         '''带有业务逻辑，与 j 不同'''
@@ -391,7 +389,7 @@ class List(list) :
             if 'strip' in dir(item) : item.strip(string)
             return item
         else :
-            raise Exception('Unknown type{} of item{}'.format(type(item), item))
+            raise Exception(f'Unexpected {type(item)=} of {item=}')
 
     def strip(self, string = ' \t\n') :
         '''IN PLACE'''
@@ -418,7 +416,8 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().filter(func_or_func_name, *args, **kwargs)
 
-    def filterByValue(self, key_list_or_func_name, value) :
+    @ensureArgsType
+    def filterByValue(self, key_list_or_func_name: Optional[Union[list, str]], value) -> list:
         '''IN PLACE'''
         self._importTypes()
         if key_list_or_func_name is None :
@@ -437,7 +436,7 @@ class List(list) :
                 if callable(attribute) : return attribute()
                 else : return attribute
             return self.filter(lambda item : getValue(item) == value)
-        else : raise Exception('Unexpected type({}) of key_list_or_func_name: {}'.format(type(key_list_or_func_name), key_list_or_func_name))
+        else : raise
 
     def filteredByValue(self, key_list_or_func_name, value) :
         '''NOT IN PLACE'''
@@ -466,14 +465,14 @@ class List(list) :
         raise
         # itertools.groupby(iterable, key=None)
 
-
-    def _reduce(self, key_list_or_func_name, func, initial_value) :
+    @ensureArgsType
+    def _reduce(self, key_list_or_func_name: Optional[Union[list, str]], func, initial_value) :
         '''NOT IN PLACE'''
         if key_list_or_func_name is None :
             return self.reduce(func, initial_value)
         elif isinstance(key_list_or_func_name, (list, str)) :
             return self.valueList(key_list_or_func_name).reduce(func, initial_value)
-        else : raise Exception('Unexpected type({}) of key_list_or_func_name: {}'.format(type(key_list_or_func_name), key_list_or_func_name))
+        else : raise
 
     def sum(self, key_list_or_func_name = None) :
         '''NOT IN PLACE'''
@@ -485,7 +484,8 @@ class List(list) :
         if self.len() == 0 : return default
         return 1.0 * self.sum(key_list_or_func_name) / self.len()
 
-    def _initialValue(self, key_list_or_func_name) :
+    @ensureArgsType
+    def _initialValue(self, key_list_or_func_name: Optional[Union[list, str]]) :
         '''NOT IN PLACE'''
         if key_list_or_func_name is None :
             return self[0]
@@ -498,7 +498,7 @@ class List(list) :
             attribute = self[0].__getattribute__(key_list_or_func_name)
             if callable(attribute) : return attribute()
             else : return attribute
-        else : raise Exception('Unexpected type({}) of key_list_or_func_name: {}'.format(type(key_list_or_func_name), key_list_or_func_name))
+        else : raise
 
     def max(self, key_list_or_func_name = None) :
         '''NOT IN PLACE'''
@@ -516,11 +516,10 @@ class List(list) :
             self._initialValue(key_list_or_func_name)
         )
 
-    def join(self, sep) :
+    @ensureArgsType
+    def join(self, sep: str) :
         '''NOT IN PLACE'''
         self._importTypes()
-        if not isinstance(sep, str) :
-            raise Exception('Unexpected type({}) of sep: {}'.format(type(sep), sep))
         return self.Str(sep).join(self)
 
     def unique(self) :
@@ -533,16 +532,11 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().unique()
 
-    # 789
     @ensureArgsType
-    # 456
-    def intersect(self, item_list -> list) :
-        # 123
+    def intersect(self, item_list: list) :
         '''Update itself with the intersection of itself and another.'''
         '''IN PLACE'''
         '''O(N^2)???'''
-        if not isinstance(item_list, list) :
-            raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
         return self.filter(lambda item, item_list : item in item_list, List(item_list))
 
     def intersected(self, item_list) :
@@ -554,12 +548,11 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.intersected(item_list)
 
-    def difference(self, item_list) :
+    @ensureArgsType
+    def difference(self, item_list: list) :
         '''Remove all elements of another list from this list.'''
         '''IN PLACE'''
         '''O(N^2)???'''
-        if not isinstance(item_list, list) :
-            raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
         return self.filter(lambda item, item_list : item not in item_list, List(item_list))
 
     def differenced(self, item_list) :
@@ -571,12 +564,11 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.differenced(item_list)
 
-    def union(self, item_list) :
+    @ensureArgsType
+    def union(self, item_list: list) :
         '''Update a set with the union of itself and others.'''
         '''IN PLACE'''
         '''O(N^2)???'''
-        if not isinstance(item_list, list) :
-            raise Exception('Unexpected type({}) of item_list: {}'.format(type(item_list), item_list))
         return self.extend(List(item_list).difference(self))
 
     def unioned(self, item_list) :
@@ -609,7 +601,7 @@ class List(list) :
     def isSupersetOf(self, item_list) :
         '''Report whether this set contains another set.'''
         '''O(N^2)???'''
-        return (item_list - self).len() == 0
+        return (List(item_list) - self).len() == 0
 
     def __ge__(self, item_list) :
         '''Return self>=value.'''
@@ -647,7 +639,7 @@ class List(list) :
         file.writeString(self.j())
         return self
 
-    # list(map(lambda x : print('\n{}\n{}\n'.format(x, list.__getattribute__([], x).__doc__)), dir(list)))
+    # list(map(lambda x : print(f'\n{x}\n{list.__getattribute__([], x).__doc__}\n'), dir(list)))
 
     # python2
     # '__add__', '__class__', '__contains__', '__delattr__', '__delitem__', '__delslice__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getslice__', '__gt__', '__hash__', '__iadd__', '__imul__', '__init__', '__iter__', '__le__', '__len__', '__lt__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__reversed__', '__rmul__', '__setattr__', '__setitem__', '__setslice__', '__sizeof__', '__str__', '__subclasshook__', 'append', 'count', 'extend', 'index', 'insert', 'pop', 'remove', 'reverse', 'sort'

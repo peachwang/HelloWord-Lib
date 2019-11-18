@@ -5,7 +5,7 @@ from pydub import AudioSegment
 class Audio(File) :
 
     def jsonSerialize(self) :
-        return '{}'.format(self)
+        return f'{self}'
 
     # 可读化
     def j(self) :
