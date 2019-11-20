@@ -100,7 +100,7 @@ class Dict(dict) :
             if isinstance(self[key], (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio)) :
                 _[json_serialize(key)] = self[key].jsonSerialize()
             else :
-                _[json_serialize(key)] = json_serialize(item) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
+                _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
         return _
 
     # 可读化

@@ -46,8 +46,14 @@ class File(Object) :
     def size(self) :
         return getsize(self._path)
 
-    def readLineList(self) :
-        return List(open(self._path).readlines()).strip('\n\r')
+    def readLineList(self, filter_white_lines = False) :
+        result = List(open(self._path).readlines()).strip('\n\r')
+        if filter_white_lines :
+            result.filter(lambda line : not line.fullMatch(r'^[ \t]*$'))
+        return result
+
+    def readFieldList(self, index, sep = '\t') :
+        return self.readLineList(True).map(lambda line : line.split(sep)[index])
 
     def writeString(self, string, append = False) :
         open(self._path, 'a' if append else 'w').write(string)

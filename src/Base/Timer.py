@@ -35,7 +35,7 @@ class Timer(Object) :
             current = time()
             result = func(self, *args, **kwargs)
             delta = time() - current
-            Timer.printTiming(f'{func.__qualname__}{msg} 结束' delta)
+            Timer.printTiming(f'{func.__qualname__}{msg} 结束', delta)
             return result
         return wrapper
 
@@ -74,10 +74,10 @@ class Timer(Object) :
             # print(Y, '{}间隔({:.5f}s) 累计({:.2f}s) [{}] [当前({}) 堆栈({})]'.format(
                 # DateTime(),
                 # cls._global_delta_list.len()
-            print(Y, f'{"\t" * indent}累计({cls._global_total:.5f}s) 间隔({timing_delta:.5f}s) [ {msg} ]', E)
+            print(Y, '\t' * indent, f'累计({cls._global_total:.5f}s) 间隔({timing_delta:.5f}s) [ {msg} ]', E)
         else :
             # print(Y, '{}本轮({:.5f}s) 累计({:.2f}s) [{}] [当前({})]'.format(
-            print(Y, f'{"\t" * indent}累计({cls._global_total:.5f}s) 本轮({delta:.5f}s) [ {msg} ]', E)
+            print(Y, '\t' * indent, f'累计({cls._global_total:.5f}s) 本轮({delta:.5f}s) [ {msg} ]', E)
         cls._global_current = time()
         return cls
 
