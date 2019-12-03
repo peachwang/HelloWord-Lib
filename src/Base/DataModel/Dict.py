@@ -370,6 +370,14 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         return self.copy().update(mapping, **kwargs)
 
+    def __iadd__(self, mapping) :
+        '''IN PLACE'''
+        return self.update(mapping)
+
+    def __add__(self, mapping) :
+        '''NOT IN PLACE'''
+        return self.updated(mapping)
+
     def pop(self, key_list, default = 'NONE') :
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
         If key is not found, d is returned if given, otherwise KeyError is raised'''

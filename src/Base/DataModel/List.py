@@ -243,6 +243,11 @@ class List(list) :
         list.append(self, self._wrapItem(item))
         return self
 
+    def prepend(self, item) :
+        '''L.prepend(object) -> None -- append object to start'''
+        '''IN PLACE'''
+        return self.insert(0, item)
+
     def insert(self, index, item) :
         '''L.insert(index, object) -> None -- insert object before index'''
         '''IN PLACE'''
@@ -316,8 +321,8 @@ class List(list) :
     def enumerate(self) :
         return enumerate(self)
 
-    # pos为index在func的参数表里的下标
-    def _padIndexToArgs(self, func, args, index, pos) :
+    # pos为index在func的参数表里的下标，即本函数在func的参数表的下标
+    def _leftPadIndexToArgs(self, func, args, index, pos) :
         import inspect
         func_args = inspect.getargspec(func).args
         if len(func_args) > pos and func_args[pos] == 'index' :
@@ -325,13 +330,19 @@ class List(list) :
         else :
             return args
 
+    def forEach(self, func, *args, **kwargs) :
+        '''NOT IN PLACE'''
+        for index, item in enumerate(self) :
+            func(item, *(self._leftPadIndexToArgs(func, args, index, 1)), **kwargs)
+        return self
+
     @ensureArgsType
     def batch(self, func_name: str, *args, **kwargs) :
         '''IN PLACE'''
         for index, item in enumerate(self) :
             attribute = self[index].__getattribute__(func_name)
             if callable(attribute) :
-                self[index] = attribute(*(self._padIndexToArgs(attribute, args, index, 0)), **kwargs)
+                self[index] = attribute(*(self._leftPadIndexToArgs(attribute, args, index, 0)), **kwargs)
             else : self[index] = attribute
         return self
 
@@ -342,7 +353,7 @@ class List(list) :
     def map(self, func, *args, **kwargs) :
         '''IN PLACE'''
         for index, item in enumerate(self) :
-            self[index] = func(item, *(self._padIndexToArgs(func, args, index, 1)), **kwargs)
+            self[index] = func(item, *(self._leftPadIndexToArgs(func, args, index, 1)), **kwargs)
         return self
 
     def mapped(self, func, *args, **kwargs) :
@@ -361,12 +372,18 @@ class List(list) :
                 return self.batched('get', key_list_or_func_name)
         elif isinstance(key_list_or_func_name, str) :
             def getValue(item) :
+                try :
+                    if callable(attribute := item.__getattribute__(key_list_or_func_name)) :
+                        return attribute()
+                except AttributeError :
+                    pass
+                except Exception as e :
+                    raise e
                 if isinstance(item, (self.Dict, self.Object)) :
                     attribute = item.__getattr__(key_list_or_func_name)
                 else :
                     attribute = item.__getattribute__(key_list_or_func_name)
-                if callable(attribute) : return attribute()
-                else : return attribute
+                return attribute
             return self.mapped(getValue)
         else : raise
 
@@ -446,7 +463,7 @@ class List(list) :
         '''NOT IN PLACE'''
         result = initial_value
         for index, item in enumerate(self) :
-            result = func(result, item, *(self._padIndexToArgs(func, args, index, 2)), **kwargs)
+            result = func(result, item, *(self._leftPadIndexToArgs(func, args, index, 2)), **kwargs)
         return result
 
     # itertools.def accumulate(iterable, func=operator.add, *, initial=None):
