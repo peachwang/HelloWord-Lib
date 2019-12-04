@@ -38,6 +38,12 @@ class File(Object) :
     def extIs(self, ext) :
         return self._ext == ext
 
+    def isTxt(self) :
+        return self.extIs('txt')
+
+    def isJson(self) :
+        return self.extIs('json')
+
     @classmethod
     def exists(cls, path) :
         return exists(path)
@@ -45,6 +51,14 @@ class File(Object) :
     @property
     def size(self) :
         return getsize(self._path)
+
+    def loadData(self) :
+        if self.isTxt() :
+            return self.readLineList()
+        elif self.isJson() :
+            return self.loadJson()
+        else :
+            raise Exception(f'不支持的后缀名：{self._ext=}')
 
     def readLineList(self, filter_white_lines = False) :
         result = List(open(self._path).readlines()).strip('\n\r')
@@ -149,11 +163,3 @@ class File(Object) :
 
     def loadMapping(self) :
         raise
-
-    def json(self) :
-        return Dict({
-            'Path'       : self._path,
-            'FolderName' : self._folder.name if self._folder is not None else None,
-            'Name'       : self._name,
-            'Extension'  : self._ext,
-        })

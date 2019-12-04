@@ -55,11 +55,3 @@ class Folder(Object) :
     def flattern_sub_file_list(self) :
         return self._sub_file_list.extended(self._sub_folder_list.flattern_sub_file_list.merge())
 
-    def json(self) :
-        return Dict({
-            'Path'          : self._path,
-            'Name'          : self._name,
-            'SubFolderList' : self._sub_folder_list.json(),
-            'SubFileList'   : self._sub_file_list.json(),
-        })
-
