@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
-from functools import wraps
+from functools import wraps, partial
 from shared import ensureArgsType, Optional, Union
 
 class Object() :
@@ -8,23 +8,71 @@ class Object() :
     _id_list = [ ]
     
     def __init__(self) :
+        from List import List
         from Dict import Dict
         object.__setattr__(self, '_data', Dict())
+        object.__setattr__(self, '_property_name_list', List())
 
     @ensureArgsType
     def _registerProperty(self, property_name_list: list) :
+        self.__getattribute__('_property_name_list').extend(property_name_list)
+
+    def _hasProperty(self, name) :
+        return self._has(f'_{name}')
+
+    def _hasNotProperty(self, name) :
+        return not self._hasProperty(name)
+
+    def _ensureHasProperty(self, name) :
+        if _hasNotProperty(name) :
+            raise Exception(f'{self}必须拥有属性{name}.')
+        return self
+
+    def _setProperty(self, name, value) :
+        self._data[f'_{name}'] = value
+        return self
+
+    def _appendProperty(self, name, value_or_generator_or_iterator, filter_none = True) :
         from List import List
-        if hasattr(self, '_property_name_list') :
-            self.__getattribute__('_property_name_list').extend(property_name_list)
-        else :
-            object.__setattr__(self, '_property_name_list', List(property_name_list))
+        from inspect import isgenerator
+        name = f'_{name}'
+        def appendValue(value) :
+            if filter_none and value == None : return
+            if self._data.hasNot(name) :
+                self._data[name] = List()
+            self._data[name].append(value)
+        if isgenerator(value_or_generator_or_iterator) or '__next__' in dir(value_or_generator_or_iterator) :
+            for value in value_or_generator_or_iterator :
+                appendValue(value)
+        else : appendValue(value_or_generator_or_iterator)
+        return self
 
     def __getattr__(self, name) :
+        from Str import Str
         if name == '_data' : return self.__getattribute__('_data')
         if name == '__class__' : return self.__getattribute__('__class__')
-        if name in self.__getattribute__('_property_name_list') :
-            return self._data[f'_{name}']
-        return self._data[name]
+        if name in dir(self) : return self.__getattribute__(name)
+        if name in (pnl := self.__getattribute__('_property_name_list')) :
+            name = f'_{name}'
+        if self._data.has(name) : return self._data[name]
+
+        def generatePartial(prefix):
+            l = len(prefix)
+            suffix = ('List' if prefix == 'append' else '')
+            if name[:l] == prefix and (Str(name[l]).isUpper() or name[l] == '_')\
+                and ((idx1 := pnl.index(name1 := Str(name[l:]).toPascalCase() + suffix)) is not None 
+                    or (idx2 := pnl.index(name2 := Str(name[l:]).toSnakeCase() + suffix)) is not None) :
+                if idx1 is not None :
+                    return partial(self.__getattribute__(f'_{prefix}Property'), str(name1))
+                elif idx2 is not None :
+                    return partial(self.__getattribute__(f'_{prefix}Property'), str(name2))
+            return None
+
+        for prefix in [ 'has', 'hasNot', 'ensureHas', 'set', 'append' ] :
+            if (p := generatePartial(prefix)) is not None :
+                return p
+        
+        raise Exception(f'Object中无{name=}的属性或方法.')
 
     def _wrapValue(self, value) :
         from Dict import Dict
@@ -65,6 +113,11 @@ class Object() :
         from util import E
         print(color, self.j(), E if color != '' else '')
         return self
+
+    def json(self) :
+        from Dict import Dict
+        return Dict((name, value.json() if 'json' in dir(value := self.__getattr__(name)) else value)
+            for name in self.__getattribute__('_property_name_list') if self._data.has(f'_{name}'))
 
     def __format__(self, code) :
         # 防止自嵌套死循环

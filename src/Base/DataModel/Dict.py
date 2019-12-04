@@ -74,6 +74,17 @@ class Dict(dict) :
         simultaneously existing objects.  (Hint: it's the object's memory address.)'''
         return hex(id(self))
 
+    def iter(self) :
+        '''
+        Implement iter(self).
+        iter(iterable) -> iterator
+        iter(callable, sentinel) -> iterator
+        Get an iterator from an object.  In the first form, the argument must
+        supply its own iterator, or be a sequence.
+        In the second form, the callable is called until it returns the sentinel.
+        '''
+        return dict.__iter__(self)
+
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
     def _getData(self) :
         return { key : self[key] for key in self }
@@ -105,8 +116,14 @@ class Dict(dict) :
 
     # 可读化
     def j(self) :
+        '''NOT IN PLACE'''
         from util import j
         return j(self.jsonSerialize())
+
+    def json(self) :
+        '''带有业务逻辑，与 j 不同'''
+        '''NOT IN PLACE'''
+        return Dict((key, self[key].json()) if 'json' in dir(self[key]) else (key, self[key]) for key in self)
 
     def print(self, color = '') :
         from util import E
@@ -209,6 +226,9 @@ class Dict(dict) :
 
     def len(self) :
         return len(self)
+
+    def isEmpty() :
+        return self.len() == 0
 
     # def __contains__(self) :
         '''
@@ -515,18 +535,6 @@ class Dict(dict) :
         The default implementation does nothing. It may be
         overridden to extend subclasses.
 
-        '''
-
-    # def __iter__(self) :
-        '''
-        Implement iter(self).
-
-        iter(iterable) -> iterator
-        iter(callable, sentinel) -> iterator
-
-        Get an iterator from an object.  In the first form, the argument must
-        supply its own iterator, or be a sequence.
-        In the second form, the callable is called until it returns the sentinel.
         '''
 
     # def __le__(self) :

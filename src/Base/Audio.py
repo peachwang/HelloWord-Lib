@@ -18,7 +18,7 @@ class Audio(File) :
         return self
 
     def len(self) :
-        pass
+        raise
 
 def wav2mp3(import_file_path, export_path = None, flog = None) :
     if flog is None : flog = sys.stdout

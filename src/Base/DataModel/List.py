@@ -57,6 +57,17 @@ class List(list) :
         Return the identity of an object.  This is guaranteed to be unique among
         simultaneously existing objects.  (Hint: it's the object's memory address.)'''
         return hex(id(self))
+
+    def iter(self) :
+        '''
+        Implement iter(self).
+        iter(iterable) -> iterator
+        iter(callable, sentinel) -> iterator
+        Get an iterator from an object.  In the first form, the argument must
+        supply its own iterator, or be a sequence.
+        In the second form, the callable is called until it returns the sentinel.
+        '''
+        return list.__iter__(self)
     
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
     def _getData(self) :
@@ -86,8 +97,14 @@ class List(list) :
 
     # 可读化
     def j(self) :
+        '''NOT IN PLACE'''
         from util import j
         return j(self.jsonSerialize())
+
+    def json(self) :
+        '''带有业务逻辑，与 j 不同'''
+        '''NOT IN PLACE'''
+        return List(item.json() if 'json' in dir(item) else item for item in self)
 
     def print(self, color = '') :
         from util import E
@@ -184,19 +201,31 @@ class List(list) :
     def len(self) :
         return len(self)
 
+    def isEmpty(self) :
+        return self.len() == 0
+
     # def __contains__(self, item) :
         '''
         'x.__contains__(y) <==> y in x'
         '''
 
     def count(self, item) :
-        '''L.count(value) -> integer -- return number of occurrences of value'''
+        '''
+        L.count(value) -> integer -- return number of occurrences of value
+        '''
         return list.count(self, item)
 
     def index(self, item, start = 0) :
-        '''L.index(value, [start, [stop]]) -> integer -- return first index of value.
-        Raises ValueError if the value is not present.'''
-        return list.index(self, item, start)
+        '''
+        L.index(value, [start, [stop]]) -> integer -- return first index of value.
+        Raises ValueError if the value is not present.
+        '''
+        try :
+            result = list.index(self, item, start)
+        except ValueError :
+            return None
+        else :
+            return result
 
     # def __getattribute__(self) :
         '''
@@ -204,12 +233,17 @@ class List(list) :
         '''
 
     def __getattr__(self, key_or_func_name) :
-        '''getattr(object, name[, default]) -> value
+        '''
+        getattr(object, name[, default]) -> value
         Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
         When a default argument is given, it is returned when the attribute doesn't
-        exist; without it, an exception is raised in that case.'''
+        exist; without it, an exception is raised in that case.
+        '''
         '''NOT IN PLACE'''
         return self.valueList(key_or_func_name)
+
+    def __call__(self) :
+        raise Exception('请检查是否在批量调用List元素的方法获取结果List后，对结果List多加了()调用！')
 
     # @ensureArgsType
     def __getitem__(self, index: Union[int, slice]) :
@@ -373,10 +407,10 @@ class List(list) :
         elif isinstance(key_list_or_func_name, str) :
             def getValue(item) :
                 try :
-                    if callable(attribute := item.__getattribute__(key_list_or_func_name)) :
+                    if key_list_or_func_name in dir(item) and callable(attribute := item.__getattribute__(key_list_or_func_name)) :
                         return attribute()
-                except AttributeError :
-                    pass
+                except AttributeError as e :
+                    raise e
                 except Exception as e :
                     raise e
                 if isinstance(item, (self.Dict, self.Object)) :
@@ -386,11 +420,6 @@ class List(list) :
                 return attribute
             return self.mapped(getValue)
         else : raise
-
-    def json(self) :
-        '''带有业务逻辑，与 j 不同'''
-        '''NOT IN PLACE'''
-        return self.valueList('json')
 
     def _stripItem(self, item, string) :
         self._importTypes()
@@ -512,7 +541,10 @@ class List(list) :
             else :
                 return self[0].get(key_list_or_func_name)
         elif isinstance(key_list_or_func_name, str) :
-            attribute = self[0].__getattribute__(key_list_or_func_name)
+            if isinstance(self[0], self.Object) :
+                attribute = self[0].__getattr__(key_list_or_func_name)
+            else :
+                attribute = self[0].__getattribute__(key_list_or_func_name)
             if callable(attribute) : return attribute()
             else : return attribute
         else : raise
@@ -534,7 +566,7 @@ class List(list) :
         )
 
     @ensureArgsType
-    def join(self, sep: str) :
+    def join(self, sep: str = '') :
         '''NOT IN PLACE'''
         self._importTypes()
         return self.Str(sep).join(self)
@@ -710,18 +742,6 @@ class List(list) :
         The default implementation does nothing. It may be
         overridden to extend subclasses.
 
-        '''
-
-    # def __iter__(self) :
-        '''
-        Implement iter(self).
-        
-        iter(iterable) -> iterator
-        iter(callable, sentinel) -> iterator
-
-        Get an iterator from an object.  In the first form, the argument must
-        supply its own iterator, or be a sequence.
-        In the second form, the callable is called until it returns the sentinel.
         '''
 
     # def __mul__(self, value) :
