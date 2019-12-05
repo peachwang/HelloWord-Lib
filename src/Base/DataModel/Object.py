@@ -12,10 +12,20 @@ class Object() :
         from Dict import Dict
         object.__setattr__(self, '_data', Dict())
         object.__setattr__(self, '_property_name_list', List())
+        object.__setattr__(self, '_property_default_list', Dict())
 
     @ensureArgsType
     def _registerProperty(self, property_name_list: list) :
-        self.__getattribute__('_property_name_list').extend(property_name_list)
+        pnl = self.__getattribute__('_property_name_list')
+        pdl = self.__getattribute__('_property_default_list')
+        for name in property_name_list :
+            if isinstance(name, str) :
+                pnl.append(name)
+            elif isinstance(name, tuple) :
+                pnl.append(name[0])
+                pdl[name[0]] = name[1]
+            else :
+                raise Exception(f'Unexpected {type(name)=} of {name=}')
 
     def _hasProperty(self, name) :
         return self._has(f'_{name}')
@@ -52,8 +62,12 @@ class Object() :
         if name == '_data' : return self.__getattribute__('_data')
         if name == '__class__' : return self.__getattribute__('__class__')
         if name in dir(self) : return self.__getattribute__(name)
-        if name in (pnl := self.__getattribute__('_property_name_list')) :
-            name = f'_{name}'
+        pnl = self.__getattribute__('_property_name_list')
+        pdl = self.__getattribute__('_property_default_list')
+        if name in pnl : name = f'_{name}'
+        if name[0] == '_' and name[1:] in pnl :
+            if self._data.hasNot(name) and name[1:] in pdl :
+                return pdl[name[1:]]
         if self._data.has(name) : return self._data[name]
 
         def generatePartial(prefix):
@@ -71,8 +85,9 @@ class Object() :
         for prefix in [ 'has', 'hasNot', 'ensureHas', 'set', 'append' ] :
             if (p := generatePartial(prefix)) is not None :
                 return p
-        
-        raise Exception(f'Object中无{name=}的属性或方法.')
+
+        from util import P, E
+        raise Exception(f'Object{P}{type(self)}{E}中无{P}{name}{E}属性或方法, 只有这些属性: {(self._data.keys() + dir(self)).filter(lambda name : name not in dir(Object))}; {pnl=}; {pdl=}')
 
     def _wrapValue(self, value) :
         from Dict import Dict
@@ -102,22 +117,28 @@ class Object() :
         return self._data
 
     def jsonSerialize(self) :
-        return f'<{self.__class__} at {self.getId()}>{self._data.j()}'
+        from util import j
+        _ = self._data.jsonSerialize()
+        _['__instance__'] = f'<{self.__class__} at {self.getId()}>'
+        return _
 
     # 可读化
     def j(self) :
         from util import j
         return j(self.jsonSerialize())
 
-    def print(self, color = '') :
-        from util import E
-        print(color, self.j(), E if color != '' else '')
-        return self
-
     def json(self) :
         from Dict import Dict
         return Dict((name, value.json() if 'json' in dir(value := self.__getattr__(name)) else value)
-            for name in self.__getattribute__('_property_name_list') if self._data.has(f'_{name}'))
+            for name in self.__getattribute__('_property_name_list') if self._data.has(f'_{name}') or name in dir(self))
+
+    def print(self, color = '', json = False) :
+        from util import E
+        if json :
+            print(color, self.json().j(), E if color != '' else '')
+        else :
+            print(color, self.j(), E if color != '' else '')
+        return self
 
     def __format__(self, code) :
         # 防止自嵌套死循环
@@ -129,7 +150,7 @@ class Object() :
         return result
 
     def __str__(self) :
-        return f'<{self.__class__} at {self.getId()}>{self._data}'
+        return f'<{self.__class__} at {self.getId()}>{str(self._data)}'
 
     def _update(self, mapping) :
         self._data.update(mapping)

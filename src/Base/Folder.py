@@ -38,14 +38,15 @@ class Folder(Object) :
     def __str__(self) :
         return self.__format__('')
 
-    @classmethod
-    def mkdir(cls, path) :
-        makedirs(path, exist_ok = True)
-        return cls
+    def mkdir(self) :
+        makedirs(self._path, exist_ok = True)
+        return self
 
-    @classmethod
-    def exists(cls, path) :
-        return path.exists(path)
+    def exists(self) :
+        return path.exists(self._path)
+
+    def notExists(self) :
+        return not self.exists()
 
     @property
     def sub_file_list(self) :

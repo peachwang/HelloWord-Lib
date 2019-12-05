@@ -16,6 +16,10 @@ class File(Object) :
         self._name          = self._name[ : - self._ext.len() - 1]
         self._folder_path   = _[ : -1].join('/')
 
+    @property
+    def absolute_path(self):
+        return realpath(self._path)
+
     def jsonSerialize(self) :
         return f'{self}'
 
@@ -44,9 +48,11 @@ class File(Object) :
     def isJson(self) :
         return self.extIs('json')
 
-    @classmethod
-    def exists(cls, path) :
-        return exists(path)
+    def exists(self) :
+        return exists(self._path)
+
+    def notExists(self) :
+        return not self.exists()
 
     @property
     def size(self) :

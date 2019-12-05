@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Object, DateTime, time
+from util import List, Dict, Object, DateTime, time, sys
 from functools import wraps
 
 class Timer(Object) :
@@ -78,6 +78,7 @@ class Timer(Object) :
         else :
             # print(Y, '{}本轮({:.5f}s) 累计({:.2f}s) [{}] [当前({})]'.format(
             print(Y, '\t' * indent, f'累计({cls._global_total:.5f}s) 本轮({delta:.5f}s) [ {msg} ]', E)
+        sys.stdout.flush()
         cls._global_current = time()
         return cls
 

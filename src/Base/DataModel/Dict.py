@@ -125,9 +125,12 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         return Dict((key, self[key].json()) if 'json' in dir(self[key]) else (key, self[key]) for key in self)
 
-    def print(self, color = '') :
+    def print(self, color = '', json = False) :
         from util import E
-        print(color, self.j(), E if color != '' else '')
+        if json :
+            print(color, self.json().j(), E if color != '' else '')
+        else :
+            print(color, self.j(), E if color != '' else '')
         return self
 
     def __format__(self, code) :
@@ -237,7 +240,7 @@ class Dict(dict) :
 
     def has(self, key_list) :
         self._importTypes()
-        if isinstance(key_list, (str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             return dict.__contains__(self, key_list)
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -293,11 +296,11 @@ class Dict(dict) :
     def get(self, key_list, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
         self._importTypes()
-        if isinstance(key_list, (str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
-            return dict.get(self, key_list, default)
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+            return dict.get(self, key_list, self._wrapValue(default))
         elif isinstance(key_list, list) :
             if self.hasNot(key_list) :
-                return default
+                return self._wrapValue(default)
             else :
                 now = self
                 for key in key_list :
@@ -352,7 +355,7 @@ class Dict(dict) :
     def set(self, key_list, value) :
         '''IN PLACE'''
         self._importTypes()
-        if isinstance(key_list, (str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             self[key_list] = value
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -403,17 +406,17 @@ class Dict(dict) :
         If key is not found, d is returned if given, otherwise KeyError is raised'''
         '''IN PLACE'''
         self._importTypes()
-        if isinstance(key_list, (str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             if default == 'NONE' :
                 return dict.pop(self, key_list)
             else :
-                return dict.pop(self, key_list, default)
+                return dict.pop(self, key_list, self._wrapValue(default))
         elif isinstance(key_list, list) :
             if self.hasNot(key_list) :
                 if default == 'NONE' :
                     raise KeyError(key_list)
                 else :
-                    return default
+                    return self._wrapValue(default)
             else :
                 now = self
                 for key in key_list[ : -1] :
@@ -421,7 +424,7 @@ class Dict(dict) :
                 if default == 'NONE' :
                     return dict.pop(now, key_list[-1])
                 else :
-                    return dict.pop(now, key_list[-1], default)
+                    return dict.pop(now, key_list[-1], self._wrapValue(default))
         else :
             raise Exception(f'Unexpected {type(key_list)=} of {key_list=}')
 

@@ -257,13 +257,13 @@ class Str(str) :
         Return key in self.
         '''
 
-    def count(self, sub_or_pattern, start = 0, end = -1, re = False, flags = 0) :
+    def count(self, sub_or_pattern, start = 0, end = -1, re_mode = False, flags = 0) :
         '''
         S.count(sub[, start[, end]]) -> int
         Return the number of non-overlapping occurrences of substring sub in
         string S[start:end].  Optional arguments start and end are
         interpreted as in slice notation.'''
-        if re :
+        if re_mode :
             return self.findall(sub_or_pattern, flags).len()
         else :
             return str.count(self, sub_or_pattern, start, end)
@@ -315,6 +315,11 @@ class Str(str) :
         _ = re.fullmatch(pattern, self, flags)
         return _Match(_) if _ else None
 
+    def ensureFullMatch(self, pattern = None, flags = 0) :
+        return self
+        if self.fullmatch(pattern, flags) : return self
+        else : raise Exception(f'{self=}应该匹配{pattern=}')
+
     def searchOneMatch(self, pattern, reverse = False, flags = 0) :
         '''
         re.search(pattern, string, flags=0)
@@ -350,13 +355,13 @@ class Str(str) :
         from List import List
         return List(re.findall(pattern, self, flags))
 
-    def replace(self, sub_or_pattern, replacement, re, count = None, flags = 0) :
+    def replace(self, sub_or_pattern, replacement, re_mode, count = None, flags = 0) :
         '''
         S.replace(old, new[, count]) -> str
         Return a copy of S with all occurrences of substring
         old replaced by new.  If the optional argument count is
         given, only the first count occurrences are replaced.'''
-        if re :
+        if re_mode :
             return self._sub(sub_or_pattern, replacement, count, flags)
         else :
             return Str(self.replace(sub_or_pattern, replacement, count))
@@ -408,7 +413,7 @@ class Str(str) :
         Return a string which is the concatenation of the strings in the
         iterable.  The separator between elements is S.'''
         '''NOT IN PLACE'''
-        return Str(str.join(self, str_list))
+        return Str(str.join(self, [f'{_}' for _ in str_list]))
 
     # def rsplit(self) :
         '''
@@ -421,7 +426,7 @@ class Str(str) :
         '''
     
     # @ensureArgsType
-    def split(self, sep_or_pattern: str, maxsplit: int = -1, reverse = False, re = False, flags = 0) :
+    def split(self, sep_or_pattern: str, maxsplit: int = None, reverse = False, re_mode = False, flags = 0) :
         '''
         S.split(sep=None, maxsplit=-1) -> list of strings
         re.split(pattern, string, maxsplit=0, flags=0)
@@ -453,10 +458,12 @@ class Str(str) :
         ['', '...', '', '', 'w', '', 'o', '', 'r', '', 'd', '', 's', '...', '', '', '']
         '''
         from List import List
-        if re :
+        if re_mode :
+            if maxsplit is None : maxsplit = 0
             if reverse : raise Exception('Can not split a string reversely using re.')
             return List(re.split(sep_or_pattern, self, maxsplit, flags))
         else :
+            if maxsplit is None : maxsplit = -1
             if not reverse :
                 return List(str.split(self, sep_or_pattern, maxsplit))
             else :
@@ -495,7 +502,7 @@ class Str(str) :
     def range(self) :
         '''NOT IN PLACE'''
         from List import List
-        return self.split(r' *, *', re = True).map(
+        return self.split(r' *, *', re_mode = True).map(
             lambda part : 
                 List(range(int(part.split('-')[0]), int(part.split('-')[1]) + 1))
                 if part.count('-') == 1

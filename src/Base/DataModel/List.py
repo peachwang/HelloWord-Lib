@@ -106,9 +106,12 @@ class List(list) :
         '''NOT IN PLACE'''
         return List(item.json() if 'json' in dir(item) else item for item in self)
 
-    def print(self, color = '') :
+    def print(self, color = '', json = False) :
         from util import E
-        print(color, self.j(), E if color != '' else '')
+        if json :
+            print(color, self.json().j(), E if color != '' else '')
+        else :
+            print(color, self.j(), E if color != '' else '')
         return self
 
     def __format__(self, code) :
@@ -352,12 +355,25 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().sort(key_func, reverse)
 
+    def shuffle(self) :
+        '''IN PLACE'''
+        import random
+        random.shuffle(self)
+        return self
+
+    def shuffled(self) :
+        '''NOT IN PLACE'''
+        return self.copy().shuffle()
+
     def enumerate(self) :
         return enumerate(self)
 
     # pos为index在func的参数表里的下标，即本函数在func的参数表的下标
     def _leftPadIndexToArgs(self, func, args, index, pos) :
         import inspect
+        if inspect.isclass(func) :
+            func = func.__init__
+            pos += 1
         func_args = inspect.getargspec(func).args
         if len(func_args) > pos and func_args[pos] == 'index' :
             return [ index ] + args
@@ -395,8 +411,9 @@ class List(list) :
         return self.copy().map(func, *args, **kwargs)
 
     @ensureArgsType
-    def valueList(self, key_list_or_func_name: Union[list, str]) :
+    def valueList(self, key_list_or_func_name: Union[list, str], default = None) :
         '''NOT IN PLACE'''
+        '''可以允许字段不存在'''
         self._importTypes()
         if self.len() == 0 : return self.copy()
         if isinstance(key_list_or_func_name, list) :
@@ -413,10 +430,21 @@ class List(list) :
                     raise e
                 except Exception as e :
                     raise e
-                if isinstance(item, (self.Dict, self.Object)) :
-                    attribute = item.__getattr__(key_list_or_func_name)
+                if isinstance(item, self.Dict) :
+                    attribute = item.__getattr__(key_list_or_func_name) # 可以允许字段不存在
+                elif isinstance(item, self.Object) :
+                    try :
+                        attribute = item.__getattr__(key_list_or_func_name)
+                    except Exception as e :
+                        attribute = self._wrapItem(default) # 可以允许字段不存在
                 else :
-                    attribute = item.__getattribute__(key_list_or_func_name)
+                    try :
+                        attribute = item.__getattribute__(key_list_or_func_name)
+                    except AttributeError :
+                        from util import P, E
+                        raise Exception(f'{P}{type(item)=}{E} has no attribute {P}{key_list_or_func_name}{E}; 请检查是否采用了错误的调用方式：xList.yList.z; {self=}; {item=}')
+                    except Exception as e :
+                        raise e
                 return attribute
             return self.mapped(getValue)
         else : raise

@@ -104,7 +104,7 @@ def load_json(fin, object_hook = None, encoding = 'utf-8') :
 def json_serialize(data) :
     if isinstance(data, (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
         return data.jsonSerialize()
-    elif isinstance(data, (str, int, float, bool)) :
+    elif isinstance(data, (type(None), str, int, float, bool)) :
         return data
     elif isinstance(data, list) :
         return [ json_serialize(item) for item in data ]
@@ -125,6 +125,28 @@ def json_serialize(data) :
 def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
     # return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
     return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys)
+
+# ==================== Runtime ====================
+from functools import wraps
+
+def highlightTraceback(func) :
+    @wraps(func)
+    def wrapper(*args, **kwargs) :
+        try :
+            return func(*args, **kwargs)
+        except :
+            import traceback
+            line_list = List(traceback.format_exception(*sys.exc_info())).reverse()
+            flag = False
+            for index, line in line_list.enumerate() :
+                line_list[index] = line.strip('\n')
+                if 'HelloWord-Lib' in line :
+                    flag = False
+                elif not flag :
+                    line_list[index] = Y + line_list[index] + E
+                    flag = True
+            line_list.reverse().forEach(lambda line : print(line))
+    return wrapper
 
 # ==================== System ====================
 
