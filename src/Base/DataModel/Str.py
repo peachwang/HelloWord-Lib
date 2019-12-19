@@ -42,6 +42,7 @@ class _Match(Object) :
         Object.__init__(self)
         self._registerProperty(['match'])
         self._match = match
+        self._data.update(self.namedGroupDict())
 
     @property
     def string(self) :
@@ -257,6 +258,15 @@ class Str(str) :
         Return key in self.
         '''
 
+    def has(self, sub_or_pattern, re_mode = False, flags = 0) :
+        return self.count(sub_or_pattern, re_mode = re_mode, flags = flags) > 0
+
+    def hasAnyOf(self, sub_list) :
+        return any(self.has(sub) for sub in sub_list)
+
+    def hasAllOf(self, sub_list) :
+        return all(self.has(sub) for sub in sub_list)
+
     def count(self, sub_or_pattern, start = 0, end = -1, re_mode = False, flags = 0) :
         '''
         S.count(sub[, start[, end]]) -> int
@@ -304,6 +314,11 @@ class Str(str) :
         If you want to locate a match anywhere in string, use search() instead'''
         _ = re.match(pattern, self, flags)
         return _Match(_) if _ else None
+
+    def ensureLeftMatch(self, pattern = None, flags = 0) :
+        if self.leftMatch(pattern, flags) : return self
+        else :
+            raise Exception(f'\n{self=}\n应该左匹配\n{pattern=}')
     
     def fullMatch(self, pattern, flags = 0) :
         '''
@@ -316,9 +331,9 @@ class Str(str) :
         return _Match(_) if _ else None
 
     def ensureFullMatch(self, pattern = None, flags = 0) :
-        return self
-        if self.fullmatch(pattern, flags) : return self
-        else : raise Exception(f'{self=}应该匹配{pattern=}')
+        if self.fullMatch(pattern, flags) : return self
+        else :
+            raise Exception(f'\n{self=}\n应该完全匹配\n{pattern=}')
 
     def searchOneMatch(self, pattern, reverse = False, flags = 0) :
         '''
@@ -355,16 +370,16 @@ class Str(str) :
         from List import List
         return List(re.findall(pattern, self, flags))
 
-    def replace(self, sub_or_pattern, replacement, re_mode, count = None, flags = 0) :
+    def replace(self, sub_or_pattern, repl_str_func, re_mode, count = None, flags = 0) :
         '''
         S.replace(old, new[, count]) -> str
         Return a copy of S with all occurrences of substring
         old replaced by new.  If the optional argument count is
         given, only the first count occurrences are replaced.'''
         if re_mode :
-            return self._sub(sub_or_pattern, replacement, count, flags)
+            return self._sub(sub_or_pattern, repl_str_func, count, flags)
         else :
-            return Str(self.replace(sub_or_pattern, replacement, count))
+            return Str(str.replace(self, sub_or_pattern, repl_str_func, count))
 
     def _sub(self, pattern, repl_str_or_func, count = 0, flags = 0) :
         '''
@@ -630,7 +645,7 @@ class Str(str) :
         '''NOT IN PLACE'''
         return Str(str.casefold(self))
 
-    def padToWidth(self, width, fillchar = None, reverse = False) :
+    def padToWidth(self, width, fillchar = ' ', reverse = False) :
         '''
         S.ljust(width[, fillchar]) -> str
         S.rjust(width[, fillchar]) -> str

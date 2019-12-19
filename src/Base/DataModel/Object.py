@@ -87,7 +87,7 @@ class Object() :
                 return p
 
         from util import P, E
-        raise Exception(f'Object{P}{type(self)}{E}中无{P}{name}{E}属性或方法, 只有这些属性: {(self._data.keys() + dir(self)).filter(lambda name : name not in dir(Object))}; {pnl=}; {pdl=}')
+        raise Exception(f"Object{P}{type(self)}{E}中无{P}{name}{E}属性或方法, 只有这些属性: {(self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_default_list', '_property_name_list', '_data'] + dir(Object)))}; {pnl=}; {pdl=}")
 
     def _wrapValue(self, value) :
         from Dict import Dict
