@@ -2,12 +2,12 @@
 from Object import Object
 from datetime import datetime, timedelta
 from time import time, strftime
-from shared import ensureArgsType, Optional, Union
+from shared import ensureArgsType, Optional, Union, UserTypeError
 
 class DateTime(Object) :
 
-    @ensureArgsType
-    def __init__(self, timestamp_or_datetime: Optional[Union[datetime, int, float]] = None) :
+    # @ensureArgsType
+    def __init__(self, timestamp_or_datetime: Optional[Union[datetime, int, float]] = None, /) :
         Object.__init__(self)
         if timestamp_or_datetime is None :
             self._timestamp = time()
@@ -15,9 +15,9 @@ class DateTime(Object) :
             self._timestamp = timestamp_or_datetime.timestamp()
         elif isinstance(timestamp_or_datetime, (int, float)) :
             self._timestamp = timestamp_or_datetime
-        else : raise
+        else : raise UserTypeError(timestamp_or_datetime)
 
-    def fromStr(self, string, pattern = '%Y-%m-%d %H:%M:%S') :
+    def fromStr(self, string, pattern = '%Y-%m-%d %H:%M:%S', /) :
         self._timestamp = datetime.strptime(string, pattern).timestamp()
         return self
 
@@ -32,7 +32,7 @@ class DateTime(Object) :
         from util import j
         return j(self.jsonSerialize())
 
-    def print(self, color = '') :
+    def print(self, *, color = '') :
         from util import E
         print(color, self.j(), E if color != '' else '')
         return self
@@ -52,12 +52,12 @@ class DateTime(Object) :
     def date_str(self) :
         return self.__format__('%Y-%m-%d')
 
-    def dateStr(self, pattern) :
+    def dateStr(self, pattern, /) :
         return self.__format__(pattern)
 
     @property
     def time_str(self) :
         return self.__format__('%H:%M:%S')
 
-    def timeStr(self, pattern) :
+    def timeStr(self, pattern, /) :
         return self.__format__(pattern)

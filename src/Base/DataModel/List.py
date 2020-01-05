@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
-from types import GeneratorType
-from shared import ensureArgsType, Optional, Union
+from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
+from inspect import isgenerator
+from shared import ensureArgsType, Optional, Union, UserTypeError
+from Timer import Timer
 
 class List(list) :
 
@@ -20,7 +22,7 @@ class List(list) :
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         self._has_imported_types = True
 
-    def _wrapItem(self, item) :
+    def _wrapItem(self, item, /) :
         self._importTypes()
         if isinstance(item, list)            : return self.List(item)
         elif isinstance(item, dict)          : return self.Dict(item)
@@ -39,7 +41,7 @@ class List(list) :
             if isinstance(args[0], list) :
                 for item in args[0] :
                     list.append(self, self._wrapItem(item))
-            elif isinstance(args[0], (range, GeneratorType)) :
+            elif isinstance(args[0], (range, GeneratorType)) or isgenerator(args[0]) or '__next__' in dir(args[0]) :
                 self.__init__(list(args[0]))
             elif isinstance(args[0], List) :
                 list.__init__(self, args[0]._getData())
@@ -106,7 +108,7 @@ class List(list) :
         '''NOT IN PLACE'''
         return List(item.json() if 'json' in dir(item) else item for item in self)
 
-    def print(self, color = '', json = False) :
+    def print(self, *, color = '', json = False) :
         from util import E
         if json :
             print(color, self.json().j(), E if color != '' else '')
@@ -128,12 +130,12 @@ class List(list) :
                 .join(', ')
         )
 
-    def stat(self, msg = '') :
+    def stat(self, *, msg = '') :
         print(f"{'' if msg == '' else f'{msg}: '}{self.len()}个")
         return self
 
     def inspect(self) :
-        raise
+        raise NotImplementedError
 
     # DataStructure Module
     #   def inspect()
@@ -202,23 +204,29 @@ class List(list) :
         '''
 
     def len(self) :
-        return len(self)
+        return list.__len__(self)
 
     def isEmpty(self) :
         return self.len() == 0
 
+    def isNotEmpty(self) :
+        return not self.isEmpty()
+
     # def __contains__(self, item) :
         '''
-        'x.__contains__(y) <==> y in x'
+        x.__contains__(y) <==> y in x
         '''
 
-    def count(self, item) :
+    def has(self, item, /) :
+        return list.__contains__(self, item)
+
+    def count(self, item, /) :
         '''
         L.count(value) -> integer -- return number of occurrences of value
         '''
         return list.count(self, item)
 
-    def index(self, item, start = 0) :
+    def index(self, item, /, *, start = 0) :
         '''
         L.index(value, [start, [stop]]) -> integer -- return first index of value.
         Raises ValueError if the value is not present.
@@ -253,7 +261,7 @@ class List(list) :
         '''x.__getitem__(y) <==> x[y]'''
         if isinstance(index, int) : return list.__getitem__(self, index)
         elif isinstance(index, slice) : return List(list.__getitem__(self, index))
-        else : raise
+        else : raise UserTypeError(index)
 
     # def __setattr__(self) :
         '''
@@ -269,61 +277,61 @@ class List(list) :
         list.__setitem__(self, index, self._wrapItem(item))
         return item
 
-    def set(self, index, item) :
+    def set(self, index, item, /) :
         '''IN PLACE'''
         self.__setitem__(index, item)
         return self
 
-    def append(self, item) :
+    def append(self, item, /) :
         '''L.append(object) -> None -- append object to end'''
         '''IN PLACE'''
         list.append(self, self._wrapItem(item))
         return self
 
-    def prepend(self, item) :
+    def prepend(self, item, /) :
         '''L.prepend(object) -> None -- append object to start'''
         '''IN PLACE'''
         return self.insert(0, item)
 
-    def insert(self, index, item) :
+    def insert(self, index, item, /) :
         '''L.insert(index, object) -> None -- insert object before index'''
         '''IN PLACE'''
         list.insert(self, index, self._wrapItem(item))
         return self
 
-    @ensureArgsType
+    # @ensureArgsType
     def __add__(self, item_list: list) :
         '''Return self+value.'''
         '''NOT IN PLACE'''
         return List(list.__add__(self, List(item_list)))
 
-    @ensureArgsType
+    # @ensureArgsType
     def __iadd__(self, item_list: list) :
         '''Implement self+=value.'''
         '''IN PLACE'''
         return list.__iadd__(self, List(item_list))
     
-    @ensureArgsType
-    def extend(self, item_list: Optional[list]) :
+    # @ensureArgsType
+    def extend(self, item_list: Optional[list], /) :
         '''L.extend(iterable) -> None -- extend list by appending elements from the iterable'''
         '''IN PLACE'''
-        if isinstance(item_list, list) :
+        if isinstance(item_list, (list, GeneratorType)) or isgenerator(item_list) or '__next__' in dir(item_list) :
             list.extend(self, List(item_list))
         elif item_list is None : return self
-        else : raise
+        else : raise UserTypeError(item_list)
         return self
 
-    def extended(self, item_list) :
+    def extended(self, item_list, /) :
         '''NOT IN PLACE'''
         return self.copy().extend(item_list)
 
-    def pop(self, index = -1) :
+    def pop(self, index = -1, /) :
         '''L.pop([index]) -> item -- remove and return item at index (default last).
         Raises IndexError if list is empty or index is out of range.'''
         '''IN PLACE'''
         return list.pop(self, index)
 
-    def remove(self, item) :
+    def remove(self, item, /) :
         '''L.remove(value) -> None -- remove first occurrence of value.
         Raises ValueError if the value is not present.'''
         '''IN PLACE'''
@@ -345,13 +353,13 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().reverse()
 
-    def sort(self, key_func = None, reverse = False) :
+    def sort(self, key_func = None, /, *, reverse = False) :
         '''L.sort(key=None, reverse=False) -> None -- stable sort *IN PLACE*'''
         '''IN PLACE'''
         list.sort(self, key = key_func, reverse = reverse)
         return self
 
-    def sorted(self, key_func = None, reverse = False) :
+    def sorted(self, key_func = None, /, *, reverse = False) :
         '''NOT IN PLACE'''
         return self.copy().sort(key_func, reverse)
 
@@ -369,25 +377,25 @@ class List(list) :
         return enumerate(self)
 
     # pos为index在func的参数表里的下标，即本函数在func的参数表的下标
-    def _leftPadIndexToArgs(self, func, args, index, pos) :
+    def _leftPadIndexToArgs(self, func, args, index, pos, /) :
         import inspect
         if inspect.isclass(func) :
             func = func.__init__
             pos += 1
         func_args = inspect.getargspec(func).args
         if len(func_args) > pos and func_args[pos] == 'index' :
-            return [ index ] + args
+            return [ index ] + list(args)
         else :
             return args
 
-    def forEach(self, func, *args, **kwargs) :
+    def forEach(self, func, /, *args, **kwargs) :
         '''NOT IN PLACE'''
         for index, item in enumerate(self) :
             func(item, *(self._leftPadIndexToArgs(func, args, index, 1)), **kwargs)
         return self
 
-    @ensureArgsType
-    def batch(self, func_name: str, *args, **kwargs) :
+    # @ensureArgsType
+    def batch(self, func_name: str, /, *args, **kwargs) :
         '''IN PLACE'''
         for index, item in enumerate(self) :
             attribute = self[index].__getattribute__(func_name)
@@ -396,22 +404,23 @@ class List(list) :
             else : self[index] = attribute
         return self
 
-    def batched(self, func_name, *args, **kwargs) :
+    def batched(self, func_name, /, *args, **kwargs) :
         '''NOT IN PLACE'''
         return self.copy().batch(func_name, *args, **kwargs)
 
-    def map(self, func, *args, **kwargs) :
+    def map(self, func, /, *args, **kwargs) :
         '''IN PLACE'''
         for index, item in enumerate(self) :
             self[index] = func(item, *(self._leftPadIndexToArgs(func, args, index, 1)), **kwargs)
         return self
 
-    def mapped(self, func, *args, **kwargs) :
+    def mapped(self, func, /, *args, **kwargs) :
         '''NOT IN PLACE'''
         return self.copy().map(func, *args, **kwargs)
 
-    @ensureArgsType
-    def valueList(self, key_list_or_func_name: Union[list, str], default = None) :
+    # @ensureArgsType
+    # @Timer.timeitTotal('valueList')
+    def valueList(self, key_list_or_func_name: Union[list, str], /, *, default = None) :
         '''NOT IN PLACE'''
         '''可以允许字段不存在'''
         self._importTypes()
@@ -447,9 +456,9 @@ class List(list) :
                         raise e
                 return attribute
             return self.mapped(getValue)
-        else : raise
+        else : raise UserTypeError(key_list_or_func_name)
 
-    def _stripItem(self, item, string) :
+    def _stripItem(self, item, string, /) :
         self._importTypes()
         if item is None or isinstance(item, (int, float, bool, range, bytes, zip, self.datetime)):
             return item
@@ -463,17 +472,17 @@ class List(list) :
             if 'strip' in dir(item) : item.strip(string)
             return item
         else :
-            raise Exception(f'Unexpected {type(item)=} of {item=}')
+            raise UserTypeError(item)
 
-    def strip(self, string = ' \t\n') :
+    def strip(self, string = ' \t\n', /) :
         '''IN PLACE'''
         return self.map(self._stripItem, string)
 
-    def stripped(self, string = ' \t\n') :
+    def stripped(self, string = ' \t\n', /) :
         '''NOT IN PLACE'''
         return self.strip(string)
 
-    def filter(self, func_or_func_name, *args, **kwargs) :
+    def filter(self, func_or_func_name, /, *args, **kwargs) :
         '''IN PLACE'''
         index = 0
         if isinstance(func_or_func_name, str) :
@@ -486,19 +495,19 @@ class List(list) :
                 else : self.pop(index)
         return self
 
-    def filtered(self, func_or_func_name, *args, **kwargs) :
+    def filtered(self, func_or_func_name, /, *args, **kwargs) :
         '''NOT IN PLACE'''
         return self.copy().filter(func_or_func_name, *args, **kwargs)
 
-    @ensureArgsType
-    def filterByValue(self, key_list_or_func_name: Optional[Union[list, str]], value) -> list:
+    # @ensureArgsType
+    def filterByValue(self, key_list_or_func_name: Optional[Union[list, str]], value, /) :
         '''IN PLACE'''
         self._importTypes()
         if key_list_or_func_name is None :
             return self.filter(lambda item : item == value)
         elif isinstance(key_list_or_func_name, list) :
             if isinstance(self[0], self.Object) :
-                return self.filter(lambda item : item._get(key_list_or_func_name) == value)
+                return self.filter(lambda item : item._data.get(key_list_or_func_name) == value)
             else :
                 return self.filter(lambda item : item.get(key_list_or_func_name) == value)
         elif isinstance(key_list_or_func_name, str) :
@@ -510,13 +519,13 @@ class List(list) :
                 if callable(attribute) : return attribute()
                 else : return attribute
             return self.filter(lambda item : getValue(item) == value)
-        else : raise
+        else : raise UserTypeError(key_list_or_func_name)
 
-    def filteredByValue(self, key_list_or_func_name, value) :
+    def filteredByValue(self, key_list_or_func_name, value, /) :
         '''NOT IN PLACE'''
         return self.copy().filterByValue(key_list_or_func_name, value)
 
-    def reduce(self, func, initial_value, *args, **kwargs) :
+    def reduce(self, func, initial_value, /, *args, **kwargs) :
         '''NOT IN PLACE'''
         result = initial_value
         for index, item in enumerate(self) :
@@ -536,36 +545,36 @@ class List(list) :
         return self.copy().merge()
 
     def groupby(self) :
-        raise
+        raise NotImplementedError
         # itertools.groupby(iterable, key=None)
 
-    @ensureArgsType
-    def _reduce(self, key_list_or_func_name: Optional[Union[list, str]], func, initial_value) :
+    # @ensureArgsType
+    def _reduce(self, key_list_or_func_name: Optional[Union[list, str]], func, initial_value, /) :
         '''NOT IN PLACE'''
         if key_list_or_func_name is None :
             return self.reduce(func, initial_value)
         elif isinstance(key_list_or_func_name, (list, str)) :
             return self.valueList(key_list_or_func_name).reduce(func, initial_value)
-        else : raise
+        else : raise UserTypeError(key_list_or_func_name)
 
-    def sum(self, key_list_or_func_name = None) :
+    def sum(self, key_list_or_func_name = None, /) :
         '''NOT IN PLACE'''
         if self.len() == 0 : return 0
         return self._reduce(key_list_or_func_name, lambda result, item : result + item, 0)
 
-    def mean(self, key_list_or_func_name = None, default = None) :
+    def mean(self, key_list_or_func_name = None, /, *, default = None) :
         '''NOT IN PLACE'''
         if self.len() == 0 : return default
         return 1.0 * self.sum(key_list_or_func_name) / self.len()
 
-    @ensureArgsType
-    def _initialValue(self, key_list_or_func_name: Optional[Union[list, str]]) :
+    # @ensureArgsType
+    def _initialValue(self, key_list_or_func_name: Optional[Union[list, str]], /) :
         '''NOT IN PLACE'''
         if key_list_or_func_name is None :
             return self[0]
         elif isinstance(key_list_or_func_name, list) :
             if isinstance(self[0], self.Object) :
-                return self[0]._get(key_list_or_func_name)
+                return self[0]._data.get(key_list_or_func_name)
             else :
                 return self[0].get(key_list_or_func_name)
         elif isinstance(key_list_or_func_name, str) :
@@ -575,9 +584,9 @@ class List(list) :
                 attribute = self[0].__getattribute__(key_list_or_func_name)
             if callable(attribute) : return attribute()
             else : return attribute
-        else : raise
+        else : raise UserTypeError(key_list_or_func_name)
 
-    def max(self, key_list_or_func_name = None) :
+    def max(self, key_list_or_func_name = None, /) :
         '''NOT IN PLACE'''
         if self.len() == 0 : return None
         return self._reduce(key_list_or_func_name,
@@ -585,7 +594,7 @@ class List(list) :
             self._initialValue(key_list_or_func_name)
         )
 
-    def min(self, key_list_or_func_name = None) :
+    def min(self, key_list_or_func_name = None, /) :
         '''NOT IN PLACE'''
         if self.len() == 0 : return None
         return self._reduce(key_list_or_func_name,
@@ -593,8 +602,8 @@ class List(list) :
             self._initialValue(key_list_or_func_name)
         )
 
-    @ensureArgsType
-    def join(self, sep: str = '') :
+    # @ensureArgsType
+    def join(self, sep: str = '', /) :
         '''NOT IN PLACE'''
         self._importTypes()
         return self.Str(sep).join(self)
@@ -609,14 +618,14 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().unique()
 
-    @ensureArgsType
-    def intersect(self, item_list: list) :
+    # @ensureArgsType
+    def intersect(self, item_list: list, /) :
         '''Update itself with the intersection of itself and another.'''
         '''IN PLACE'''
         '''O(N^2)???'''
         return self.filter(lambda item, item_list : item in item_list, List(item_list))
 
-    def intersected(self, item_list) :
+    def intersected(self, item_list, /) :
         '''NOT IN PLACE'''
         return self.copy().intersect(item_list)
 
@@ -625,14 +634,14 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.intersected(item_list)
 
-    @ensureArgsType
-    def difference(self, item_list: list) :
+    # @ensureArgsType
+    def difference(self, item_list: list, /) :
         '''Remove all elements of another list from this list.'''
         '''IN PLACE'''
         '''O(N^2)???'''
         return self.filter(lambda item, item_list : item not in item_list, List(item_list))
 
-    def differenced(self, item_list) :
+    def differenced(self, item_list, /) :
         '''NOT IN PLACE'''
         return self.copy().difference(item_list)
 
@@ -641,14 +650,14 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.differenced(item_list)
 
-    @ensureArgsType
-    def union(self, item_list: list) :
+    # @ensureArgsType
+    def union(self, item_list: list, /) :
         '''Update a set with the union of itself and others.'''
         '''IN PLACE'''
         '''O(N^2)???'''
         return self.extend(List(item_list).difference(self))
 
-    def unioned(self, item_list) :
+    def unioned(self, item_list, /) :
         '''NOT IN PLACE'''
         return self.copy().union(item_list)
 
@@ -657,12 +666,12 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.unioned(item_list)
 
-    def isDisjointFrom(self, item_list) :
+    def isDisjointFrom(self, item_list, /) :
         '''Return True if two lists have a null intersection.'''
         '''O(N^2)???'''
         return (self & item_list).len() == 0
 
-    def isSubsetOf(self, item_list) :
+    def isSubsetOf(self, item_list, /) :
         '''Report whether another set contains this set.'''
         '''O(N^2)???'''
         return (self - item_list).len() == 0
@@ -673,9 +682,9 @@ class List(list) :
 
     def __lt__(self, item_list) :
         '''Return self<value.'''
-        raise
+        raise NotImplementedError
 
-    def isSupersetOf(self, item_list) :
+    def isSupersetOf(self, item_list, /) :
         '''Report whether this set contains another set.'''
         '''O(N^2)???'''
         return (List(item_list) - self).len() == 0
@@ -686,25 +695,25 @@ class List(list) :
 
     def __gt__(self, item_list) :
         '''Return self>value.'''
-        raise
+        raise NotImplementedError
 
-    def isSameSetOf(self, item_list) :
+    def isSameSetOf(self, item_list, /) :
         return self <= item_list and self >= item_list
 
     def __eq__(self, item_list) :
         '''Return self==value.'''
-        raise
+        raise NotImplementedError
 
     def __ne__(self, item_list) :
         '''Return self!=value.'''
-        raise
+        raise NotImplementedError
 
     def flatten(self) :
         '''IN PLACE'''
-        raise
+        raise NotImplementedError
 
     def bisect(self) :
-        raise
+        raise NotImplementedError
 
     def clear(self) :
         '''L.clear() -> None -- remove all items from L'''
@@ -712,8 +721,12 @@ class List(list) :
         list.clear(self)
         return self
     
-    def writeToFile(self, file) :
+    def writeToFile(self, file, /) :
         file.writeString(self.j())
+        return self
+
+    def writeLineListToFile(self, file, /) :
+        file.writeLineList(self)
         return self
 
     # list(map(lambda x : print(f'\n{x}\n{list.__getattribute__([], x).__doc__}\n'), dir(list)))

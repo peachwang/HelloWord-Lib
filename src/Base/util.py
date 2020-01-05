@@ -7,7 +7,7 @@ from bcolors import OKMSG as OK, PASS, WARN, ERR, ERRMSG as ERROR, FAIL, WAITMSG
 G, Y, R, B, P, E = GREEN, YELLOW, RED, BLUE, PINK, END = PASS, WARN, FAIL, BLUE, HEADER, ENDC
 # print(sys.path)
 
-from shared import ensureArgsType
+from shared import ensureArgsType, UserTypeError
 from typing import Optional, Union
 from Object import Object
 from List import List
@@ -18,40 +18,7 @@ from Timer import Timer
 from File import File
 from Audio import Audio
 from Folder import Folder, makedirs as mkdir
-
-# @todo: add comments for the following functions
-# ================= Exception =================
-
-class UserTypeError(TypeError):
-
-    def __init__(self, field_name, field_value, expected_types) :
-        self.fieldName  = field_name
-        self.fieldValue = field_value
-        self.expectedTypes = expected_types
-        if isinstance(self.expectedTypes, type) :
-            self.expectedTypes = [self.expectedTypes]
-        if not isinstance(self.expectedTypes, list) :
-            raise UserTypeError('expected_types', expected_types, [type, list])
-        if self.containsSameItems(list(map(type, self.expectedTypes)), True, type) is False :
-            raise Exception(f'Expected_types does not contain just types.\nexpected_types:\n{j(list(map(str, self.expectedTypes)))}')
-        self.value = self.__str__()
-
-    def __str__(self) :
-        expected_types = ' or '.join([self.getTypeStr(expected_type) for expected_type in self.expectedTypes])
-        return f'Unexpected type({self.getTypeStr(self.fieldValue)}) of {self.fieldName} is given, but type({str(self.expectedTypes)}) is expected.'
-
-    def getTypeStr(self, var_type) :
-        return re.findall(r'\'([^\']+)\'', str(type(var_type)))[0]
-
-    def containsSameItems(self, data, check_specific_value = False, specific_value = None) :
-        if not isinstance(data, (list, dict)) :
-            raise UserTypeError('data', data, [list, dict])
-        if isinstance(data, dict) : data = data.values()
-        if len(data) == 0 : return True
-        if check_specific_value is True :
-            return data.count(specific_value) == len(data)
-        else :
-            return data.count(data[0]) == len(data)
+from LineStream import LineStream
 
 # ==================== Data ====================
 
@@ -101,7 +68,7 @@ def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = 
 def load_json(fin, object_hook = None, encoding = 'utf-8') :
     return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
 
-def json_serialize(data) :
+def json_serialize(data, /) :
     if isinstance(data, (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
         return data.jsonSerialize()
     elif isinstance(data, (type(None), str, int, float, bool)) :
@@ -120,9 +87,9 @@ def json_serialize(data) :
         return f'zip{json_serialize(list(data))}'
     elif isinstance(data, datetime) :
         return f'datetime({data})'
-    else : raise Exception(f'Unknown {type(data)=} of {data=}')
+    else : raise UserTypeError(data)
 
-def j(data, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
+def j(data, /, *, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
     # return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
     return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys)
 
@@ -140,7 +107,7 @@ def highlightTraceback(func) :
             flag = False
             for index, line in line_list.enumerate() :
                 line_list[index] = line.strip('\n')
-                if 'HelloWord-Lib' in line :
+                if line.has('HelloWord-Lib') :
                     flag = False
                 elif not flag :
                     line_list[index] = P + line_list[index] + E

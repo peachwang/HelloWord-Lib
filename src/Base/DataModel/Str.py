@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 import re
-from shared import ensureArgsType, Optional, Union
+from shared import ensureArgsType, Optional, Union, UserTypeError
 from Object import Object
+from Timer import Timer
 
 # https://docs.python.org/3/library/re.html
 
@@ -10,7 +11,7 @@ SRE_MATCH_TYPE = type(re.match('', ''))
 
 class Pattern(Object) :
 
-    def __init__(self, pattern) :
+    def __init__(self, pattern, /) :
         Object.__init__(self)
         self._registerProperty(['pattern'])
         self._pattern = Str(pattern)
@@ -29,7 +30,7 @@ class Pattern(Object) :
         '''The number of capturing groups in the pattern.'''
         return self._pattern.groups
     
-    def groupIndex(self, name: str) :
+    def groupIndex(self, name: str, /) :
         '''
         A dictionary mapping any symbolic group names defined by (?P<id>) to group numbers.
         The dictionary is empty if no symbolic groups were used in the pattern.
@@ -38,7 +39,7 @@ class Pattern(Object) :
 
 class _Match(Object) :
     
-    def __init__(self, match) :
+    def __init__(self, match, /) :
         Object.__init__(self)
         self._registerProperty(['match'])
         self._match = match
@@ -53,7 +54,7 @@ class _Match(Object) :
     def whole_match(self) :
         return Str(self._match.group())
 
-    def format(self, template) :
+    def format(self, template, /) :
         '''
         Match.expand(template)
         Return the string obtained by doing backslash substitution on the
@@ -65,7 +66,7 @@ class _Match(Object) :
         '''
         return Str(self._match.expand(template))
 
-    def _wrap(self, value) :
+    def _wrap(self, value, /) :
         return Str(value) if isinstance(value, str) else value
 
     def groupTuple(self, *groups) :
@@ -104,7 +105,7 @@ class _Match(Object) :
         (?P<name>...)
         '''
         if len(groups) == 0 :
-            raise Exception(f'len(groups) == 0')
+            raise Exception(f'非法{groups=}')
         elif len(groups) == 1 :
             _ = self._match.group(groups[0])
             return tuple(self._wrap(_))
@@ -112,7 +113,7 @@ class _Match(Object) :
             return tuple(self._wrap(_) for _ in self._match.group(*groups))
 
     # @ensureArgsType
-    def oneGroup(self, group: Union[int, str]) :
+    def oneGroup(self, group: Union[int, str], /) :
         _ = self._match.group(group)
         return self._wrap(_)
 
@@ -124,7 +125,7 @@ class _Match(Object) :
         individual group from a match.'''
         return self._wrap(self._match.__getitem__(group))
 
-    def allGroupTuple(self, default = None) :
+    def allGroupTuple(self, *, default = None) :
         '''
         Match.groups(default=None)
         Return a tuple containing all the subgroups of the match, from 1 up to
@@ -134,7 +135,7 @@ class _Match(Object) :
         '''
         return (self._wrap(_) for _ in self._match.groups(default))
 
-    def namedGroupDict(self, default = None) :
+    def namedGroupDict(self, *, default = None) :
         '''
         Match.groupdict(default=None)
         Return a dictionary containing all the named subgroups of the match,
@@ -143,7 +144,7 @@ class _Match(Object) :
         from Dict import Dict
         return Dict(self._match.groupdict(default))
 
-    def startOfGroup(self, group = 0) :
+    def startOfGroup(self, group = 0, /) :
         '''
         Match.start([group])
         Return the indices of the start of the substring matched by group;
@@ -155,13 +156,13 @@ class _Match(Object) :
         m.end(group) if group matched a null string.'''
         return self._match.start(group)
 
-    def endOfGroup(self, group = 0) :
+    def endOfGroup(self, group = 0, /) :
         '''
         Match.end([group])
         Return the indices of the end of the substring matched by group;'''
         return self._match.end(group)
 
-    def spanOfGroup(self, group = 0) :
+    def spanOfGroup(self, group = 0, /) :
         '''
         Match.span([group])
         For a match m, return the 2-tuple (m.start(group), m.end(group)).
@@ -196,7 +197,7 @@ class Str(str) :
         from util import j
         return j(self.jsonSerialize())
 
-    def print(self, color = '') :
+    def print(self, *, color = '') :
         from util import E
         print(color, self.j(), E if color != '' else '')
         return self
@@ -219,7 +220,7 @@ class Str(str) :
         '''Return str(self).'''
         # return 'Str\'{}\''.format(str.__str__(self))
     
-    def center(self, width, fillchar = ' ') :
+    def center(self, width, fillchar = ' ', /) :
         '''
         S.center(width[, fillchar]) -> str
         Return S centered in a string of length width. Padding is
@@ -241,7 +242,7 @@ class Str(str) :
         '''NOT IN PLACE'''
         return Str(str.__rmul__(self, times))
 
-    def concat(self, string) :
+    def concat(self, string, /) :
         '''NOT IN PLACE'''
         return self.__add__(string)
 
@@ -251,11 +252,12 @@ class Str(str) :
         '''
 
     def len(self) :
-        return len(self)
+        return str.__len__(self)
+
 
     # def __contains__(self) :
         '''
-        Return key in self.
+        x.__contains__(y) <==> y in x
         '''
 
     def has(self, sub_or_pattern, re_mode = False, flags = 0) :
@@ -278,7 +280,7 @@ class Str(str) :
         else :
             return str.count(self, sub_or_pattern, start, end)
 
-    def index(self, sub, start = 0, end = -1, reverse = False) :
+    def index(self, sub, /, *, start = 0, end = -1, reverse = False) :
         '''
         S.index(sub[, start[, end]]) -> int
         Return the lowest or highest index in S where substring sub is found, 
@@ -302,7 +304,7 @@ class Str(str) :
         # else :
         #     return str.find(sub, start, end)
 
-    def leftMatch(self, pattern, flags = 0) :
+    def leftMatch(self, pattern, /, *, flags = 0) :
         '''
         re.match(pattern, string, flags=0)
         If zero or more characters at the beginning of string match the
@@ -315,12 +317,13 @@ class Str(str) :
         _ = re.match(pattern, self, flags)
         return _Match(_) if _ else None
 
-    def ensureLeftMatch(self, pattern = None, flags = 0) :
-        if self.leftMatch(pattern, flags) : return self
+    def ensureLeftMatch(self, pattern = None, /, *, flags = 0) :
+        if self.leftMatch(pattern, flags = flags) : return self
         else :
             raise Exception(f'\n{self=}\n应该左匹配\n{pattern=}')
     
-    def fullMatch(self, pattern, flags = 0) :
+    # @Timer.timeitTotal('fullMatch')
+    def fullMatch(self, pattern, /, *, flags = 0) :
         '''
         re.fullmatch(pattern, string, flags=0)
         If the whole string matches the regular expression pattern,
@@ -330,12 +333,12 @@ class Str(str) :
         _ = re.fullmatch(pattern, self, flags)
         return _Match(_) if _ else None
 
-    def ensureFullMatch(self, pattern = None, flags = 0) :
-        if self.fullMatch(pattern, flags) : return self
+    def ensureFullMatch(self, pattern = None, /, *, flags = 0) :
+        if self.fullMatch(pattern, flags = flags) : return self
         else :
             raise Exception(f'\n{self=}\n应该完全匹配\n{pattern=}')
 
-    def searchOneMatch(self, pattern, reverse = False, flags = 0) :
+    def searchOneMatch(self, pattern, /, *, reverse = False, flags = 0) :
         '''
         re.search(pattern, string, flags=0)
         Scan through string looking for the first location where the regular
@@ -346,7 +349,7 @@ class Str(str) :
         _ = re.search(pattern, self, flags)
         return _Match(_) if _ else None
 
-    def findAllMatches(self, pattern, flags = 0) :
+    def findAllMatchList(self, pattern, /, *, flags = 0) :
         '''
         re.finditer(pattern, string, flags=0)
         Return an iterator yielding match objects over all non-overlapping
@@ -357,7 +360,7 @@ class Str(str) :
         return List(_Match(match) for match in re.finditer(pattern, self, flags))
 
     # 待废弃！
-    def findall(self, pattern, flags = 0) :
+    def findall(self, pattern, /, *, flags = 0) :
         '''
         re.findall(pattern, string, flags=0)
         Return all non-overlapping matches of pattern in string,
@@ -370,7 +373,7 @@ class Str(str) :
         from List import List
         return List(re.findall(pattern, self, flags))
 
-    def replace(self, sub_or_pattern, repl_str_func, re_mode, count = None, flags = 0) :
+    def replace(self, sub_or_pattern, repl_str_func, /, *, re_mode: bool, count = None, flags = 0) :
         '''
         S.replace(old, new[, count]) -> str
         Return a copy of S with all occurrences of substring
@@ -379,9 +382,12 @@ class Str(str) :
         if re_mode :
             return self._sub(sub_or_pattern, repl_str_func, count, flags)
         else :
-            return Str(str.replace(self, sub_or_pattern, repl_str_func, count))
+            if count is None :
+                return Str(str.replace(self, sub_or_pattern, repl_str_func))
+            else :
+                return Str(str.replace(self, sub_or_pattern, repl_str_func, count))
 
-    def _sub(self, pattern, repl_str_or_func, count = 0, flags = 0) :
+    def _sub(self, pattern, repl_str_or_func, /, *, count = 0, flags = 0) :
         '''
         re.sub(pattern, repl, string, count=0, flags=0)
         Return the string obtained by replacing the leftmost
@@ -413,7 +419,7 @@ class Str(str) :
         substitutes in the entire substring matched by the RE.'''
         return Str(re.sub(pattern, repl_str_or_func, self, count, flags))
 
-    def _subn(self, pattern, repl_str_or_func, count = 0, flags = 0) :
+    def _subn(self, pattern, repl_str_or_func, /, *, count = 0, flags = 0) :
         '''
         re.subn(pattern, repl, string, count=0, flags=0)
         Perform the same operation as sub(), but return a tuple
@@ -421,8 +427,8 @@ class Str(str) :
         _ = re.subn(pattern, repl_str_or_func, self, count, flags)
         return (Str(_[0]), _[1])
 
-    @ensureArgsType
-    def join(self, str_list: list) :
+    # @ensureArgsType
+    def join(self, str_list: list, /) :
         '''
         S.join(iterable) -> str
         Return a string which is the concatenation of the strings in the
@@ -441,7 +447,7 @@ class Str(str) :
         '''
     
     # @ensureArgsType
-    def split(self, sep_or_pattern: str, maxsplit: int = None, reverse = False, re_mode = False, flags = 0) :
+    def split(self, sep_or_pattern: str, /, *, maxsplit: int = None, reverse = False, re_mode = False, flags = 0) :
         '''
         S.split(sep=None, maxsplit=-1) -> list of strings
         re.split(pattern, string, maxsplit=0, flags=0)
@@ -475,7 +481,7 @@ class Str(str) :
         from List import List
         if re_mode :
             if maxsplit is None : maxsplit = 0
-            if reverse : raise Exception('Can not split a string reversely using re.')
+            if reverse : raise Exception(f'无法通过正则反向切割字符串{self}')
             return List(re.split(sep_or_pattern, self, maxsplit, flags))
         else :
             if maxsplit is None : maxsplit = -1
@@ -499,7 +505,7 @@ class Str(str) :
         '''
 
     # @ensureArgsType
-    def strip(self, string: str = ' \t\n', left: bool = True, right: bool = True) :
+    def strip(self, string: str = ' \t\n', /, *, left: bool = True, right: bool = True) :
         '''
         S.strip([chars]) -> str
         Return a copy of the string S with leading and trailing whitespace removed.
@@ -512,7 +518,7 @@ class Str(str) :
         elif left and right :
             return Str(str.strip(self, string))
         else :
-            raise Exception(f'Unexpected {left=} and {right=}')
+            raise Exception(f'非法 {left=} 和 {right=}')
 
     def range(self) :
         '''NOT IN PLACE'''
@@ -557,7 +563,7 @@ class Str(str) :
             else :
                 raise Exception(f'非法字符[{char=}] in [{self=}]')
         if result.len() == 0 :
-            raise Exception(f'无法split{self}')
+            raise Exception(f'无法 splitWord {self}')
         return result
 
     def toPascalCase(self) :
@@ -569,9 +575,6 @@ class Str(str) :
 
     def toSnakeCase(self) :
         return self._splitWordList().toLower.join('_')
-
-    def isEmpty(self) :
-        return self.fullMatch(r'^[ \t\n]*$')
 
     def isNumber(self) :
         '''
@@ -645,7 +648,7 @@ class Str(str) :
         '''NOT IN PLACE'''
         return Str(str.casefold(self))
 
-    def padToWidth(self, width, fillchar = ' ', reverse = False) :
+    def padToWidth(self, width, fillchar = ' ', /, *, reverse = False) :
         '''
         S.ljust(width[, fillchar]) -> str
         S.rjust(width[, fillchar]) -> str

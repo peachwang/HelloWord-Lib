@@ -4,6 +4,14 @@ import inspect
 from pprint import pformat as pf, pprint as pp
 from typing import Optional, Union
 
+class UserTypeError(TypeError) :
+
+    def __init__(self, value) :
+        self._value = value
+
+    def __str__(self) :
+        return f'非法类型{type(self._value)}: {self._value!s}'
+
 def inspectObject(obj, name = '', print_source = True) :
     import builtins
     from util import G, Y, R, B, I, P, E
@@ -93,7 +101,7 @@ def ensureArgsType(func) :
                 if isinstance(value, value_type) : return
             elif isinstance(value_type, _GenericAlias) and value_type.__origin__ is Union :
                 if isinstance(value, value_type.__args__) : return
-            raise Exception(f'Expected {value_type=}, receiving unexpected {type(value)=} of {value=}')
+            raise Exception(f'预期 {value_type=}, 非法 {type(value)=} of {value=}')
         for index, param in enumerate(inspect.signature(func).parameters.values()) :
             if param.name == 'self' : continue
             # inspectObject(param.annotation, 'param.annotation', False)

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object
+from util import List, Dict, Str, Object, UserTypeError
 from File import File, realpath
 from os import path, rename, listdir, remove, makedirs, walk
 
 class Folder(Object) :
 
-    def __init__(self, folder_path) :
+    def __init__(self, folder_path, /) :
         Object.__init__(self)
         try :
             self._path, self._sub_folder_name_list, self._sub_file_name_list = list(walk(folder_path))[0]
@@ -27,7 +27,7 @@ class Folder(Object) :
         from util import j
         return j(self.jsonSerialize())
 
-    def print(self, color = '') :
+    def print(self, *, color = '') :
         from util import E
         print(color, self.j(), E if color != '' else '')
         return self

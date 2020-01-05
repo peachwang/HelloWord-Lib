@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType
+from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError
 from os.path import exists, getsize, isfile, realpath
+from Timer import Timer
 
 class File(Object) :
 
-    def __init__(self, file_path, folder = None) :
+    def __init__(self, file_path, folder = None, /) :
         Object.__init__(self)
         self._registerProperty(['path', 'folder', 'folder_path', 'name', 'ext'])
         file_path           = Str(file_path)
@@ -12,7 +13,7 @@ class File(Object) :
         self._path          = file_path
         _                   = file_path.split('/')
         self._name          = _[-1]
-        self._ext           = self._name.split('.')[-1] if '.' in self._name else Str('')
+        self._ext           = self._name.split('.')[-1] if self._name.has('.') else Str('')
         self._name          = self._name[ : - self._ext.len() - 1]
         self._folder_path   = _[ : -1].join('/')
 
@@ -28,7 +29,7 @@ class File(Object) :
         from util import j
         return j(self.jsonSerialize())
 
-    def print(self, color = '') :
+    def print(self, *, color = '') :
         from util import E
         print(color, self.j(), E if color != '' else '')
         return self
@@ -39,7 +40,7 @@ class File(Object) :
     def __str__(self) :
         return self.__format__('')
 
-    def extIs(self, ext) :
+    def extIs(self, ext, /) :
         return self._ext == ext
 
     def isTxt(self) :
@@ -66,40 +67,40 @@ class File(Object) :
         else :
             raise Exception(f'不支持的后缀名：{self._ext=}')
 
-    def readLineList(self, filter_white_lines = False) :
-        result = List(open(self._path).readlines()).strip('\n\r')
+    def readLineList(self, *, filter_white_lines = False) :
+        result = List(line.strip('\n\r') for line in open(self._path))
         if filter_white_lines :
-            result.filter(lambda line : not line.fullMatch(r'^[ \t]*$'))
+            result.filter(lambda line : line.isNotEmpty())
         return result
 
-    def readFieldList(self, index, sep = '\t') :
+    def readFieldList(self, *, index, sep = '\t') :
         return self.readLineList(True).map(lambda line : line.split(sep)[index])
 
-    def writeString(self, string, append = False) :
+    def writeString(self, string, /, *, append = False) :
         open(self._path, 'a' if append else 'w').write(string)
         return self
 
-    def writeLineList(self, line_list, append = False) :
-        return self.writeString(List(line_list).join('\n'), append)
+    def writeLineList(self, line_list, /, *, append = False) :
+        return self.writeString(List(line_list).join('\n'), append = append)
 
-    @ensureArgsType
-    def writeData(self, data: Union[List, Dict]) :
+    # @ensureArgsType
+    def writeData(self, data: Union[List, Dict], /) :
         data.writeToFile(self)
         return self
 
-    def writeBytes(self, bytes_content) :
+    def writeBytes(self, bytes_content, /) :
         open(self._path, 'wb').write(bytes_content)
         return self
 
-    def loadJson(self, encoding = 'utf-8') :
+    def loadJson(self, *, encoding = 'utf-8') :
         data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
         if isinstance(data, list) :
             return List(data)
         elif isinstance(data, dict) :
             return Dict(data)
-        else : raise
+        else : raise UserTypeError(data)
 
-    def dumpJson(self, data) :
+    def dumpJson(self, data, /) :
         return self.writeData(data)
 
     # def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
@@ -125,7 +126,7 @@ class File(Object) :
     #     return data
 
     def loadTable(self) :
-        raise
+        raise NotImplementedError
 
     # def dump_table(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
     #     if is_matrix :
@@ -146,7 +147,7 @@ class File(Object) :
     #             fout.flush()
 
     def dumpTable(self) :
-        raise
+        raise NotImplementedError
 
     # # delete
     # def load_mapping(fin) :
@@ -168,4 +169,4 @@ class File(Object) :
     #     return data
 
     def loadMapping(self) :
-        raise
+        raise NotImplementedError

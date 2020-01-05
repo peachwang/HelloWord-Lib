@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
-from types import GeneratorType
+from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from collections import defaultdict
-from shared import ensureArgsType, Optional, Union
+from shared import ensureArgsType, Optional, Union, UserTypeError
+# from Timer import Timer
 
 class Dict(dict) :
 
     _has_imported_types = False
+    NV = V_NON_VACANCY = 'V_NON_VACANCY'
 
     def _importTypes(self) :
         if self.__getattribute__('_has_imported_types') : return
@@ -21,7 +23,7 @@ class Dict(dict) :
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         dict.__setattr__(self, '_has_imported_types', True)
 
-    def _wrapValue(self, value) :
+    def _wrapValue(self, value, /) :
         self._importTypes()
         if isinstance(value, list)        : return self.List(value)
         elif isinstance(value, dict)      : return self.Dict(value)
@@ -45,13 +47,13 @@ class Dict(dict) :
             elif isinstance(args[0], Dict) :
                 dict.__init__(self, args[0]._getData())
             else :
-                raise Exception(f'Unexpected args for Dict.__init__: {args}')
+                raise UserTypeError(args)
         else :
-            raise Exception(f'Unexpected args for Dict.__init__: {args}')
+            raise UserTypeError(args)
         if len(kwargs) > 0 : dict.update(self, Dict(kwargs))
 
-    @ensureArgsType
-    def fromkeys(self, key_list: list, value = None) :
+    # @ensureArgsType
+    def fromkeys(self, key_list: list, value = None, /) :
         '''Returns a new dict with keys from iterable and values equal to value.'''
         '''IN PLACE'''
         if isinstance(value, list) :
@@ -59,7 +61,7 @@ class Dict(dict) :
                 self.__init__(zip(key_list, value))
                 return self
             else :
-                raise Exception(f'Lengths of key_list and value do not equal.\n{key_list=}\n{value=}')
+                raise Exception(f'key_list 和 value 长度不匹配\n{key_list=}\n{value=}')
         else :
             self.__init__(zip(key_list, [value] * len(key_list)))
             return self
@@ -150,20 +152,20 @@ class Dict(dict) :
         return 'Dict{{{}}}'.format(
             self.keys()
                 .map(lambda key : '{} : {}'.format(
-                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else '{}'.format(key),
+                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else str(key),
                         '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else str(self[key])
                     )
                 )
                 .join(', ')
         )
 
-    def stat(self, msg = '') :
+    def stat(self, *, msg = '') :
         print(f"{'' if msg == '' else f'{msg}: '}{self.len()}条")
         return self
 
     # 返回拉平后的字段tuple的列表，统计字段类型和可能的取值，数组长度，存在性检验
     def inspect(self, max_depth = 10, depth = 0) :
-        raise
+        raise NotImplementedError
 
         # DataStructure Module
         #   def inspect()
@@ -228,32 +230,35 @@ class Dict(dict) :
         '''
 
     def len(self) :
-        return len(self)
+        return dict.__len__(self)
 
-    def isEmpty() :
+    def isEmpty(self) :
         return self.len() == 0
+
+    def isNotEmpty(self) :
+        return not self.isEmpty()
 
     # def __contains__(self) :
         '''
-        True if D has a key k, else False.
+        D.__contains__(k) -> True if D has a key k, else False.
         '''
 
-    def has(self, key_list) :
+    def has(self, key_list, /) :
         self._importTypes()
         if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             return dict.__contains__(self, key_list)
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
-                raise Exception(f'Unexpected {key_list=}')
+                raise Exception(f'非法{key_list=}')
             now = self
             for key in key_list :
                 if not dict.__contains__(now, key) : return False
                 now = now[key]
             return True
         else :
-            raise Exception(f'Unexpected {type(key_list)=} of {key_list=}')
+            raise UserTypeError(key_list)
 
-    def hasNot(self, key_list) :
+    def hasNot(self, key_list, /) :
         return not self.has(key_list)
 
     def keys(self) :
@@ -291,15 +296,19 @@ class Dict(dict) :
 
     def __getitem__(self, key) :
         '''x.__getitem__(y) <==> x[y]'''
-        return self.get(key)
+        return self.get(key, default = self.NV)
 
-    def get(self, key_list, default = None) :
+    def get(self, key_list, /, *, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
         self._importTypes()
         if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+            if default == self.NV and not dict.__contains__(self, key_list) :
+                raise Exception(f'键 {key_list} 不能为空\n{self=}')
             return dict.get(self, key_list, self._wrapValue(default))
         elif isinstance(key_list, list) :
             if self.hasNot(key_list) :
+                if default == self.NV :
+                    raise Exception(f'键 {key_list} 不能为空\n{self=}')
                 return self._wrapValue(default)
             else :
                 now = self
@@ -307,13 +316,13 @@ class Dict(dict) :
                     now = now[key]
                 return now
         else :
-            raise Exception(f'Unexpected {type(key_list)=} of {key_list=}')
+            raise UserTypeError(key_list)
 
     # operator.attrgetter(*attrs)
     # [ (key1,), (key2, None), key3 ]
-    @ensureArgsType
-    def getMulti(self, key_list: list, de_underscore: bool = False) :
-        @ensureArgsType
+    # @ensureArgsType
+    def getMulti(self, key_list: list, /, *, de_underscore: bool = False) :
+        # @ensureArgsType
         def deUnderscoure(key: str) :
             if de_underscore and key[0] == '_' : return key[1:]
             else : return key
@@ -321,7 +330,7 @@ class Dict(dict) :
         for key in key_list :
             if isinstance(key, tuple) :
                 if len(key) not in (1, 2) :
-                    raise Exception(f'Unexpected {key_list=}')
+                    raise Exception(f'非法{key_list=}')
                 elif len(key) == 1 :
                     if self.has(key[0]) : result[deUnderscoure(key[0])] = self[key[0]]
                 elif len(key) == 2 :
@@ -329,7 +338,7 @@ class Dict(dict) :
                     else                : result[deUnderscoure(key[0])] = key[1]
             elif isinstance(key, str) :
                 result[deUnderscoure(key)] = self[key]
-            else : raise Exception(f'Unexpected {key_list=}')
+            else : raise UserTypeError(key_list)
         return result
 
     def __setattr__(self, key, value) :
@@ -352,14 +361,14 @@ class Dict(dict) :
         D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D
         '''
 
-    def set(self, key_list, value) :
+    def set(self, key_list, value, /) :
         '''IN PLACE'''
         self._importTypes()
         if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
             self[key_list] = value
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
-                raise Exception(f'Unexpected {key_list=}')
+                raise Exception(f'非法{key_list=}')
             now = self
             for index, key in enumerate(key_list) :
                 if key in now :
@@ -371,11 +380,11 @@ class Dict(dict) :
                     else :
                         now[key] = value
         else :
-            raise Exception(f'Unexpected {type(key_list)=} of {key_list=}')
+            raise UserTypeError(key_list)
         return self
 
     # @ensureArgsType
-    def update(self, mapping: dict, **kwargs) :
+    def update(self, mapping: dict, /, **kwargs) :
         '''D.update([E, ]**F) -> None.  Update D from dict/iterable E and F.
         If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]
         If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
@@ -385,11 +394,11 @@ class Dict(dict) :
             dict.update(self, Dict(mapping))
         elif isinstance(mapping, Dict) :
             dict.update(self, mapping)
-        else : raise
+        else : raise UserTypeError(mapping)
         if len(kwargs) > 0 : dict.update(self, Dict(kwargs))
         return self
 
-    def updated(self, mapping, **kwargs) :
+    def updated(self, mapping, /, **kwargs) :
         '''NOT IN PLACE'''
         return self.copy().update(mapping, **kwargs)
 
@@ -401,7 +410,7 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         return self.updated(mapping)
 
-    def pop(self, key_list, default = 'NONE') :
+    def pop(self, key_list, /, *, default = 'NONE') :
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
         If key is not found, d is returned if given, otherwise KeyError is raised'''
         '''IN PLACE'''
@@ -426,7 +435,7 @@ class Dict(dict) :
                 else :
                     return dict.pop(now, key_list[-1], self._wrapValue(default))
         else :
-            raise Exception(f'Unexpected {type(key_list)=} of {key_list=}')
+            raise UserTypeError(key_list)
 
     def popitem(self) :
         '''D.popitem() -> (k, v), remove and return some (key, value) pair as a
@@ -434,7 +443,7 @@ class Dict(dict) :
         '''IN PLACE'''
         return dict.popitem(self)
 
-    def _stripValue(self, value, string) :
+    def _stripValue(self, value, string, /) :
         self._importTypes()
         if value is None or isinstance(value, (int, float, bool, range, bytes, zip, self.datetime)):
             return value
@@ -448,15 +457,15 @@ class Dict(dict) :
             if 'strip' in dir(value) : value.strip(string)
             return value
         else :
-            raise Exception(f'Unexpected {type(value)=} of {value=}')
+            raise UserTypeError(value)
 
-    def strip(self, string = ' \t\n') :
+    def strip(self, string = ' \t\n', /) :
         '''IN PLACE'''
         for key in self :
             self[key] = self._stripValue(self[key], string)
         return self
 
-    def stripped(self, string = ' \t\n') :
+    def stripped(self, string = ' \t\n', /) :
         '''NOT IN PLACE'''
         return self.copy().strip(string)
 
@@ -466,7 +475,7 @@ class Dict(dict) :
         dict.clear(self)
         return self
 
-    def writeToFile(self, file) :
+    def writeToFile(self, file, /) :
         file.writeString(self.j())
         return self
 
