@@ -254,22 +254,36 @@ class Str(str) :
     def len(self) :
         return str.__len__(self)
 
+    def isEmpty(self) :
+        return self.fullMatch(r'^[ \t\n]*$')
+
+    def isNotEmpty(self) :
+        return not self.isEmpty()
 
     # def __contains__(self) :
         '''
         x.__contains__(y) <==> y in x
         '''
 
-    def has(self, sub_or_pattern, re_mode = False, flags = 0) :
-        return self.count(sub_or_pattern, re_mode = re_mode, flags = flags) > 0
+    def has(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
+        if not re_mode :
+            return str.__contains__(self, sub_or_pattern)
+        else :
+            return self.count(sub_or_pattern, re_mode = re_mode, flags = flags) > 0
 
-    def hasAnyOf(self, sub_list) :
+    def hasNot(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
+        return not self.has(sub_or_pattern, re_mode = re_mode, flags = flags)
+
+    def hasAnyOf(self, sub_list, /) :
         return any(self.has(sub) for sub in sub_list)
 
-    def hasAllOf(self, sub_list) :
+    def hasAllOf(self, sub_list, /) :
         return all(self.has(sub) for sub in sub_list)
 
-    def count(self, sub_or_pattern, start = 0, end = -1, re_mode = False, flags = 0) :
+    def hasNoneOf(self, sub_list, /) :
+        return all(self.hasNot(sub) for sub in sub_list)
+
+    def count(self, sub_or_pattern, /, *, start = 0, end = -1, re_mode = False, flags = 0) :
         '''
         S.count(sub[, start[, end]]) -> int
         Return the number of non-overlapping occurrences of substring sub in
@@ -585,7 +599,27 @@ class Str(str) :
         e.g. U+0660, ARABIC-INDIC DIGIT ZERO. Formally a decimal character is
         a character in the Unicode General Category “Nd”.
         '''
-        return str.isdecimal(str)
+        return str.isdecimal(self)
+
+    def isInt(self) :
+        return self.isNumber() and self.hasNot('.')
+
+    def ensureInt(self) :
+        if self.isInt() : return self
+        else : raise Exception(f'{self=}不是整数')
+
+    def toInt(self) :
+        return int(self.ensureInt())
+
+    def isFloat(self) :
+        return self.isNumber() and self.has('.')
+
+    def ensureFloat(self) :
+        if self.isFloat() : return self
+        else : raise Exception(f'{self=}不是浮点数')
+
+    def toFloat(self) :
+        return float(self.ensureFloat())
 
     def isLower(self) :
         '''

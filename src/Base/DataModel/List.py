@@ -85,6 +85,21 @@ class List(list) :
             ) for item in self
         ]
 
+    def toMongoDoc(self) :
+        from bson import ObjectId
+        self._importTypes()
+        for index, item in self.enumerate() :
+            if isinstance(item, self.Dict) :
+                if item.has('$id') :
+                    self[index] = ObjectId(item['$id'])
+                elif item.has('sec') and item.has('usec') :
+                    self[index] = self.DateTime(item.sec + item.usec / 1000000).getRaw()
+                else :
+                    self[index].toMongoDoc()
+            elif isinstance(item, self.List) :
+                self[index].toMongoDoc()
+        return self
+
     def jsonSerialize(self) :
         '''NOT IN PLACE'''
         self._importTypes()
@@ -219,6 +234,18 @@ class List(list) :
 
     def has(self, item, /) :
         return list.__contains__(self, item)
+
+    def hasNot(self, item, /) :
+        return not self.has(item)
+
+    def hasAnyOf(self, item_list, /) :
+        return any(self.has(item) for item in item_list)
+
+    def hasAllOf(self, item_list, /) :
+        return all(self.has(item) for item in item_list)
+
+    def hasNoneOf(self, item_list, /) :
+        return all(self.hasNot(item) for item in item_list)
 
     def count(self, item, /) :
         '''

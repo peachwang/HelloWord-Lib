@@ -104,6 +104,21 @@ class Dict(dict) :
                 _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
         return _
 
+    def toMongoDoc(self) :
+        from bson import ObjectId
+        self._importTypes()
+        for key, value in self.items() :
+            if isinstance(value, self.Dict) :
+                if value.has('$id') :
+                    self[key] = ObjectId(value['$id'])
+                elif value.has('sec') and value.has('usec') :
+                    self[key] = self.DateTime(value.sec + value.usec / 1000000).getRaw()
+                else :
+                    self[key].toMongoDoc()
+            elif isinstance(value, self.List) :
+                self[key].toMongoDoc()
+        return self
+
     def jsonSerialize(self) :
         '''NOT IN PLACE'''
         self._importTypes()
@@ -260,6 +275,15 @@ class Dict(dict) :
 
     def hasNot(self, key_list, /) :
         return not self.has(key_list)
+
+    def hasAnyOf(self, key_list_list, /) :
+        return any(self.has(key_list) for key_list in key_list_list)
+
+    def hasAllOf(self, key_list_list, /) :
+        return all(self.has(key_list) for key_list in key_list_list)
+
+    def hasNoneOf(self, key_list_list, /) :
+        return all(self.hasNot(key_list) for key_list in key_list_list)
 
     def keys(self) :
         '''D.keys() -> a set-like object providing a view on D's keys'''
