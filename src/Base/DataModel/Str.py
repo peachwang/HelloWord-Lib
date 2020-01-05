@@ -394,7 +394,10 @@ class Str(str) :
         old replaced by new.  If the optional argument count is
         given, only the first count occurrences are replaced.'''
         if re_mode :
-            return self._sub(sub_or_pattern, repl_str_func, count, flags)
+            if count is None :
+                return self._sub(sub_or_pattern, repl_str_func, flags = flags)
+            else :
+                return self._sub(sub_or_pattern, repl_str_func, count = count, flags = flags)
         else :
             if count is None :
                 return Str(str.replace(self, sub_or_pattern, repl_str_func))
@@ -495,7 +498,9 @@ class Str(str) :
         from List import List
         if re_mode :
             if maxsplit is None : maxsplit = 0
-            if reverse : raise Exception(f'无法通过正则反向切割字符串{self}')
+            if reverse : raise Exception(f'无法通过正则[{sep_or_pattern}]反向切割字符串[{self}]')
+            if '(' in sep_or_pattern or ')' in sep_or_pattern :
+                raise Exception(f'暂不支持使用带括号的正则[{sep_or_pattern}]切割字符串[{self}]')
             return List(re.split(sep_or_pattern, self, maxsplit, flags))
         else :
             if maxsplit is None : maxsplit = -1
@@ -577,7 +582,7 @@ class Str(str) :
             else :
                 raise Exception(f'非法字符[{char=}] in [{self=}]')
         if result.len() == 0 :
-            raise Exception(f'无法 splitWord {self}')
+            raise Exception(f'无法 splitWord [{self}]')
         return result
 
     def toPascalCase(self) :
@@ -606,7 +611,7 @@ class Str(str) :
 
     def ensureInt(self) :
         if self.isInt() : return self
-        else : raise Exception(f'{self=}不是整数')
+        else : raise Exception(f'[{self=}]不是整数')
 
     def toInt(self) :
         return int(self.ensureInt())
@@ -616,7 +621,7 @@ class Str(str) :
 
     def ensureFloat(self) :
         if self.isFloat() : return self
-        else : raise Exception(f'{self=}不是浮点数')
+        else : raise Exception(f'[{self=}]不是浮点数')
 
     def toFloat(self) :
         return float(self.ensureFloat())

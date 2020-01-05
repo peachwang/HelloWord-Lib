@@ -12,26 +12,26 @@ class Dict(dict) :
 
     def _importTypes(self) :
         if self.__getattribute__('_has_imported_types') : return
-        from List import List; dict.__setattr__(self, 'List', List)
-        dict.__setattr__(self, 'Dict', Dict)
-        from Str import Str; dict.__setattr__(self, 'Str', Str)
-        from Object import Object; dict.__setattr__(self, 'Object', Object)
-        from DateTime import DateTime, datetime; dict.__setattr__(self, 'DateTime', DateTime); dict.__setattr__(self, 'datetime', datetime)
-        from File import File; dict.__setattr__(self, 'File', File)
-        from Folder import Folder; dict.__setattr__(self, 'Folder', Folder)
-        from Audio import Audio; dict.__setattr__(self, 'Audio', Audio)
+        from List import List; dict.__setattr__(self, '_List', List)
+        dict.__setattr__(self, '_Dict', Dict)
+        from Str import Str; dict.__setattr__(self, '_Str', Str)
+        from Object import Object; dict.__setattr__(self, '_Object', Object)
+        from DateTime import DateTime, datetime; dict.__setattr__(self, '_DateTime', DateTime); dict.__setattr__(self, '_datetime', datetime)
+        from File import File; dict.__setattr__(self, '_File', File)
+        from Folder import Folder; dict.__setattr__(self, '_Folder', Folder)
+        from Audio import Audio; dict.__setattr__(self, '_Audio', Audio)
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         dict.__setattr__(self, '_has_imported_types', True)
 
     def _wrapValue(self, value, /) :
         self._importTypes()
-        if isinstance(value, list)        : return self.List(value)
-        elif isinstance(value, dict)      : return self.Dict(value)
-        elif isinstance(value, str)       : return self.Str(value)
-        elif isinstance(value, bytes)     : return self.Str(value.decode())
+        if isinstance(value, list)        : return self._List(value)
+        elif isinstance(value, dict)      : return self._Dict(value)
+        elif isinstance(value, str)       : return self._Str(value)
+        elif isinstance(value, bytes)     : return self._Str(value.decode())
         elif isinstance(value, tuple)     : return tuple([ self._wrapValue(_) for _ in value ])
         elif isinstance(value, set)       : return set([ self._wrapValue(_) for _ in value ])
-        elif isinstance(value, self.datetime)  : return self.DateTime(value)
+        elif isinstance(value, self._datetime)  : return self._DateTime(value)
         else : return value
 
     def __init__(self, *args, **kwargs) :
@@ -98,7 +98,7 @@ class Dict(dict) :
         from util import json_serialize
         _ = {}
         for key in self :
-            if isinstance(self[key], (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio)) :
+            if isinstance(self[key], (self._List, self._Dict, self._Str, self._Object, self._DateTime, self._File, self._Folder, self._Audio)) :
                 _[json_serialize(key)] = self[key].jsonSerialize()
             else :
                 _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
@@ -108,14 +108,14 @@ class Dict(dict) :
         from bson import ObjectId
         self._importTypes()
         for key, value in self.items() :
-            if isinstance(value, self.Dict) :
+            if isinstance(value, self._Dict) :
                 if value.has('$id') :
                     self[key] = ObjectId(value['$id'])
                 elif value.has('sec') and value.has('usec') :
-                    self[key] = self.DateTime(value.sec + value.usec / 1000000).getRaw()
+                    self[key] = self._DateTime(value.sec + value.usec / 1000000).getRaw()
                 else :
                     self[key].toMongoDoc()
-            elif isinstance(value, self.List) :
+            elif isinstance(value, self._List) :
                 self[key].toMongoDoc()
         return self
 
@@ -125,7 +125,7 @@ class Dict(dict) :
         from util import json_serialize
         _ = {}
         for key in self :
-            if isinstance(self[key], (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio)) :
+            if isinstance(self[key], (self._List, self._Dict, self._Str, self._Object, self._DateTime, self._File, self._Folder, self._Audio)) :
                 _[json_serialize(key)] = self[key].jsonSerialize()
             else :
                 _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
@@ -142,7 +142,7 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         return Dict((key, self[key].json()) if 'json' in dir(self[key]) else (key, self[key]) for key in self)
 
-    def print(self, color = '', json = False) :
+    def print(self, color = '', json = True) :
         from util import E
         if json :
             print(color, self.json().j(), E if color != '' else '')
@@ -260,7 +260,7 @@ class Dict(dict) :
 
     def has(self, key_list, /) :
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
             return dict.__contains__(self, key_list)
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -288,17 +288,17 @@ class Dict(dict) :
     def keys(self) :
         '''D.keys() -> a set-like object providing a view on D's keys'''
         self._importTypes()
-        return self.List(list(dict.keys(self)))
+        return self._List(list(dict.keys(self)))
     
     def values(self) :
         '''D.values() -> an object providing a view on D's values'''
         self._importTypes()
-        return self.List(list(dict.values(self)))
+        return self._List(list(dict.values(self)))
 
     def items(self) :
         '''D.items() -> a set-like object providing a view on D's items'''
         self._importTypes()
-        return self.List(list(dict.items(self)))
+        return self._List(list(dict.items(self)))
 
     # def __getattribute__(self, key) :
         '''
@@ -325,7 +325,7 @@ class Dict(dict) :
     def get(self, key_list, /, *, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
             if default == self.NV and not dict.__contains__(self, key_list) :
                 raise Exception(f'键 {key_list} 不能为空\n{self=}')
             return dict.get(self, key_list, self._wrapValue(default))
@@ -388,7 +388,7 @@ class Dict(dict) :
     def set(self, key_list, value, /) :
         '''IN PLACE'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
             self[key_list] = value
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -439,7 +439,7 @@ class Dict(dict) :
         If key is not found, d is returned if given, otherwise KeyError is raised'''
         '''IN PLACE'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self.datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
             if default == 'NONE' :
                 return dict.pop(self, key_list)
             else :
@@ -469,9 +469,9 @@ class Dict(dict) :
 
     def _stripValue(self, value, string, /) :
         self._importTypes()
-        if value is None or isinstance(value, (int, float, bool, range, bytes, zip, self.datetime)):
+        if value is None or isinstance(value, (int, float, bool, range, bytes, zip, self._datetime)):
             return value
-        elif isinstance(value, (self.List, self.Dict, self.Str)) : # can't be list, dict, str
+        elif isinstance(value, (self._List, self._Dict, self._Str)) : # can't be list, dict, str
             return value.strip(string)
         elif isinstance(value, tuple) :
             return (self._stripValue(_, string) for _ in value)

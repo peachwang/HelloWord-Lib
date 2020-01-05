@@ -43,7 +43,7 @@ class LineStream(Object) :
             return f'[index = {self._index}; tag_name = {self._tag_name}; content = [{self._content}]]'
 
     # @Timer.timeitTotal('LineStream.__init__')
-    def __init__(self, raw_line_list = [], tag_format_list = None, /) :
+    def __init__(self, raw_line_list = [], /, *, tag_format_list = None) :
         Object.__init__(self)
         self._registerProperty(['raw_line_list', 'line_list', 'tag_line', 'sub_stream_list'])
         self._raw_line_list = List(raw_line_list)

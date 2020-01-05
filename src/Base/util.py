@@ -109,7 +109,7 @@ def highlightTraceback(func) :
                 line_list[index] = line.strip('\n')
                 if line.has('HelloWord-Lib') :
                     flag = False
-                elif not flag :
+                elif not flag and line.has('HelloWord') :
                     line_list[index] = P + line_list[index] + E
                     flag = True
             line_list.reverse().forEach(lambda line : print(line))

@@ -11,26 +11,26 @@ class List(list) :
 
     def _importTypes(self) :
         if self._has_imported_types : return
-        self.List = List
-        from Dict import Dict; self.Dict = Dict
-        from Str import Str; self.Str = Str
-        from Object import Object; self.Object = Object
-        from DateTime import DateTime, datetime; self.DateTime, self.datetime = DateTime, datetime
-        from File import File; self.File = File
-        from Folder import Folder; self.Folder = Folder
-        from Audio import Audio; self.Audio = Audio
+        self._List = List
+        from Dict import Dict; self._Dict = Dict
+        from Str import Str; self._Str = Str
+        from Object import Object; self._Object = Object
+        from DateTime import DateTime, datetime; self._DateTime, self._datetime = DateTime, datetime
+        from File import File; self._File = File
+        from Folder import Folder; self._Folder = Folder
+        from Audio import Audio; self._Audio = Audio
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         self._has_imported_types = True
 
     def _wrapItem(self, item, /) :
         self._importTypes()
-        if isinstance(item, list)            : return self.List(item)
-        elif isinstance(item, dict)          : return self.Dict(item)
-        elif isinstance(item, str)           : return self.Str(item)
-        elif isinstance(item, bytes)         : return self.Str(item.decode())
+        if isinstance(item, list)            : return self._List(item)
+        elif isinstance(item, dict)          : return self._Dict(item)
+        elif isinstance(item, str)           : return self._Str(item)
+        elif isinstance(item, bytes)         : return self._Str(item.decode())
         elif isinstance(item, tuple)         : return tuple([ self._wrapItem(_) for _ in item ])
         elif isinstance(item, set)           : return set([ self._wrapItem(_) for _ in item ])
-        elif isinstance(item, self.datetime) : return self.DateTime(item)
+        elif isinstance(item, self._datetime) : return self._DateTime(item)
         else : return item
 
     def __init__(self, *args) :
@@ -80,7 +80,7 @@ class List(list) :
         '''NOT IN PLACE'''
         self._importTypes()
         return [ (item.getRaw()
-                if isinstance(item, (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio))
+                if isinstance(item, (self._List, self._Dict, self._Str, self._Object, self._DateTime, self._File, self._Folder, self._Audio))
                 else item # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
             ) for item in self
         ]
@@ -89,14 +89,14 @@ class List(list) :
         from bson import ObjectId
         self._importTypes()
         for index, item in self.enumerate() :
-            if isinstance(item, self.Dict) :
+            if isinstance(item, self._Dict) :
                 if item.has('$id') :
                     self[index] = ObjectId(item['$id'])
                 elif item.has('sec') and item.has('usec') :
-                    self[index] = self.DateTime(item.sec + item.usec / 1000000).getRaw()
+                    self[index] = self._DateTime(item.sec + item.usec / 1000000).getRaw()
                 else :
                     self[index].toMongoDoc()
-            elif isinstance(item, self.List) :
+            elif isinstance(item, self._List) :
                 self[index].toMongoDoc()
         return self
 
@@ -106,7 +106,7 @@ class List(list) :
         from util import json_serialize
         _ = []
         for item in self :
-            if isinstance(item, (self.List, self.Dict, self.Str, self.Object, self.DateTime, self.File, self.Folder, self.Audio)) :
+            if isinstance(item, (self._List, self._Dict, self._Str, self._Object, self._DateTime, self._File, self._Folder, self._Audio)) :
                 _.append(item.jsonSerialize())
             else :
                 _.append(json_serialize(item)) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
@@ -123,7 +123,7 @@ class List(list) :
         '''NOT IN PLACE'''
         return List(item.json() if 'json' in dir(item) else item for item in self)
 
-    def print(self, *, color = '', json = False) :
+    def print(self, *, color = '', json = True) :
         from util import E
         if json :
             print(color, self.json().j(), E if color != '' else '')
@@ -453,7 +453,7 @@ class List(list) :
         self._importTypes()
         if self.len() == 0 : return self.copy()
         if isinstance(key_list_or_func_name, list) :
-            if isinstance(self[0], self.Object) :
+            if isinstance(self[0], self._Object) :
                 return self.batched('_get', key_list_or_func_name)
             else :
                 return self.batched('get', key_list_or_func_name)
@@ -466,9 +466,9 @@ class List(list) :
                     raise e
                 except Exception as e :
                     raise e
-                if isinstance(item, self.Dict) :
+                if isinstance(item, self._Dict) :
                     attribute = item.__getattr__(key_list_or_func_name) # 可以允许字段不存在
-                elif isinstance(item, self.Object) :
+                elif isinstance(item, self._Object) :
                     try :
                         attribute = item.__getattr__(key_list_or_func_name)
                     except Exception as e :
@@ -487,9 +487,9 @@ class List(list) :
 
     def _stripItem(self, item, string, /) :
         self._importTypes()
-        if item is None or isinstance(item, (int, float, bool, range, bytes, zip, self.datetime)):
+        if item is None or isinstance(item, (int, float, bool, range, bytes, zip, self._datetime)):
             return item
-        elif isinstance(item, (self.List, self.Dict, self.Str)) : # can't be list, dict, str
+        elif isinstance(item, (self._List, self._Dict, self._Str)) : # can't be list, dict, str
             return item.strip(string)
         elif isinstance(item, tuple) :
             return (self._stripItem(_, string) for _ in item)
@@ -527,30 +527,32 @@ class List(list) :
         return self.copy().filter(func_or_func_name, *args, **kwargs)
 
     # @ensureArgsType
-    def filterByValue(self, key_list_or_func_name: Optional[Union[list, str]], value, /) :
+    def filterByValue(self, key_list_or_func_name: Optional[Union[list, str]], value_or_list, /) :
         '''IN PLACE'''
         self._importTypes()
+        if not isinstance(value_or_list, list) :
+            value_or_list = [ value_or_list ]
         if key_list_or_func_name is None :
-            return self.filter(lambda item : item == value)
+            return self.filter(lambda item : item in value_or_list)
         elif isinstance(key_list_or_func_name, list) :
-            if isinstance(self[0], self.Object) :
-                return self.filter(lambda item : item._data.get(key_list_or_func_name) == value)
+            if isinstance(self[0], self._Object) :
+                return self.filter(lambda item : item._data.get(key_list_or_func_name) in value_or_list)
             else :
-                return self.filter(lambda item : item.get(key_list_or_func_name) == value)
+                return self.filter(lambda item : item.get(key_list_or_func_name) in value_or_list)
         elif isinstance(key_list_or_func_name, str) :
             def getValue(item) :
-                if isinstance(item, self.Object) :
+                if isinstance(item, self._Object) :
                     attribute = item.__getattr__(key_list_or_func_name)
                 else :
                     attribute = item.__getattribute__(key_list_or_func_name)
                 if callable(attribute) : return attribute()
                 else : return attribute
-            return self.filter(lambda item : getValue(item) == value)
+            return self.filter(lambda item : getValue(item) in value_or_list)
         else : raise UserTypeError(key_list_or_func_name)
 
-    def filteredByValue(self, key_list_or_func_name, value, /) :
+    def filteredByValue(self, key_list_or_func_name, value_or_list, /) :
         '''NOT IN PLACE'''
-        return self.copy().filterByValue(key_list_or_func_name, value)
+        return self.copy().filterByValue(key_list_or_func_name, value_or_list)
 
     def reduce(self, func, initial_value, /, *args, **kwargs) :
         '''NOT IN PLACE'''
@@ -600,12 +602,12 @@ class List(list) :
         if key_list_or_func_name is None :
             return self[0]
         elif isinstance(key_list_or_func_name, list) :
-            if isinstance(self[0], self.Object) :
+            if isinstance(self[0], self._Object) :
                 return self[0]._data.get(key_list_or_func_name)
             else :
                 return self[0].get(key_list_or_func_name)
         elif isinstance(key_list_or_func_name, str) :
-            if isinstance(self[0], self.Object) :
+            if isinstance(self[0], self._Object) :
                 attribute = self[0].__getattr__(key_list_or_func_name)
             else :
                 attribute = self[0].__getattribute__(key_list_or_func_name)
@@ -633,7 +635,7 @@ class List(list) :
     def join(self, sep: str = '', /) :
         '''NOT IN PLACE'''
         self._importTypes()
-        return self.Str(sep).join(self)
+        return self._Str(sep).join(self)
 
     def unique(self) :
         '''IN PLACE'''

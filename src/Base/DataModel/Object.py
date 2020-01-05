@@ -126,7 +126,24 @@ class Object() :
         raise NotImplementedError
         return self._data.getMulti(name_list, de_underscore = True) # 字段可以不存在
 
-    def validateProperty(self) :
+    # 防止自嵌套死循环
+    def _antiLoop(func) :
+        @wraps(func)
+        def wrapper(self, *args, **kwargs) :
+            if self.getId() in Object._id_list :
+                result = object.__str__(self)
+            else :
+                Object._id_list.append(self.getId())
+                result = func(self, *args, **kwargs)
+                Object._id_list.remove(self.getId())
+            return result
+        return wrapper
+
+    @_antiLoop
+    def validateProperty(self, index = None) :
+        if index is not None and index >= 100 and index % 100 == 0 :
+            Timer.printTiming(f'validateProperty.{index}.{self!r}')
+        prefix = self.getSignature()
         try :
             pd = self.__getattribute__('_property_dict')
             from DateTime import DateTime, datetime
@@ -135,21 +152,24 @@ class Object() :
                     value = self._data[f'_{name}']
                     
                     if name[-4:] in ('list', 'List') and not isinstance(value, list) :
-                        raise Exception(f'属性 {name} 的值 {value} 不是列表')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不是列表\n')
                     elif name[-4:] not in ('list', 'List') and isinstance(value, list) :
-                        raise Exception(f'值为 {value} 的属性 {name} 后缀不是List/list')
+                        raise Exception(f'{prefix} 值为\n{value}\n的属性 {name} 后缀不是List/list\n')
                     elif isinstance(value, list) and len(value) > 0 and 'validateProperty' in dir(value[0]) :
-                        for item in value :
-                            item.validateProperty()
+                        for idx, item in value.enumerate() :
+                            item.validateProperty(idx + 1)
                     
                     if name[-4:] in ('dict', 'Dict') and not isinstance(value, dict) :
-                        raise Exception(f'属性 {name} 的值 {value} 不是字典')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不是字典\n')
                     elif name[-4:] not in ('dict', 'Dict') and isinstance(value, dict) :
-                        raise Exception(f'值为 {value} 的属性 {name} 后缀不是Dict/dict')
+                        raise Exception(f'{prefix} 值为\n{value}\n的属性 {name} 后缀不是Dict/dict\n')
                     elif isinstance(value, dict) :
                         for v in value.values() :
                             if 'validateProperty' in dir(v) :
                                 v.validateProperty()
+
+                    if isinstance(value, Object) :
+                        value.validateProperty()
 
                     pt = pd[name].type if pd[name].has('type') else None
                     pv = pd[name].validator if pd[name].has('validator') else None
@@ -158,29 +178,35 @@ class Object() :
                         if isinstance(value, list) :
                             if isinstance(pt, type) :
                                 if not all(list(map(lambda item : isinstance(item, pt), value))) :
-                                    raise Exception(f'属性 {name} 的列表值 {value} 不匹配类型 {pt}')
+                                    raise Exception(f'{prefix} 属性 {name} 的列表值\n{value}\n中有值不匹配类型 {pt}\n')
                             else :
                                 raise UserTypeError(pt)
                         else :
                             if isinstance(pt, type) :
                                 if not isinstance(value, pt) :
-                                    raise Exception(f'属性 {name} 的值 {value} 不匹配类型 {pt}')
+                                    raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n的类型 {type(value)} 不匹配类型 {pt}\n')
                             elif isinstance(pt, tuple) :
                                 if not any(list(map(lambda t : ((t is None or t is type(None)) and value is None) or (isinstance(value, t)), pt))) :
-                                    raise Exception(f'属性 {name} 的值 {value} 不匹配类型 {pt}')
+                                    raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n的类型 {type(value)} 不匹配类型 {pt}\n')
                             else :
                                 raise UserTypeError(pt)
 
+                    # if isinstance(pv, str) and isinstance(value, str) :
+                        # print(f'{value=} {pv=}')
+
                     if isinstance(pv, tuple) and value not in pv :
-                        raise Exception(f'属性 {name} 的值 {value} 不属于 {pv}')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不属于: \n{pv}\n')
                     elif isinstance(pv, str) and isinstance(value, (int, float, bool, bytes, range, tuple, set, list, dict, DateTime, datetime))\
                         and eval(pv.replace('#', 'value', re_mode = False)) is not True :
-                        raise Exception(f'属性 {name} 的值 {value} 不合法: {pv}')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不合法: [{pv}]\n')
                     elif isinstance(pv, str) and isinstance(value, str) and not value.fullMatch(pv) :
-                        raise Exception(f'属性 {name} 的值 {value} 不匹配 {pv}')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不匹配: \n[{pv}]\n')
         except Exception as e :
-            print(self)
+            # print(self)
             print(e)
+        except KeyboardInterrupt :
+            if index is not None : Timer.printTiming(f'{index}.{self}.{self._data}')
+            raise
         return self
 
     def _wrapValue(self, value, /) :
@@ -210,23 +236,27 @@ class Object() :
     def getRaw(self) :
         return self._data
 
+    def getSignature(self) :
+        return f'<{self.__class__} at {self.getId()}>'
+
+    @_antiLoop
     def jsonSerialize(self) :
-        from util import j
-        _ = self._data.jsonSerialize()
-        _['__instance__'] = f'<{self.__class__} at {self.getId()}>'
-        return _
+        result = self._data.jsonSerialize()
+        result['__instance__'] = self.getSignature()
+        return result
 
     # 可读化
     def j(self) :
         from util import j
         return j(self.jsonSerialize())
 
+    @_antiLoop
     def json(self) :
         from Dict import Dict
         return Dict((name, value.json() if 'json' in dir(value := self.__getattr__(name)) else value)
             for name in self.__getattribute__('_property_dict') if self._data.has(f'_{name}') or name in dir(self))
 
-    def print(self, *, color = '', json = False) :
+    def print(self, *, color = '', json = True) :
         from util import E
         if json :
             print(color, self.json().j(), E if color != '' else '')
@@ -234,20 +264,10 @@ class Object() :
             print(color, self.j(), E if color != '' else '')
         return self
 
+    @_antiLoop
     def __format__(self, code) :
-        # 防止自嵌套死循环
-        if self.getId() in Object._id_list :
-            return object.__str__(self)
-        Object._id_list.append(self.getId())
-        result = f'{self._data}'
-        Object._id_list.remove(self.getId())
-        return result
+        return f'{self._data}'
 
+    @_antiLoop
     def __str__(self) :
-        # 防止自嵌套死循环
-        if self.getId() in Object._id_list :
-            return object.__str__(self)
-        Object._id_list.append(self.getId())
-        result = f'<{self.__class__} at {self.getId()}>{str(self._data)}'
-        Object._id_list.remove(self.getId())
-        return result
+        return f'<{self.__class__} at {self.getId()}>._data={str(self._data)}'
