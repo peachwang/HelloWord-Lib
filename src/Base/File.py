@@ -7,7 +7,7 @@ class File(Object) :
 
     def __init__(self, file_path, folder = None, /) :
         Object.__init__(self)
-        self._registerProperty(['path', 'folder', 'folder_path', 'name', 'ext'])
+        self._registerProperty(['path', 'folder', 'folder_path', 'name', 'ext', 'range'])
         file_path           = Str(file_path)
         self._folder        = folder
         self._path          = file_path
@@ -59,22 +59,19 @@ class File(Object) :
     def size(self) :
         return getsize(self._path)
 
-    def loadData(self) :
-        if self.isTxt() :
-            return self.readLineList()
-        elif self.isJson() :
-            return self.loadJson()
-        else :
-            raise Exception(f'不支持的后缀名：{self._ext=}')
-
     def readLineList(self, *, filter_white_lines = False) :
-        result = List(line.strip('\n\r') for line in open(self._path))
+        if self._hasProperty('range') :
+            start = 0 if self._range.start is None else self._range.start
+            stop  = 0 if self._range.stop is None else self._range.stop
+            result = List(line.strip('\n\r') for index, line in enumerate(open(self._path)) if start <= index and index < stop)
+        else :
+            result = List(line.strip('\n\r') for line in open(self._path))
         if filter_white_lines :
             result.filter(lambda line : line.isNotEmpty())
         return result
 
     def readFieldList(self, *, index, sep = '\t') :
-        return self.readLineList(True).map(lambda line : line.split(sep)[index])
+        return self.readLineList(filter_white_lines = True).map(lambda line : line.split(sep)[index])
 
     def writeString(self, string, /, *, append = False) :
         open(self._path, 'a' if append else 'w').write(string)
@@ -95,13 +92,35 @@ class File(Object) :
     def loadJson(self, *, encoding = 'utf-8') :
         data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
         if isinstance(data, list) :
-            return List(data)
+            if self._hasProperty('range') :
+                return List(data)[self._range]
+            else :
+                return List(data)
         elif isinstance(data, dict) :
+            if self._hasProperty('range') :
+                raise Exception('Dict类File不可以有range')
             return Dict(data)
         else : raise UserTypeError(data)
 
     def dumpJson(self, data, /) :
         return self.writeData(data)
+
+    def loadData(self) :
+        if self.isTxt() :
+            return self.readLineList()
+        elif self.isJson() :
+            return self.loadJson()
+        else :
+            raise Exception(f'不支持的后缀名：{self._ext=}')
+
+    def __getitem__(self, index) :
+        if isinstance(index, slice) :
+            if index.step is not None :
+                raise UserTypeError(index)
+            self._range = index
+            return self
+        else :
+            raise UserTypeError(index)
 
     # def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
     #     if not is_matrix :

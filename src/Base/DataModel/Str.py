@@ -246,10 +246,11 @@ class Str(str) :
         '''NOT IN PLACE'''
         return self.__add__(string)
 
-    # def __len__(self) :
+    def __len__(self) :
         '''
         Return len(self).
         '''
+        return str.__len__(self)
 
     def len(self) :
         return str.__len__(self)
@@ -260,10 +261,11 @@ class Str(str) :
     def isNotEmpty(self) :
         return not self.isEmpty()
 
-    # def __contains__(self) :
+    def __contains__(self, sub, /) :
         '''
         x.__contains__(y) <==> y in x
         '''
+        return str.__contains__(self, sub)
 
     def has(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
         if not re_mode :

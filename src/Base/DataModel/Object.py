@@ -117,7 +117,7 @@ class Object() :
                         return pd[name_0][prefix]
 
         from util import P, E
-        raise Exception(f"Object{P}{type(self)}{E}中无{P}{name}{E}属性或方法, 只有这些属性: {(self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object)))}\n{pd=}")
+        raise Exception(f"Object {P}{type(self)}{E} 中无 {P}{name}{E} 属性或方法, 只有这些属性: {P}{(self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object)))}{E}\n{pd=}")
 
     def __getitem__(self, name) :
         return self.__getattr__(name)

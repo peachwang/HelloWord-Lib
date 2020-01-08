@@ -40,18 +40,21 @@ class LineStream(Object) :
             return self._content.split(' ')[0]
 
         def __format__(self, code) :
-            return f'[index = {self._index}; tag_name = {self._tag_name}; content = [{self._content}]]'
+            return f'index = [{self._index}] tag_name = [{self._tag_name}] content = [{self._content}]'
 
     # @Timer.timeitTotal('LineStream.__init__')
     def __init__(self, raw_line_list = [], /, *, tag_format_list = None) :
         Object.__init__(self)
-        self._registerProperty(['raw_line_list', 'line_list', 'tag_line', 'sub_stream_list'])
+        self._registerProperty(['raw_line_list', 'line_list', 'tag_line', 'tag_name', 'sub_stream_list'])
         self._raw_line_list = List(raw_line_list)
         self._line_list = List([ self.Line(index + 1, raw_line, tag_format_list) for (index, raw_line) in self._raw_line_list.enumerate() if raw_line.isNotEmpty() ])
 
     @cached_property
     def tag_name(self) :
-        return self._tag_line.tag_name
+        if self._hasProperty('tag_line') :
+            return self._tag_line.tag_name
+        else :
+            return self._tag_name
 
     @cached_property
     def tag_type(self) :
@@ -77,11 +80,15 @@ class LineStream(Object) :
         else : return value
 
     def _setTagLine(self, line, /) :
+        if self.__getattribute__('_property_dict').has(line.tag_name) :
+            raise Exception(f'接收到非法 {line.tag_name=}')
         self._setProperty('tag_line', line)
         self._setProperty(line.tag_name, line.content)
         return self
 
-    def _appendSubStream(self, sub_stream, /, *, is_list) :
+    def _appendSubStream(self, sub_stream, /, *, is_list: bool) :
+        if self.__getattribute__('_property_dict').has(sub_stream.tag_name) :
+            raise Exception(f'接收到非法 {sub_stream.tag_name=}')
         if is_list :
             self._appendProperty(sub_stream.tag_name, sub_stream)
         else :
@@ -105,17 +112,36 @@ class LineStream(Object) :
                 if is_ordered : tag_list = tag_list[tag_list.index(tag_1) : ]
             else : # 二级及以下的tag
                 if not self._hasProperty('sub_stream_list') :
-                    raise Exception(f'位置错误的line({line.raw})')
+                    raise Exception(f'位置错误的line\n{line.raw}\n{line.tag_name=}, {tag_list=}')
                 self._sub_stream_list[-1]._appendProperty('line_list', line)
+        return self
+
+    def groupSubStreamByLineTagName(self) :
+        for index, line in self._line_list.enumerate() :
+            Timer.printTiming(f'groupSubStreamByLineTagName.{index + 1}')
+            if self._hasProperty(line.tag_name) :
+                sub_stream = self.__getattr__(line.tag_name)
+            else :
+                sub_stream = LineStream().setTagName(line.tag_name)
+                self._appendSubStream(sub_stream, is_list = False)
+            # sub_stream._appendProperty('line_list', line)
+            sub_stream.appendLine(line)
         return self
 
     def hasSubStream(self, tag_name, /) :
         return self._hasProperty(tag_name)
 
-    def print(self) :
-        print(f'tag_line = {self._tag_line}')
+    def hasNotSubStream(self, tag_name, /) :
+        return self._hasNotProperty(tag_name)
+
+    def print(self, indent = '') :
+        if self._hasProperty('tag_line') : print(f'{indent}tag_line = {self._tag_line}')
         for line in self._line_list :
-            print(f'{line}')
+            print(f'{indent}{line}')
+        if self._hasProperty('sub_stream_list') :
+            for index, sub_stream in self._sub_stream_list.enumerate() :
+                print(f'\n{indent}    {Y}No.{index + 1}.{sub_stream.tag_name}{E}')
+                sub_stream.print(indent + '    ')
 
     def __format__(self, code) :
         if self._isOneLine() : return self.one_line_content

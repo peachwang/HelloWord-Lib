@@ -239,10 +239,11 @@ class Dict(dict) :
         # elif isinstance(data, dict) : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
         # else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
 
-    # def __len__(self) :
+    def __len__(self) :
         '''
         Return len(self).
         '''
+        return dict.__len__(self)
 
     def len(self) :
         return dict.__len__(self)
@@ -253,10 +254,11 @@ class Dict(dict) :
     def isNotEmpty(self) :
         return not self.isEmpty()
 
-    # def __contains__(self) :
+    def __contains__(self, key, /) :
         '''
         D.__contains__(k) -> True if D has a key k, else False.
         '''
+        return dict.__contains__(self, key)
 
     def has(self, key_list, /) :
         self._importTypes()

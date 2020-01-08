@@ -213,10 +213,11 @@ class List(list) :
     #     elif isinstance(data, dict) : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
     #     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
 
-    # def __len__(self) :
+    def __len__(self) :
         '''
         Return len(self).
         '''
+        return list.__len__(self)
 
     def len(self) :
         return list.__len__(self)
@@ -227,10 +228,11 @@ class List(list) :
     def isNotEmpty(self) :
         return not self.isEmpty()
 
-    # def __contains__(self, item) :
+    def __contains__(self, item, /) :
         '''
         x.__contains__(y) <==> y in x
         '''
+        return list.__contains__(self, item)
 
     def has(self, item, /) :
         return list.__contains__(self, item)
@@ -253,17 +255,36 @@ class List(list) :
         '''
         return list.count(self, item)
 
-    def index(self, item, /, *, start = 0) :
+    def leftIndex(self, item, /, *, start = 0) :
         '''
         L.index(value, [start, [stop]]) -> integer -- return first index of value.
         Raises ValueError if the value is not present.
         '''
         try :
-            result = list.index(self, item, start)
+            index = list.index(self, item, start)
         except ValueError :
             return None
         else :
-            return result
+            return index
+
+    def rightIndex(self, item, /) :
+        '''
+        L.index(value, [start, [stop]]) -> integer -- return first index of value.
+        Raises ValueError if the value is not present.
+        '''
+        try :
+            index = list.index(self.reversed(), item)
+        except ValueError :
+            return None
+        else :
+            return self.len() - index - 1
+
+    def uniqueIndex(self, item, /) :
+        if self.count(item) == 0 :
+            raise Exception(f'{self=}\n中值：\n{item=}\n不存在')
+        elif self.count(item) > 1 :
+            raise Exception(f'{self=}\n中值：\n{item=}\n不唯一')
+        return list.index(self, item)
 
     # def __getattribute__(self) :
         '''
@@ -284,11 +305,39 @@ class List(list) :
         raise Exception('请检查是否在批量调用List元素的方法获取结果List后，对结果List多加了()调用！')
 
     # @ensureArgsType
-    def __getitem__(self, index: Union[int, slice]) :
-        '''x.__getitem__(y) <==> x[y]'''
+    def __getitem__(self, index: Union[int, slice], /) :
+        '''
+        x.__getitem__(y) <==> x[y]
+        https://docs.python.org/3/library/collections.abc.html?highlight=__contains__#collections.abc.ByteString
+        Implementation note: Some of the mixin methods, such as __iter__(), __reversed__() and index(), make repeated calls to the underlying __getitem__() method. Consequently, if __getitem__() is implemented with constant access speed, the mixin methods will have linear performance; however, if the underlying method is linear (as it would be with a linked list), the mixins will have quadratic performance and will likely need to be overridden.
+        '''
         if isinstance(index, int) : return list.__getitem__(self, index)
-        elif isinstance(index, slice) : return List(list.__getitem__(self, index))
+        elif isinstance(index, slice) : 
+            if (index.start is None or isinstance(index.start, int))\
+            and (index.stop is None or isinstance(index.stop, int)) :
+                return List(list.__getitem__(self, index))
+            else :
+                start, end = None, None
+                for idx, item in self.enumerate() :
+                    if index.start is not None and start is None and index.start == item :
+                        start = idx
+                    elif start is not None and index.start == item :
+                        raise Exception(f'\n{self=}\n中有重复的 [{index.start=}]: [{item}]')
+                    if index.stop is not None and end is None and index.stop == item :
+                        end = idx
+                    elif end is not None and index.stop == item :
+                        raise Exception(f'\n{self=}\n中有重复的 [{index.stop=}]: [{item}]')
+                if index.start is not None and start is None :
+                    raise Exception(f'\n{self=}\n中不存在 [{index.start=}]')
+                if index.stop is not None and end is None :
+                    raise Exception(f'\n{self=}\n中不存在 [{index.stop=}]')
+                return self[start : end]
+        elif isinstance(index, tuple) : # Str.toRangeTuple() -> ((None, e1), idx2, (s3, e3), (s4, None))
+            raise NotImplementedError
         else : raise UserTypeError(index)
+
+    def getUniqueItem(self, item, /) :
+        return self[self.uniqueIndex(item)]
 
     # def __setattr__(self) :
         '''
@@ -365,10 +414,11 @@ class List(list) :
         list.remove(self, item)
         return self
     
-    # def __reversed__(self) :
+    def __reversed__(self) :
         '''
         L.__reversed__() -- return a reverse iterator over the list
         '''
+        return list.__reversed__(self)
 
     def reverse(self) :
         '''L.reverse() -> None -- reverse *IN PLACE*'''

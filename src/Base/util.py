@@ -111,6 +111,8 @@ def highlightTraceback(func) :
                     flag = False
                 elif not flag and line.has('HelloWord') :
                     line_list[index] = P + line_list[index] + E
+                    if index >= 1 and line_list[index - 1].has('HelloWord-Lib') :
+                        line_list[index - 1] = Y + line_list[index - 1] + E
                     flag = True
             line_list.reverse().forEach(lambda line : print(line))
     return wrapper
