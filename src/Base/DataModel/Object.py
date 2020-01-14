@@ -2,7 +2,6 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from functools import wraps, partial, lru_cache, singledispatchmethod
 from shared import ensureArgsType, Optional, Union, UserTypeError
-from Timer import Timer
 
 class Object() :
 
@@ -141,6 +140,7 @@ class Object() :
 
     @_antiLoop
     def validateProperty(self, index = None) :
+        from Timer import Timer
         if index is not None and index >= 100 and index % 100 == 0 :
             Timer.printTiming(f'validateProperty.{index}.{self!r}')
         prefix = self.getSignature()

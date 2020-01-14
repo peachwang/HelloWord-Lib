@@ -132,10 +132,10 @@ class Dict(dict) :
         return _
 
     # 可读化
-    def j(self) :
+    def j(self, *, indent = True) :
         '''NOT IN PLACE'''
         from util import j
-        return j(self.jsonSerialize())
+        return j(self.jsonSerialize(), indent = 4 if indent else None)
 
     def json(self) :
         '''带有业务逻辑，与 j 不同'''
@@ -501,8 +501,8 @@ class Dict(dict) :
         dict.clear(self)
         return self
 
-    def writeToFile(self, file, /) :
-        file.writeString(self.j())
+    def writeToFile(self, file, /, *, indent = True) :
+        file.writeString(self.j(indent = indent))
         return self
 
     # python2

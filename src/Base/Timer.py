@@ -48,10 +48,13 @@ class Timer() :
     def timeitOnce(func, msg = '', /) :
         Timer.__initclass__()
         @wraps(func)
-        def wrapper(self, *args, **kwargs) :
+        def wrapper(self = None, *args, **kwargs) :
             Timer.printTiming('{}{} starts'.format(func.__qualname__, msg))
             current = time()
-            result = func(self, *args, **kwargs)
+            if self is None :
+                result = func(*args, **kwargs)
+            else :
+                result = func(self, *args, **kwargs)
             delta = time() - current
             Timer.printTiming(f'{func.__qualname__}{msg} 结束', delta)
             return result
@@ -61,7 +64,7 @@ class Timer() :
         def decorator(func) :
             if Timer._timeitTotalOff : return func
             @wraps(func)
-            def wrapper(self, *args, **kwargs) :
+            def wrapper(self = None, *args, **kwargs) :
                 Timer.__initclass__()
                 # key = func.__qualname__
                 from Dict import Dict
@@ -79,7 +82,10 @@ class Timer() :
                     else :
                         Timer._timer_dict[key] = timer = Timer(key)
                 current = time()
-                result = func(self, *args, **kwargs)
+                if self is None :
+                    result = func(*args, **kwargs)
+                else :
+                    result = func(self, *args, **kwargs)
                 timer.add(time() - current)
                 return result
             return wrapper

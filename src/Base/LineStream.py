@@ -7,25 +7,32 @@ class LineStream(Object) :
     class Line(Object) :
 
         @Timer.timeitTotal('Line.__init__')
-        def __init__(self, index, raw_line, tag_format_list = None, /) :
+        def __init__(self, index, raw_line, /) :
             Object.__init__(self)
             self._registerProperty(['index', 'raw_line', 'tag_format'])
             self._index, self._raw_line = index, Str(raw_line)
+
+        def tagByFormatList(self, tag_format_list, /) :
             tag_format_list = List(tag_format_list)
-            if tag_format_list.isNotEmpty() :
-                for tag_format in tag_format_list :
-                    if (tag_format == '[]' and (m := self._raw_line.fullMatch(r'^\[(?P<tag_name>[^\[\]]+)\](?P<content>.*)$')))\
-                    or (tag_format == '【】' and (m := self._raw_line.fullMatch(r'^【(?P<tag_name>[^【】]+)】(?P<content>.*)$')))\
-                    or (tag_format == '#' and (m := self._raw_line.fullMatch(r'^#(?P<tag_name>[^ ]+) *(?P<content>.*)$'))) :
-                        self._tag_name, self._content, self._tag_format = m.tag_name, m.content, tag_format
-                        return
-                raise Exception(f'{index + 1}.[{self._raw_line}]不匹配{tag_format_list=}')
-            else :
-                self._content = self._raw_line
+            for tag_format in tag_format_list :
+                if (tag_format == '[]' and (m := self._raw_line.fullMatch(r'^\[(?P<tag_name>[^\[\]]+)\](?P<content>.*)$')))\
+                or (tag_format == '#' and (m := self._raw_line.fullMatch(r'^#(?P<tag_name>[^ ]+) *(?P<content>.*)$')))\
+                or (tag_format == '【】' and (m := self._raw_line.fullMatch(r'^【(?P<tag_name>[^【】]+)】(?P<content>.*)$'))) :
+                    self._tag_name, self._content, self._tag_format = m.tag_name, m.content, tag_format
+                    return
+            raise Exception(f'{index + 1}.[{self._raw_line}]不匹配{tag_format_list=}')
+
+        def tagByContext(self, *, tag_func, raw_line_list) :
+            self._tag_name = tag_func(raw_line_list = raw_line_list, index = self._index - 1)
+            self._content  = self._raw_line
+            return self
 
         @property
         def raw(self):
-            return (self._index, self._raw_line, self._tag_format)
+            if self.hasTagFormat() :
+                return (self._index, self._raw_line, self._tag_format)
+            else :
+                return (self._index, self._raw_line)
 
         @cached_property
         def tag_name(self) :
@@ -42,12 +49,31 @@ class LineStream(Object) :
         def __format__(self, code) :
             return f'index = [{self._index}] tag_name = [{self._tag_name}] content = [{self._content}]'
 
+        def print(self) :
+            print(f'{self}')
+            return self
+
     # @Timer.timeitTotal('LineStream.__init__')
-    def __init__(self, raw_line_list = [], /, *, tag_format_list = None) :
+    def __init__(self, raw_line_list = [], /) :
         Object.__init__(self)
         self._registerProperty(['raw_line_list', 'line_list', 'tag_line', 'tag_name', 'sub_stream_list'])
         self._raw_line_list = List(raw_line_list)
-        self._line_list = List([ self.Line(index + 1, raw_line, tag_format_list) for (index, raw_line) in self._raw_line_list.enumerate() if raw_line.isNotEmpty() ])
+
+    def tagByFormatList(self, *, tag_format_list = None) :
+        self._line_list = List([ self.Line(index + 1, raw_line).tagByFormatList(tag_format_list) for (index, raw_line) in self._raw_line_list.enumerate() if raw_line.isNotEmpty() ])
+        return self
+    
+    def tagByContext(self, *, tag_func) :
+        self._line_list = List()
+        for index, raw_line in self._raw_line_list.enumerate() :
+            self.appendLine(
+                self.Line(index + 1, raw_line)\
+                    .tagByContext(
+                        tag_func      = tag_func,
+                        raw_line_list = self._data['_raw_line_list']
+                    )
+            )
+        return self
 
     @cached_property
     def tag_name(self) :
@@ -57,11 +83,21 @@ class LineStream(Object) :
             return self._tag_name
 
     @cached_property
+    def tag_content(self) :
+        if self._hasProperty('tag_line') :
+            return self._tag_line.content
+        else :
+            return self.one_line_content
+
+    @cached_property
     def tag_type(self) :
         return self._tag_line.tag_type
 
     def _isOneLine(self) :
         return self._line_list.isEmpty()
+
+    def _isNotOneLine(self) :
+        return self._line_list.isNotEmpty()
 
     @cached_property
     def one_line_content(self) :
@@ -84,6 +120,7 @@ class LineStream(Object) :
             raise Exception(f'接收到非法 {line.tag_name=}')
         self._setProperty('tag_line', line)
         self._setProperty(line.tag_name, line.content)
+        self._setProperty('line_list', List())
         return self
 
     def _appendSubStream(self, sub_stream, /, *, is_list: bool) :
@@ -116,6 +153,7 @@ class LineStream(Object) :
                 self._sub_stream_list[-1]._appendProperty('line_list', line)
         return self
 
+    # 无法预先枚举tag_name的情况，用此方法
     def groupSubStreamByLineTagName(self) :
         for index, line in self._line_list.enumerate() :
             Timer.printTiming(f'groupSubStreamByLineTagName.{index + 1}')
@@ -135,13 +173,22 @@ class LineStream(Object) :
         return self._hasNotProperty(tag_name)
 
     def print(self, indent = '') :
-        if self._hasProperty('tag_line') : print(f'{indent}tag_line = {self._tag_line}')
-        for line in self._line_list :
-            print(f'{indent}{line}')
+        print(f'{indent}{self!a}')
+        if self._hasProperty('tag_line') and self._isNotOneLine() :
+            print(f'\n{indent}tag_line = {self._tag_line}')
         if self._hasProperty('sub_stream_list') :
+            print()
             for index, sub_stream in self._sub_stream_list.enumerate() :
-                print(f'\n{indent}    {Y}No.{index + 1}.{sub_stream.tag_name}{E}')
+                print(f'{indent}    {Y}No.{index + 1}.{sub_stream.tag_name}.{sub_stream.tag_content}{E}')
                 sub_stream.print(indent + '    ')
+        elif self._hasProperty('line_list') :
+            for line in self._line_list :
+                print(f'{indent}{line}')
+        else :
+            for line in self._raw_line_list :
+                print(f'{indent}{line}')
+        print()
+        return self
 
     def __format__(self, code) :
         if self._isOneLine() : return self.one_line_content

@@ -38,19 +38,23 @@ class Folder(Object) :
     def __str__(self) :
         return self.__format__('')
 
-    def mkdir(self) :
-        makedirs(self._path, exist_ok = True)
-        return self
+    def mkdir(folder_path) :
+        makedirs(folder_path, exist_ok = True)
+        return Folder
 
-    def exists(self) :
-        return path.exists(self._path)
+    def exists(folder_path) :
+        return path.exists(folder_path)
 
-    def notExists(self) :
-        return not self.exists()
+    def notExists(folder_path) :
+        return not Folder.exists(folder_path)
 
     @property
     def sub_file_list(self) :
         return self._sub_file_list.copy()
+
+    @property
+    def sub_folder_list(self) :
+        return self.sub_folder_list.copy()
 
     @property
     def flattern_sub_file_list(self) :

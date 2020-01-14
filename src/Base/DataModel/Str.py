@@ -3,7 +3,7 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 import re
 from shared import ensureArgsType, Optional, Union, UserTypeError
 from Object import Object
-from Timer import Timer
+# from Timer import Timer
 
 # https://docs.python.org/3/library/re.html
 
@@ -260,6 +260,13 @@ class Str(str) :
 
     def isNotEmpty(self) :
         return not self.isEmpty()
+
+    def isIn(self, item_list, /) :
+        from List import List
+        return List(item_list).has(self)
+
+    def isNotIn(self, item_list, /) :
+        return not self.isIn(item_list)
 
     def __contains__(self, sub, /) :
         '''

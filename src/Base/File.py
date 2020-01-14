@@ -81,8 +81,8 @@ class File(Object) :
         return self.writeString(List(line_list).join('\n'), append = append)
 
     # @ensureArgsType
-    def writeData(self, data: Union[List, Dict], /) :
-        data.writeToFile(self)
+    def writeData(self, data: Union[List, Dict], /, *, indent = True) :
+        data.writeToFile(self, indent = indent)
         return self
 
     def writeBytes(self, bytes_content, /) :
@@ -102,8 +102,8 @@ class File(Object) :
             return Dict(data)
         else : raise UserTypeError(data)
 
-    def dumpJson(self, data, /) :
-        return self.writeData(data)
+    def dumpJson(self, data, /, *, indent = True) :
+        return self.writeData(data, indent = indent)
 
     def loadData(self) :
         if self.isTxt() :

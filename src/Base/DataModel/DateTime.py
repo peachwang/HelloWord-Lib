@@ -9,6 +9,7 @@ class DateTime(Object) :
     # @ensureArgsType
     def __init__(self, timestamp_or_datetime: Optional[Union[datetime, int, float]] = None, /) :
         Object.__init__(self)
+        self._registerProperty(['timestamp'])
         if timestamp_or_datetime is None :
             self._timestamp = time()
         elif isinstance(timestamp_or_datetime, datetime) :

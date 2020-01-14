@@ -3,7 +3,7 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from inspect import isgenerator
 from shared import ensureArgsType, Optional, Union, UserTypeError
-from Timer import Timer
+# from Timer import Timer
 
 class List(list) :
 
@@ -16,9 +16,9 @@ class List(list) :
         from Str import Str; self._Str = Str
         from Object import Object; self._Object = Object
         from DateTime import DateTime, datetime; self._DateTime, self._datetime = DateTime, datetime
-        from File import File; self._File = File
-        from Folder import Folder; self._Folder = Folder
-        from Audio import Audio; self._Audio = Audio
+        # from File import File; self._File = File
+        # from Folder import Folder; self._Folder = Folder
+        # from Audio import Audio; self._Audio = Audio
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         self._has_imported_types = True
 
@@ -113,10 +113,10 @@ class List(list) :
         return _
 
     # 可读化
-    def j(self) :
+    def j(self, *, indent = True) :
         '''NOT IN PLACE'''
         from util import j
-        return j(self.jsonSerialize())
+        return j(self.jsonSerialize(), indent = 4 if indent else None)
 
     def json(self) :
         '''带有业务逻辑，与 j 不同'''
@@ -299,6 +299,8 @@ class List(list) :
         exist; without it, an exception is raised in that case.
         '''
         '''NOT IN PLACE'''
+        if self.len() == 0 :
+            raise Exception('不能对空列表进行 __getattr__ 操作，请检查是否是希望对Dict进行操作！')
         return self.valueList(key_or_func_name)
 
     def __call__(self) :
@@ -393,9 +395,11 @@ class List(list) :
         '''IN PLACE'''
         if isinstance(item_list, (list, GeneratorType)) or isgenerator(item_list) or '__next__' in dir(item_list) :
             list.extend(self, List(item_list))
-        elif item_list is None : return self
-        else : raise UserTypeError(item_list)
-        return self
+            return self
+        elif item_list is None :
+            return self
+        else :
+            raise UserTypeError(item_list)
 
     def extended(self, item_list, /) :
         '''NOT IN PLACE'''
@@ -459,8 +463,8 @@ class List(list) :
         if inspect.isclass(func) :
             func = func.__init__
             pos += 1
-        func_args = inspect.getargspec(func).args
-        if len(func_args) > pos and func_args[pos] == 'index' :
+        func_args = list(inspect.signature(func).parameters.values())
+        if len(func_args) > pos and func_args[pos].name == 'index' :
             return [ index ] + list(args)
         else :
             return args
@@ -800,8 +804,8 @@ class List(list) :
         list.clear(self)
         return self
     
-    def writeToFile(self, file, /) :
-        file.writeString(self.j())
+    def writeToFile(self, file, /, *, indent = True) :
+        file.writeString(self.j(indent = indent))
         return self
 
     def writeLineListToFile(self, file, /) :
