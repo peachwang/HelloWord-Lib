@@ -59,7 +59,7 @@ class LineStream(Object) :
         self._registerProperty(['raw_line_list', 'line_list', 'tag_line', 'tag_name', 'sub_stream_list'])
         self._raw_line_list = List(raw_line_list)
 
-    def tagByFormatList(self, *, tag_format_list = None) :
+    def tagByFormatList(self, tag_format_list = None, /) :
         self._line_list = List([ self.Line(index + 1, raw_line).tagByFormatList(tag_format_list) for (index, raw_line) in self._raw_line_list.enumerate() if raw_line.isNotEmpty() ])
         return self
     
