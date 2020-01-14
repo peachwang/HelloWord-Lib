@@ -19,7 +19,7 @@ class LineStream(Object) :
                 or (tag_format == '#' and (m := self._raw_line.fullMatch(r'^#(?P<tag_name>[^ ]+) *(?P<content>.*)$')))\
                 or (tag_format == '【】' and (m := self._raw_line.fullMatch(r'^【(?P<tag_name>[^【】]+)】(?P<content>.*)$'))) :
                     self._tag_name, self._content, self._tag_format = m.tag_name, m.content, tag_format
-                    return
+                    return self
             raise Exception(f'{index + 1}.[{self._raw_line}]不匹配{tag_format_list=}')
 
         def tagByContext(self, *, tag_func, raw_line_list) :
