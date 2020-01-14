@@ -152,17 +152,17 @@ class Object() :
                     value = self._data[f'_{name}']
                     
                     if name[-4:] in ('list', 'List') and not isinstance(value, list) :
-                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不是列表\n')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不是列表\n{self}\n')
                     elif name[-4:] not in ('list', 'List') and isinstance(value, list) :
-                        raise Exception(f'{prefix} 值为\n{value}\n的属性 {name} 后缀不是List/list\n')
+                        raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是List/list\n{self}\n')
                     elif isinstance(value, list) and len(value) > 0 and 'validateProperty' in dir(value[0]) :
                         for idx, item in value.enumerate() :
                             item.validateProperty(idx + 1)
                     
                     if name[-4:] in ('dict', 'Dict') and not isinstance(value, dict) :
-                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不是字典\n')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不是字典\n{self}\n')
                     elif name[-4:] not in ('dict', 'Dict') and isinstance(value, dict) :
-                        raise Exception(f'{prefix} 值为\n{value}\n的属性 {name} 后缀不是Dict/dict\n')
+                        raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是Dict/dict\n{self}\n')
                     elif isinstance(value, dict) :
                         for v in value.values() :
                             if 'validateProperty' in dir(v) :
@@ -178,16 +178,16 @@ class Object() :
                         if isinstance(value, list) :
                             if isinstance(pt, type) :
                                 if not all(list(map(lambda item : isinstance(item, pt), value))) :
-                                    raise Exception(f'{prefix} 属性 {name} 的列表值\n{value}\n中有值不匹配类型 {pt}\n')
+                                    raise Exception(f'{prefix} 属性 {name} 的列表值\n[{value}]\n中有值不匹配类型 {pt}\n{self}\n')
                             else :
                                 raise UserTypeError(pt)
                         else :
                             if isinstance(pt, type) :
                                 if not isinstance(value, pt) :
-                                    raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n的类型 {type(value)} 不匹配类型 {pt}\n')
+                                    raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
                             elif isinstance(pt, tuple) :
                                 if not any(list(map(lambda t : ((t is None or t is type(None)) and value is None) or (isinstance(value, t)), pt))) :
-                                    raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n的类型 {type(value)} 不匹配类型 {pt}\n')
+                                    raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
                             else :
                                 raise UserTypeError(pt)
 
@@ -195,15 +195,16 @@ class Object() :
                         # print(f'{value=} {pv=}')
 
                     if isinstance(pv, tuple) and value not in pv :
-                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不属于: \n{pv}\n')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不属于: \n{pv}\n{self}\n')
                     elif isinstance(pv, str) and isinstance(value, (int, float, bool, bytes, range, tuple, set, list, dict, DateTime, datetime))\
                         and eval(pv.replace('#', 'value', re_mode = False)) is not True :
-                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不合法: [{pv}]\n')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不合法: [{pv}]\n{self}\n')
                     elif isinstance(pv, str) and isinstance(value, str) and not value.fullMatch(pv) :
-                        raise Exception(f'{prefix} 属性 {name} 的值\n{value}\n不匹配: \n[{pv}]\n')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不匹配: \n[{pv}]\n{self.entry.print()}\n')
         except Exception as e :
-            # print(self)
+            # print(self.j())
             print(e)
+            # raise e
         except KeyboardInterrupt :
             if index is not None : Timer.printTiming(f'{index}.{self}.{self._data}')
             raise
