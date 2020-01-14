@@ -141,6 +141,7 @@ class Object() :
     @_antiLoop
     def validateProperty(self, index = None) :
         from Timer import Timer
+        # if index is not None and index >= 100 and index % 1 == 0 :
         if index is not None and index >= 100 and index % 100 == 0 :
             Timer.printTiming(f'validateProperty.{index}.{self!r}')
         prefix = self.getSignature()
@@ -200,7 +201,7 @@ class Object() :
                         and eval(pv.replace('#', 'value', re_mode = False)) is not True :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不合法: [{pv}]\n{self}\n')
                     elif isinstance(pv, str) and isinstance(value, str) and not value.fullMatch(pv) :
-                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不匹配: \n[{pv}]\n{self.entry.print()}\n')
+                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不匹配: \n[{pv}]\n[{self}]\n')
         except Exception as e :
             # print(self.j())
             print(e)
@@ -260,7 +261,7 @@ class Object() :
     def print(self, *, color = '', json = True) :
         from util import E
         if json :
-            print(color, self.json().j(), E if color != '' else '')
+            print(color, _ if isinstance(_ := self.json(), str) else _.j(), E if color != '' else '')
         else :
             print(color, self.j(), E if color != '' else '')
         return self
