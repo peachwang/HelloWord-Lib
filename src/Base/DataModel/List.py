@@ -16,9 +16,9 @@ class List(list) :
         from Str import Str; self._Str = Str
         from Object import Object; self._Object = Object
         from DateTime import DateTime, datetime; self._DateTime, self._datetime = DateTime, datetime
-        # from File import File; self._File = File
-        # from Folder import Folder; self._Folder = Folder
-        # from Audio import Audio; self._Audio = Audio
+        from File import File; self._File = File
+        from Folder import Folder; self._Folder = Folder
+        from Audio import Audio; self._Audio = Audio
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         self._has_imported_types = True
 
@@ -299,8 +299,8 @@ class List(list) :
         exist; without it, an exception is raised in that case.
         '''
         '''NOT IN PLACE'''
-        if self.len() == 0 :
-            raise Exception('不能对空列表进行 __getattr__ 操作，请检查是否是希望对Dict进行操作！')
+        # if self.len() == 0 :
+        #     raise Exception('不能对空列表进行 __getattr__ 操作，请检查是否是希望对Dict进行操作！')
         return self.valueList(key_or_func_name)
 
     def __call__(self) :
