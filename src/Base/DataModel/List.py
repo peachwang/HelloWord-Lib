@@ -88,7 +88,7 @@ class List(list) :
     def toMongoDoc(self) :
         from bson import ObjectId
         self._importTypes()
-        for index, item in self.enumerate() :
+        for index, item in self.enum() :
             if isinstance(item, self._Dict) :
                 if item.has('$id') :
                     self[index] = ObjectId(item['$id'])
@@ -123,13 +123,18 @@ class List(list) :
         '''NOT IN PLACE'''
         return List(item.json() if 'json' in dir(item) else item for item in self)
 
+    def printLen(self, *, color = '') :
+        from util import E
+        print(f"{color}{self.len()}个元素{E() if color != '' else ''}")
+        return self
+
     def print(self, *, color = '', json = True) :
         from util import E
         if json :
-            print(color, self.json().j(), E if color != '' else '')
+            print(f"{color}{self.json().j()}{E() if color != '' else ''}")
         else :
-            print(color, self.j(), E if color != '' else '')
-        return self
+            print(f"{color}{self.j()}{E() if color != '' else ''}")
+        return self.printLen(color = color)
 
     def __format__(self, code) :
         '''default object formatter'''
@@ -145,73 +150,13 @@ class List(list) :
                 .join(', ')
         )
 
-    def stat(self, *, msg = '') :
+    def stat(self, msg = '') :
         print(f"{'' if msg == '' else f'{msg}: '}{self.len()}个")
         return self
 
     def inspect(self) :
-        raise NotImplementedError
-
-    # DataStructure Module
-    #   def inspect()
-    #   def compatibleTo
-    #   def validate
-    #   def difference/delta
-
-
-    # # move
-    # def inspect(data, max_depth = 10, depth = 0) :
-    # https://docs.python.org/3/library/reprlib.html
-    #     # print(str(data)[:120])
-    #     if depth > max_depth :
-    #         if data is None : return None 
-    #         elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
-    #         elif isinstance(data, list) : return '[ {} items folded ]'.format(len(data))
-    #         elif isinstance(data, dict) : return '{{ {} keys folded }}'.format(len(data))
-    #         else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
-    #     if data is None : return None
-    #     elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
-    #     elif isinstance(data, list) :
-    #         if len(data) == 0 : return data
-    #         elif len(data) == 1 : return List([ inspect(data[0], max_depth, depth + 1) ])
-    #         elif len(data) == 2 : return List([ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1) ])
-            
-    #         # len >= 3
-    #         result_0 = inspect(data[0], max_depth, depth + 1)
-    #         _ = '------------------------------'
-    #         if isinstance(result_0, dict) :
-    #             for index, datum_i in enumerate(data) :
-    #                 if not isinstance(datum_i, dict) : raise Exception('列表中元素类型不一致({})'.format(datum_i))
-    #                 for key, value in datum_i.items() :
-    #                     if key not in result_0 :
-    #                         result_0[key] = inspect(value, max_depth, depth + 1) # 【补充】第0个元素中不存在的字段
-    #                         continue
-    #                     if data[0].get(key) is not None and isinstance(data[0][key], list) : continue # 列表类【原生】字段不扩充POSSIBLE VALUES
-    #                     if data[0].get(key) is not None and isinstance(data[0][key], dict) : continue # 字典类【原生】字段不扩充POSSIBLE VALUES
-    #                     if data[0].get(key) is None and isinstance(result_0[key], list)
-    #                         and not (isinstance(result_0[key][0], str) and 'POSSIBLE VALUES' in result_0[key][0]) : continue # 列表类【补充】字段不扩充POSSIBLE VALUES
-    #                     if data[0].get(key) is None and isinstance(result_0[key], dict) : continue # 字典类【补充】字段不扩充POSSIBLE VALUES
-    #                     # 此时待补充的是非列表字典类字段
-    #                     if isinstance(value, list) or isinstance(value, dict) : raise Exception('列表中元素类型不一致({})'.format(value))
-    #                     # 此时value一定为非列表字典类数据
-    #                     if not isinstance(result_0[key], list) : # 暂未扩充过，现进行首次扩充POSSIBLE VALUES
-    #                         result_0[key] = [
-    #                             _ + 'POSSIBLE VALUES' + _, 
-    #                             result_0[key]
-    #                         ]
-    #                         if inspect(value, max_depth, depth + 1) != result_0[key][1] :
-    #                             result_0[key].append(inspect(value, max_depth, depth + 1))
-    #                     else : # 非首次扩充POSSIBLE VALUES
-    #                         if len(result_0[key]) < 5 :
-    #                             if inspect(value, max_depth, depth + 1) not in result_0[key] :
-    #                                 result_0[key].append(inspect(value, max_depth, depth + 1)) # 扩充
-    #                         if index == len(data) - 1 :
-    #                             result_0[key].append('{} TOTAL {} SIMILAR ITEMS {}'.format(_, len(data), _))
-    #             return [ result_0, '{} TOTAL {} SIMILAR DICTS {}'.format(_, len(data), _) ]
-    #         else : # 非字典类数据，含列表
-    #             return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1), '{} TOTAL {} SIMILAR LISTS {}'.formart(_, len(data), _) ]
-    #     elif isinstance(data, dict) : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
-    #     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+        from Inspect import Inspect
+        return Inspect(self)
 
     def __len__(self) :
         '''
@@ -306,6 +251,11 @@ class List(list) :
     def __call__(self) :
         raise Exception('请检查是否在批量调用List元素的方法获取结果List后，对结果List多加了()调用！')
 
+    def get(self, index: int, /, *, default = None) :
+        if not isinstance(index, int) :raise UserTypeError(index)
+        if index >= self.len() : return default
+        else : return self.__getitem__(index)
+
     # @ensureArgsType
     def __getitem__(self, index: Union[int, slice], /) :
         '''
@@ -320,7 +270,7 @@ class List(list) :
                 return List(list.__getitem__(self, index))
             else :
                 start, end = None, None
-                for idx, item in self.enumerate() :
+                for idx, item in self.enum() :
                     if index.start is not None and start is None and index.start == item :
                         start = idx
                     elif start is not None and index.start == item :
@@ -360,22 +310,38 @@ class List(list) :
         self.__setitem__(index, item)
         return self
 
+    def setted(self, index, item, /) :
+        '''NOT IN PLACE'''
+        return self.copy().set(index, item)
+
     def append(self, item, /) :
         '''L.append(object) -> None -- append object to end'''
         '''IN PLACE'''
         list.append(self, self._wrapItem(item))
         return self
 
+    def appended(self, item, /) :
+        '''NOT IN PLACE'''
+        return self.copy().append(item)
+
     def prepend(self, item, /) :
         '''L.prepend(object) -> None -- append object to start'''
         '''IN PLACE'''
         return self.insert(0, item)
+
+    def prepended(self, item, /) :
+        '''NOT IN PLACE'''
+        return self.copy().prepend(item)
 
     def insert(self, index, item, /) :
         '''L.insert(index, object) -> None -- insert object before index'''
         '''IN PLACE'''
         list.insert(self, index, self._wrapItem(item))
         return self
+
+    def inserted(self, index, item, /) :
+        '''NOT IN PLACE'''
+        return self.copy().insert(index, item)
 
     # @ensureArgsType
     def __add__(self, item_list: list) :
@@ -411,12 +377,20 @@ class List(list) :
         '''IN PLACE'''
         return list.pop(self, index)
 
+    def popped(self, index = -1, /) :
+        '''NOT IN PLACE'''
+        return self.copy().pop(index)
+
     def remove(self, item, /) :
         '''L.remove(value) -> None -- remove first occurrence of value.
         Raises ValueError if the value is not present.'''
         '''IN PLACE'''
         list.remove(self, item)
         return self
+
+    def removed(self, item, /) :
+        '''NOT IN PLACE'''
+        return self.copy().remove()
     
     def __reversed__(self) :
         '''
@@ -442,7 +416,7 @@ class List(list) :
 
     def sorted(self, key_func = None, /, *, reverse = False) :
         '''NOT IN PLACE'''
-        return self.copy().sort(key_func, reverse)
+        return self.copy().sort(key_func, reverse = reverse)
 
     def shuffle(self) :
         '''IN PLACE'''
@@ -455,6 +429,9 @@ class List(list) :
         return self.copy().shuffle()
 
     def enumerate(self) :
+        return enumerate(self)
+
+    def enum(self) :
         return enumerate(self)
 
     # pos为index在func的参数表里的下标，即本函数在func的参数表的下标
@@ -471,14 +448,14 @@ class List(list) :
 
     def forEach(self, func, /, *args, **kwargs) :
         '''NOT IN PLACE'''
-        for index, item in enumerate(self) :
+        for index, item in self.enum() :
             func(item, *(self._leftPadIndexToArgs(func, args, index, 1)), **kwargs)
         return self
 
     # @ensureArgsType
     def batch(self, func_name: str, /, *args, **kwargs) :
         '''IN PLACE'''
-        for index, item in enumerate(self) :
+        for index, item in self.enum() :
             attribute = self[index].__getattribute__(func_name)
             if callable(attribute) :
                 self[index] = attribute(*(self._leftPadIndexToArgs(attribute, args, index, 0)), **kwargs)
@@ -491,7 +468,7 @@ class List(list) :
 
     def map(self, func, /, *args, **kwargs) :
         '''IN PLACE'''
-        for index, item in enumerate(self) :
+        for index, item in self.enum() :
             self[index] = func(item, *(self._leftPadIndexToArgs(func, args, index, 1)), **kwargs)
         return self
 
@@ -532,7 +509,7 @@ class List(list) :
                         attribute = item.__getattribute__(key_list_or_func_name)
                     except AttributeError :
                         from util import P, E
-                        raise Exception(f'{P}{type(item)=}{E} has no attribute {P}{key_list_or_func_name}{E}; 请检查是否采用了错误的调用方式：xList.yList.z; {self=}; {item=}')
+                        raise Exception(f'{P()}{type(item)=}{E()} has no attribute {P(key_list_or_func_name)}; 请检查是否采用了错误的调用方式：xList.yList.z; {self=}; {item=}')
                     except Exception as e :
                         raise e
                 return attribute
@@ -561,7 +538,16 @@ class List(list) :
 
     def stripped(self, string = ' \t\n', /) :
         '''NOT IN PLACE'''
-        return self.strip(string)
+        return self.copy().strip(string)
+
+    def replaceStrList(self, sub_or_pattern, repl_str_func, /, *, re_mode: bool, count = None, flags = 0) :
+        '''IN PLACE'''
+        from Str import Str
+        return self.map(Str.replace, sub_or_pattern, repl_str_func, re_mode = re_mode, count = count, flags = flags)
+
+    def replacedStrList(self, sub_or_pattern, repl_str_func, /, *, re_mode: bool, count = None, flags = 0) :
+        '''NOT IN PLACE'''
+        return self.copy().replaceStrList()
 
     def filter(self, func_or_func_name, /, *args, **kwargs) :
         '''IN PLACE'''
@@ -611,7 +597,7 @@ class List(list) :
     def reduce(self, func, initial_value, /, *args, **kwargs) :
         '''NOT IN PLACE'''
         result = initial_value
-        for index, item in enumerate(self) :
+        for index, item in self.enum() :
             result = func(result, item, *(self._leftPadIndexToArgs(func, args, index, 2)), **kwargs)
         return result
 
@@ -627,9 +613,20 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().merge()
 
-    def groupby(self) :
-        raise NotImplementedError
-        # itertools.groupby(iterable, key=None)
+    def groupBy(self, key_func = None, /, *, value_func = None) :
+        from itertools import groupby
+        from Dict import Dict
+        result = Dict()
+        for k, g in groupby(self.sorted(key_func), key = key_func) :
+            if value_func is None :
+                result[k] = List(g)
+            else :
+                result[k] = List(value_func(item) for item in g)
+        return result
+    
+    def countBy(self, key_func = None, /) :
+        from Dict import Dict
+        return Dict((k, g.len()) for k, g in self.groupBy(key_func).items())
 
     # @ensureArgsType
     def _reduce(self, key_list_or_func_name: Optional[Union[list, str]], func, initial_value, /) :
@@ -789,13 +786,6 @@ class List(list) :
 
     def __ne__(self, item_list) :
         '''Return self!=value.'''
-        raise NotImplementedError
-
-    def flatten(self) :
-        '''IN PLACE'''
-        raise NotImplementedError
-
-    def bisect(self) :
         raise NotImplementedError
 
     def clear(self) :

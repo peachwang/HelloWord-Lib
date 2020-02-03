@@ -20,7 +20,7 @@ class LineStream(Object) :
                 or (tag_format == '【】' and (m := self._raw_line.fullMatch(r'^【(?P<tag_name>[^【】]+)】(?P<content>.*)$'))) :
                     self._tag_name, self._content, self._tag_format = m.tag_name, m.content, tag_format
                     return self
-            raise Exception(f'{index + 1}.[{self._raw_line}]不匹配{tag_format_list=}')
+            raise Exception(f'{self._index + 1}.[{self._raw_line}]不匹配{tag_format_list=}')
 
         def tagByContext(self, *, tag_func, raw_line_list) :
             self._tag_name = tag_func(raw_line_list = raw_line_list, index = self._index - 1)
@@ -60,12 +60,16 @@ class LineStream(Object) :
         self._raw_line_list = List(raw_line_list)
 
     def tagByFormatList(self, tag_format_list = None, /) :
-        self._line_list = List([ self.Line(index + 1, raw_line).tagByFormatList(tag_format_list) for (index, raw_line) in self._raw_line_list.enumerate() if raw_line.isNotEmpty() ])
+        self._line_list = List(
+            self.Line(index + 1, raw_line).tagByFormatList(tag_format_list)
+            for (index, raw_line) in self._raw_line_list.enum()
+            if raw_line.isNotEmpty()
+        )
         return self
     
     def tagByContext(self, *, tag_func) :
         self._line_list = List()
-        for index, raw_line in self._raw_line_list.enumerate() :
+        for index, raw_line in self._raw_line_list.enum() :
             self.appendLine(
                 self.Line(index + 1, raw_line)\
                     .tagByContext(
@@ -136,7 +140,7 @@ class LineStream(Object) :
     def groupSubStreamByTagList(self, tag_list, /, *, is_ordered = True) :
         # tag_list = [(<tag_name>, <is_list>)]
         tag_list = List(tag_list)
-        for index, line in self._line_list.enumerate() :
+        for index, line in self._line_list.enum() :
             # print(f'{index + 1}.[{line}]')
             tag_0 = (line.tag_name, 0)
             tag_1 = (line.tag_name, 1)
@@ -155,7 +159,7 @@ class LineStream(Object) :
 
     # 无法预先枚举tag_name的情况，用此方法
     def groupSubStreamByLineTagName(self) :
-        for index, line in self._line_list.enumerate() :
+        for index, line in self._line_list.enum() :
             Timer.printTiming(f'groupSubStreamByLineTagName.{index + 1}')
             if self._hasProperty(line.tag_name) :
                 sub_stream = self.__getattr__(line.tag_name)
@@ -178,8 +182,8 @@ class LineStream(Object) :
             print(f'\n{indent}tag_line = {self._tag_line}')
         if self._hasProperty('sub_stream_list') :
             print()
-            for index, sub_stream in self._sub_stream_list.enumerate() :
-                print(f'{indent}    {Y}No.{index + 1}.{sub_stream.tag_name}.{sub_stream.tag_content}{E}')
+            for index, sub_stream in self._sub_stream_list.enum() :
+                print(f'{indent}    {Y(f"No.{index + 1}.{sub_stream.tag_name}.{sub_stream.tag_content}")}')
                 sub_stream.print(indent + '    ')
         elif self._hasProperty('line_list') :
             for line in self._line_list :

@@ -199,7 +199,7 @@ class Str(str) :
 
     def print(self, *, color = '') :
         from util import E
-        print(color, self.j(), E if color != '' else '')
+        print(f"{color}{self.j()}{E() if color != '' else ''}")
         return self
 
     # def __format__(self) :
@@ -258,8 +258,18 @@ class Str(str) :
     def isEmpty(self) :
         return self.fullMatch(r'^[ \t\n]*$')
 
+    def ensureEmpty(self) :
+        if self.isEmpty() : return self
+        else :
+            raise Exception(f'{self=}应该为空串')
+
     def isNotEmpty(self) :
         return not self.isEmpty()
+
+    def ensureNotEmpty(self) :
+        if self.isNotEmpty() : return self
+        else :
+            raise Exception(f'{self=}应该不为空串')
 
     def isIn(self, item_list, /) :
         from List import List
@@ -284,13 +294,21 @@ class Str(str) :
         return not self.has(sub_or_pattern, re_mode = re_mode, flags = flags)
 
     def hasAnyOf(self, sub_list, /) :
+        if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
         return any(self.has(sub) for sub in sub_list)
 
     def hasAllOf(self, sub_list, /) :
+        if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
         return all(self.has(sub) for sub in sub_list)
 
     def hasNoneOf(self, sub_list, /) :
+        if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
         return all(self.hasNot(sub) for sub in sub_list)
+
+    def matchIn(self, sub_list, /) :
+        if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
+        from List import List
+        return List(sub_list).filtered(lambda _ : _ in self)
 
     def count(self, sub_or_pattern, /, *, start = 0, end = -1, re_mode = False, flags = 0) :
         '''
@@ -353,7 +371,12 @@ class Str(str) :
         return a corresponding match object. Return None if the string
         does not match the pattern; note that this is different from
         a zero-length match.'''
-        _ = re.fullmatch(pattern, self, flags)
+        try :
+            _ = re.fullmatch(pattern, self, flags)
+        except KeyboardInterrupt as e :
+            print(f'fullMatch卡住: {self}')
+            input()
+            return None
         return _Match(_) if _ else None
 
     def ensureFullMatch(self, pattern = None, /, *, flags = 0) :

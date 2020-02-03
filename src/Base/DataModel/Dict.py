@@ -142,13 +142,18 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         return Dict((key, self[key].json()) if 'json' in dir(self[key]) else (key, self[key]) for key in self)
 
+    def printLen(self, *, color = '') :
+        from util import E
+        print(f"{color}{self.len()}个键值{E() if color != '' else ''}")
+        return self
+
     def print(self, color = '', json = True) :
         from util import E
         if json :
-            print(color, self.json().j(), E if color != '' else '')
+            print(f"{color}{self.json().j()}{E() if color != '' else ''}")
         else :
-            print(color, self.j(), E if color != '' else '')
-        return self
+            print(f"{color}{self.j()}{E() if color != '' else ''}")
+        return self.printLen()
 
     def __format__(self, code) :
         '''default object formatter'''
@@ -174,70 +179,13 @@ class Dict(dict) :
                 .join(', ')
         )
 
-    def stat(self, *, msg = '') :
+    def stat(self, msg = '') :
         print(f"{'' if msg == '' else f'{msg}: '}{self.len()}条")
         return self
 
-    # 返回拉平后的字段tuple的列表，统计字段类型和可能的取值，数组长度，存在性检验
-    def inspect(self, max_depth = 10, depth = 0) :
-        raise NotImplementedError
-
-        # DataStructure Module
-        #   def inspect()
-        #   def compatibleTo
-        #   def validate
-        #   def difference/delta
-
-        # print(str(data)[:120])
-        # if depth > max_depth :
-        #     if data is None : return None 
-        #     elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
-        #     elif isinstance(data, list) : return '[ {} items folded ]'.format(len(data))
-        #     elif isinstance(data, dict) : return '{{ {} keys folded }}'.format(len(data))
-        #     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
-        # if data is None : return None
-        # elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
-        # elif isinstance(data, list) :
-        #     if len(data) == 0 : return data
-        #     elif len(data) == 1 : return List([ inspect(data[0], max_depth, depth + 1) ])
-        #     elif len(data) == 2 : return List([ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1) ])
-            
-        #     # len >= 3
-        #     result_0 = inspect(data[0], max_depth, depth + 1)
-        #     _ = '------------------------------'
-        #     if isinstance(result_0, dict) :
-        #         for index, datum_i in enumerate(data) :
-        #             if not isinstance(datum_i, dict) : raise Exception('列表中元素类型不一致({})'.format(datum_i))
-        #             for key, value in datum_i.items() :
-        #                 if key not in result_0 :
-        #                     result_0[key] = inspect(value, max_depth, depth + 1) # 【补充】第0个元素中不存在的字段
-        #                     continue
-        #                 if data[0].get(key) is not None and isinstance(data[0][key], list) : continue # 列表类【原生】字段不扩充POSSIBLE VALUES
-        #                 if data[0].get(key) is not None and isinstance(data[0][key], dict) : continue # 字典类【原生】字段不扩充POSSIBLE VALUES
-        #                 if data[0].get(key) is None and isinstance(result_0[key], list)
-        #                     and not (isinstance(result_0[key][0], str) and 'POSSIBLE VALUES' in result_0[key][0]) : continue # 列表类【补充】字段不扩充POSSIBLE VALUES
-        #                 if data[0].get(key) is None and isinstance(result_0[key], dict) : continue # 字典类【补充】字段不扩充POSSIBLE VALUES
-        #                 # 此时待补充的是非列表字典类字段
-        #                 if isinstance(value, list) or isinstance(value, dict) : raise Exception('列表中元素类型不一致({})'.format(value))
-        #                 # 此时value一定为非列表字典类数据
-        #                 if not isinstance(result_0[key], list) : # 暂未扩充过，现进行首次扩充POSSIBLE VALUES
-        #                     result_0[key] = [
-        #                         _ + 'POSSIBLE VALUES' + _, 
-        #                         result_0[key]
-        #                     ]
-        #                     if inspect(value, max_depth, depth + 1) != result_0[key][1] :
-        #                         result_0[key].append(inspect(value, max_depth, depth + 1))
-        #                 else : # 非首次扩充POSSIBLE VALUES
-        #                     if len(result_0[key]) < 5 :
-        #                         if inspect(value, max_depth, depth + 1) not in result_0[key] :
-        #                             result_0[key].append(inspect(value, max_depth, depth + 1)) # 扩充
-        #                     if index == len(data) - 1 :
-        #                         result_0[key].append('{} TOTAL {} SIMILAR ITEMS {}'.format(_, len(data), _))
-        #         return [ result_0, '{} TOTAL {} SIMILAR DICTS {}'.format(_, len(data), _) ]
-        #     else : # 非字典类数据，含列表
-        #         return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1), '{} TOTAL {} SIMILAR LISTS {}'.formart(_, len(data), _) ]
-        # elif isinstance(data, dict) : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
-        # else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+    def inspect(self) :
+        from Inspect import Inspect
+        return Inspect(self)
 
     def __len__(self) :
         '''
@@ -322,14 +270,14 @@ class Dict(dict) :
 
     def __getitem__(self, key) :
         '''x.__getitem__(y) <==> x[y]'''
-        return self.get(key, default = self.NV)
+        return self.get(key, self.NV)
 
-    def get(self, key_list, /, *, default = None) :
+    def get(self, key_list, /, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
         self._importTypes()
         if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
             if default == self.NV and not dict.__contains__(self, key_list) :
-                raise Exception(f'键 {key_list} 不能为空\n{self=}')
+                raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
             return dict.get(self, key_list, self._wrapValue(default))
         elif isinstance(key_list, list) :
             if self.hasNot(key_list) :
@@ -409,6 +357,10 @@ class Dict(dict) :
             raise UserTypeError(key_list)
         return self
 
+    def setted(self, key_list, value, /) :
+        '''NOT IN PLACE'''
+        return self.copy().set(key_list, value)
+
     # @ensureArgsType
     def update(self, mapping: dict, /, **kwargs) :
         '''D.update([E, ]**F) -> None.  Update D from dict/iterable E and F.
@@ -436,7 +388,7 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         return self.updated(mapping)
 
-    def pop(self, key_list, /, *, default = 'NONE') :
+    def pop(self, key_list, /, default = 'NONE') :
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
         If key is not found, d is returned if given, otherwise KeyError is raised'''
         '''IN PLACE'''
@@ -462,6 +414,20 @@ class Dict(dict) :
                     return dict.pop(now, key_list[-1], self._wrapValue(default))
         else :
             raise UserTypeError(key_list)
+
+    def popped(self, key_list, /, default = 'NONE') :
+        '''NOT IN PLACE'''
+        return self.copy().pop(key_list, default = default)
+
+    def drop(self, key_list, /, default = 'NONE') :
+        '''IN PLACE'''
+        self.pop(key_list, default = None)
+        return self
+
+    def dropped(self, key_list, /, default = 'NONE') :
+        '''NOT IN PLACE'''
+        self.copy().drop(key_list, default = default)
+        return self
 
     def popitem(self) :
         '''D.popitem() -> (k, v), remove and return some (key, value) pair as a
@@ -494,6 +460,12 @@ class Dict(dict) :
     def stripped(self, string = ' \t\n', /) :
         '''NOT IN PLACE'''
         return self.copy().strip(string)
+
+    def forEach(self, func, /, *args, **kwargs) :
+        '''NOT IN PLACE'''
+        for key, value in self.items() :
+            func(key, value, *args, **kwargs)
+        return self
 
     def clear(self) :
         '''D.clear() -> None.  Remove all items from D.'''

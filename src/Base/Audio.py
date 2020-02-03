@@ -14,7 +14,7 @@ class Audio(File) :
 
     def print(self, *, color = '') :
         from util import E
-        print(color, self.j(), E if color != '' else '')
+        print(color, self.j(), E() if color != '' else '')
         return self
 
     def len(self) :

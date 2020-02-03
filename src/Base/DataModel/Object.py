@@ -116,7 +116,7 @@ class Object() :
                         return pd[name_0][prefix]
 
         from util import P, E
-        raise Exception(f"Object {P}{type(self)}{E} 中无 {P}{name}{E} 属性或方法, 只有这些属性: {P}{(self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object)))}{E}\n{pd=}")
+        raise Exception(f"Object {P(type(self))} 中无 {P(name)} 属性或方法, 只有这些属性: {P(self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object)))}\n{pd=}")
 
     def __getitem__(self, name) :
         return self.__getattr__(name)
@@ -157,7 +157,7 @@ class Object() :
                     elif name[-4:] not in ('list', 'List') and isinstance(value, list) :
                         raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是List/list\n{self}\n')
                     elif isinstance(value, list) and len(value) > 0 and 'validateProperty' in dir(value[0]) :
-                        for idx, item in value.enumerate() :
+                        for idx, item in value.enum() :
                             item.validateProperty(idx + 1)
                     
                     if name[-4:] in ('dict', 'Dict') and not isinstance(value, dict) :
@@ -261,9 +261,9 @@ class Object() :
     def print(self, *, color = '', json = True) :
         from util import E
         if json :
-            print(color, _ if isinstance(_ := self.json(), str) else _.j(), E if color != '' else '')
+            print(f"{color}{_ if isinstance(_ := self.json(), str) else _.j()}{E() if color != '' else ''}")
         else :
-            print(color, self.j(), E if color != '' else '')
+            print(f"{color}{self.j()}{E() if color != '' else ''}")
         return self
 
     @_antiLoop

@@ -35,7 +35,7 @@ class DateTime(Object) :
 
     def print(self, *, color = '') :
         from util import E
-        print(color, self.j(), E if color != '' else '')
+        print(color, self.j(), E() if color != '' else '')
         return self
 
     def __format__(self, pattern) :

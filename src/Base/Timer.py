@@ -49,14 +49,14 @@ class Timer() :
         Timer.__initclass__()
         @wraps(func)
         def wrapper(self = None, *args, **kwargs) :
-            Timer.printTiming('{}{} starts'.format(func.__qualname__, msg))
+            Timer.printTiming(f'{func.__qualname__}{msg} 开始')
             current = time()
             if self is None :
                 result = func(*args, **kwargs)
             else :
                 result = func(self, *args, **kwargs)
             delta = time() - current
-            Timer.printTiming(f'{func.__qualname__}{msg} 结束', delta)
+            Timer.printTiming(f'{func.__qualname__}{msg} 结束', delta = delta)
             return result
         return wrapper
 
@@ -97,7 +97,7 @@ class Timer() :
         if Timer._timeitTotalOff : return cls
         def printTimer(timer) :
             from util import P, E
-            print(P, f'类目({timer._key:50}) 总共({timer.len():-5}次, {timer._total:.6f}s) 平均({timer.average:.6f}s) [ {msg} ]', E)
+            print(P(f'类目({timer._key:50}) 总共({timer.len():-5}次, {timer._total:.6f}s) 平均({timer.average:.6f}s) [ {msg} ]'))
         if cls._timer_dict.has(key) :
             _ = cls._timer_dict[key]
             if isinstance(_, dict) :
@@ -117,9 +117,9 @@ class Timer() :
         cls._global_delta_list.append(timing_delta)
         cls._global_total += timing_delta
         if delta is None :
-            print(Y, '\t' * indent, f'[{DateTime()}] ({cls._global_total:.6f}s) 间隔({timing_delta:.5f}s) [ {msg} ]', E)
+            print(Y(f'[{DateTime()}] ({cls._global_total:.6f}s) 间隔({timing_delta:.5f}s) [ {msg} ]'))
         else :
-            print(Y, '\t' * indent, f'[{DateTime()}] ({cls._global_total:.6f}s) 本轮({delta:.6f}s) [ {msg} ]', E)
+            print(Y(), '\t' * indent, f'[{DateTime()}] ({cls._global_total:.6f}s) 本轮({delta:.6f}s) [ {msg} ]{E()}')
         sys.stdout.flush()
         cls._global_current = time()
         return cls

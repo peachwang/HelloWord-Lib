@@ -3,10 +3,8 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../DataModel/'));
 
 import json, re, requests
 from sys import exit
-from bcolors import OKMSG as OK, PASS, WARN, ERR, ERRMSG as ERROR, FAIL, WAITMSG as WAIT, BLUE, BOLD, UNDERLINE as U, HEADER, ITALIC as I, BITALIC, BLUEIC, ENDC
-G, Y, R, B, P, E = GREEN, YELLOW, RED, BLUE, PINK, END = PASS, WARN, FAIL, BLUE, HEADER, ENDC
-# print(sys.path)
-
+from Color import G, Y, R, B, P, W, E, GREEN as _G, YELLOW as _Y, RED as _R, BLUE as _B, PINK as _P, WHITE as _W, END as _E
+from functools import wraps
 from shared import ensureArgsType, UserTypeError
 from typing import Optional, Union
 from Object import Object
@@ -78,9 +76,9 @@ def json_serialize(data, /) :
     elif isinstance(data, dict) :
         return { json_serialize(key) : json_serialize(data[key]) for key in data }
     elif isinstance(data, tuple) :
-        return 'tuple({})'.format(', '.join(str(json_serialize(item)) for item in data))
+        return '({})'.format(', '.join(str(json_serialize(item)) for item in data))
     elif isinstance(data, set) :
-        return 'set{{{}}}'.format(', '.join(str(json_serialize(item)) for item in data))
+        return '{{{}}}'.format(', '.join(str(json_serialize(item)) for item in data))
     elif isinstance(data, (range, bytes, object)) :
         return f'{data}'
     elif isinstance(data, zip) :
@@ -94,7 +92,6 @@ def j(data, /, *, indent = 4, ensure_ascii = False, sort_keys = True, encoding =
     return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys)
 
 # ==================== Runtime ====================
-from functools import wraps
 
 def highlightTraceback(func) :
     @wraps(func)
@@ -105,23 +102,24 @@ def highlightTraceback(func) :
             import traceback
             line_list = List(traceback.format_exception(*sys.exc_info())).reverse()
             flag = False
-            for index, line in line_list.enumerate() :
+            for index, line in line_list.enum() :
                 line_list[index] = line.strip('\n')
                 if line.has('HelloWord-Lib') :
                     flag = False
                 elif not flag and line.has('HelloWord') :
-                    line_list[index] = P + line_list[index] + E
+                    line_list[index] = f'{P(line_list[index])}'
                     if index >= 1 and line_list[index - 1].has('HelloWord-Lib') :
-                        line_list[index - 1] = Y + line_list[index - 1] + E
+                        line_list[index - 1] = f'{Y(line_list[index - 1])}'
                     flag = True
             line_list.reverse().forEach(lambda line : print(line))
+            Timer.printTiming('失败')
     return wrapper
 
 # ==================== System ====================
 
 def parse_argv(args) :
     sequence, kwargs = List(), Dict()
-    for index, arg in enumerate(List(args)) :
+    for index, arg in List(args).enum() :
         if index == 0 : continue
         if arg[0] == '-' :
             key, value = arg.findall(r'^-([^=]+)=(.*)$')[0]

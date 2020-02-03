@@ -7,6 +7,7 @@ class Folder(Object) :
 
     def __init__(self, folder_path, /) :
         Object.__init__(self)
+        self._registerProperty(['path', 'name'])
         try :
             self._path, self._sub_folder_name_list, self._sub_file_name_list = list(walk(folder_path))[0]
             self._path, self._sub_folder_name_list, self._sub_file_name_list = Str(self._path), List(self._sub_folder_name_list), List(self._sub_file_name_list)
@@ -29,7 +30,8 @@ class Folder(Object) :
 
     def print(self, *, color = '') :
         from util import E
-        print(color, self.j(), E if color != '' else '')
+        print(f"{color}{self.j()}{E() if color != '' else ''}")
+        self.flattern_sub_file_list.path.print(color = color)
         return self
 
     def __format__(self, code) :
@@ -58,5 +60,8 @@ class Folder(Object) :
 
     @property
     def flattern_sub_file_list(self) :
-        return self._sub_file_list.extended(self._sub_folder_list.flattern_sub_file_list.merge())
+        result = self._sub_file_list.copy()
+        for folder in self._sub_folder_list :
+            result.extend(folder.flattern_sub_file_list)
+        return result
 

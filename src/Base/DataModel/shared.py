@@ -15,23 +15,23 @@ class UserTypeError(TypeError) :
 def inspectObject(obj, name = '', print_source = True) :
     import builtins
     from util import G, Y, R, B, I, P, E
-    print(G, f'{name} = {obj = }', E)
+    print(G(f'{name} = {obj = }'))
     print(f'{type(obj) = }')
     if ((type_str := (str(obj)[8:-2])) in dir(builtins)) and type_str != 'type' :
-        print(B, 'obj is built-in.', E)
+        print(B('obj is built-in.'))
         return
     if ((type_str := (str(obj.__class__)[8:-2])) in dir(builtins)) and type_str != 'type' :
-        print(B, 'obj.__class__ is built-in.', E)
+        print(B('obj.__class__ is built-in.'))
         return
     if str(obj) == "<class 'type'>" :
-        print(B, 'obj is type.', E)
+        print(B('obj is type.'))
         return
     def printSource(obj) :
         import re
         from util import G, Y, R, B, I, P, E
         for line in inspect.getsourcelines(obj)[0] :
             if re.match(r' *def ', line) or re.match(r' *class ', line) :
-                print(Y, f'{line}', E, end = '')
+                print(Y(f'{line}'), end = '')
             else :
                 print(f'{line}', end = '')
     if print_source :
@@ -40,31 +40,31 @@ def inspectObject(obj, name = '', print_source = True) :
         else :
             printSource(type(obj))
     # print(f'{dir(obj) = }')
-    print(Y, f'{name} = {obj = }', E)
+    print(Y(f'{name} = {obj = }'))
     # print(f'{inspect.getcomments(obj)=}') # def前的注释
     # print(f'{inspect.getargspec(obj)=}')
     # print(f'{inspect.getfullargspec(obj)=}')
     # print(f'{inspect.getargvalues(obj)=}')
     # currentframe = inspect.currentframe()
-    # print(Y, f'{inspect.getframeinfo(currentframe)=}', E)
-    # print(P, f'inspect.getouterframes(currentframe)')
+    # print(Y(f'{inspect.getframeinfo(currentframe)=}'))
+    # print(P(), f'inspect.getouterframes(currentframe)')
     # pp(frames := inspect.getouterframes(currentframe), indent = 4)
-    # print(E)
+    # print(E())
     # print(currentframe)
     # print(f'{pp(inspect.getargvalues(currentframe).locals)}')
-    # print(G)
+    # print(G())
     # print(currentframe.f_back)
-    # print(f'{pp(inspect.getargvalues(currentframe.f_back).locals)}', E)
+    # print(f'{pp(inspect.getargvalues(currentframe.f_back).locals)}', E())
     # print(inspect.signature(obj).parameters)
     # print(currentframe.f_back.f_back)
     # print(f'{pp(inspect.getargvalues(currentframe.f_back.f_back).locals)}')
-    # print(f'{inspect.getinnerframes(currentframe)=}', E)
-    # print(P, f'inspect.stack()=')
+    # print(f'{inspect.getinnerframes(currentframe)=}', E())
+    # print(P(), f'inspect.stack()=')
     # pp(stack := inspect.stack(), indent = 4)
-    # print(E)
-    # print(f'{inspect.getargvalues(frames[1])=}', E)
-    # print(G, f'{inspect.getargvalues(frames[2])=}', E)
-    # print(f'{inspect.trace()=}', E)
+    # print(E())
+    # print(f'{inspect.getargvalues(frames[1])=}', E())
+    # print(G(f'{inspect.getargvalues(frames[2])=}'))
+    # print(f'{inspect.trace()=}', E())
     for key in dir(obj) :
         if key == '__globals__' : continue
         print(f'{key:20s} = ', end = '')
@@ -75,16 +75,16 @@ def inspectObject(obj, name = '', print_source = True) :
         if inspect.isclass(__) or inspect.ismethod(__) or inspect.isfunction(__) :
             # print(f'\n{inspect.signature(__)}')
             # print(f'\n{inspect.getsource(__)}')
-            print(Y, f'{__}', E)
+            print(Y(f'{__}'))
         elif '<method-wrapper' in str(__) or '<built-in method' in str(__):
-            print(B, f'{__}', E)
+            print(B(f'{__}'))
         else :
             if key in ('co_consts',) :
-                print(P, f'{pf(__)}', E)
+                print(P(f'{pf(__)}'))
             # elif isinstance(__, bytes) :
-                # print(P, f'{__.decode()}', E)
+                # print(P(f'{__.decode()}'))
             else :
-                print(P, f'{__}', E)
+                print(P(f'{__}'))
 
 def ensureArgsType(func) :
     @wraps(func)

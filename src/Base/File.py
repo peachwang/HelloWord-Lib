@@ -31,7 +31,7 @@ class File(Object) :
 
     def print(self, *, color = '') :
         from util import E
-        print(color, self.j(), E if color != '' else '')
+        print(f"{color}{self.j()}{E() if color != '' else ''}")
         return self
 
     def __format__(self, code) :
@@ -41,7 +41,7 @@ class File(Object) :
         return self.__format__('')
 
     def extIs(self, ext, /) :
-        return self._ext == ext
+        return self._ext.toLower() == Str(ext).toLower()
 
     def isTxt(self) :
         return self.extIs('txt')
@@ -59,7 +59,7 @@ class File(Object) :
     def size(self) :
         return getsize(self._path)
 
-    def readLineList(self, *, filter_white_lines = False) :
+    def readLineList(self, *, filter_white_lines = False, replace_abnormal_char = True) :
         if self._hasProperty('range') :
             start = 0 if self._range.start is None else self._range.start
             stop  = 0 if self._range.stop is None else self._range.stop
@@ -68,6 +68,10 @@ class File(Object) :
             result = List(line.strip('\n\r') for line in open(self._path))
         if filter_white_lines :
             result.filter(lambda line : line.isNotEmpty())
+        if replace_abnormal_char :
+            result\
+                .replaceStrList(' ', ' ', re_mode = False)\
+                .replaceStrList('．', '.', re_mode = False)
         return result
 
     def readFieldList(self, *, index, sep = '\t') :
