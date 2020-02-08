@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, UserTypeError
+from util import List, Dict, Str, Object, UserTypeError, _print
 from File import File, realpath
 from os import path, rename, listdir, remove, makedirs, walk
 
@@ -20,6 +20,23 @@ class Folder(Object) :
         self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}'))
         self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name : File(f'{self._path}/{file_name}', self))
 
+    def len(self) :
+        return self.flattern_sub_file_list.len()
+
+    def __format__(self, code) :
+        return f'Folder({realpath(self._path)})'
+
+    @_print
+    def printFormat(self) :
+        return f'{self}', False
+
+    def __str__(self) :
+        return self.__format__('')
+
+    @_print
+    def printStr(self) :
+        return f'{str(self)}', False
+
     def jsonSerialize(self) :
         return f'{self}'
 
@@ -28,17 +45,10 @@ class Folder(Object) :
         from util import j
         return j(self.jsonSerialize())
 
-    def print(self, *, color = '') :
-        from util import E
-        print(f"{color}{self.j()}{E() if color != '' else ''}")
-        self.flattern_sub_file_list.path.print(color = color)
-        return self
-
-    def __format__(self, code) :
-        return f'Folder({realpath(self._path)})'
-
-    def __str__(self) :
-        return self.__format__('')
+    @_print
+    def printJ(self) :
+        _ = self.flattern_sub_file_list.path.join('\n')
+        return f'{self.j()}\n{_}', True
 
     def mkdir(folder_path) :
         makedirs(folder_path, exist_ok = True)
@@ -64,4 +74,3 @@ class Folder(Object) :
         for folder in self._sub_folder_list :
             result.extend(folder.flattern_sub_file_list)
         return result
-

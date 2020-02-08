@@ -2,7 +2,8 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from inspect import isgenerator
-from shared import ensureArgsType, Optional, Union, UserTypeError
+from functools import wraps
+from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 # from Timer import Timer
 
 class List(list) :
@@ -100,6 +101,36 @@ class List(list) :
                 self[index].toMongoDoc()
         return self
 
+    @_print
+    def printLen(self) :
+        return f'{self.len()}个元素', False
+
+    @_print
+    def printLine(self) :
+        return List(f'{item}' for item in self).join('\n'), True
+
+    def __format__(self, code) :
+        '''default object formatter'''
+        return '[{}]'.format(
+            self.mapped(lambda item : f'"{item}"' if isinstance(item, str) else f'{item}')
+                .join(', ')
+        )
+
+    @_print
+    def printFormat(self) :
+        return self.mapped(lambda item : f'{item}').join('\n'), True
+
+    def __str__(self) :
+        '''Return str(self).'''
+        return 'List[{}]'.format(
+            self.mapped(lambda item : f'"{item}"' if isinstance(item, str) else str(item))
+                .join(', ')
+        )
+
+    @_print
+    def printStr(self) :
+        return self.mapped(lambda item : str(item)).join('\n'), True
+
     def jsonSerialize(self) :
         '''NOT IN PLACE'''
         self._importTypes()
@@ -118,41 +149,18 @@ class List(list) :
         from util import j
         return j(self.jsonSerialize(), indent = 4 if indent else None)
 
+    @_print
+    def printJ(self) :
+        return f'{self.j()}', True
+
     def json(self) :
         '''带有业务逻辑，与 j 不同'''
         '''NOT IN PLACE'''
         return List(item.json() if 'json' in dir(item) else item for item in self)
 
-    def printLen(self, *, color = '') :
-        from util import E
-        print(f"{color}{self.len()}个元素{E() if color != '' else ''}")
-        return self
-
-    def print(self, *, color = '', json = True) :
-        from util import E
-        if json :
-            print(f"{color}{self.json().j()}{E() if color != '' else ''}")
-        else :
-            print(f"{color}{self.j()}{E() if color != '' else ''}")
-        return self.printLen(color = color)
-
-    def __format__(self, code) :
-        '''default object formatter'''
-        return '[{}]'.format(
-            self.mapped(lambda item : f'"{item}"' if isinstance(item, str) else f'{item}')
-                .join(', ')
-        )
-
-    def __str__(self) :
-        '''Return str(self).'''
-        return 'List[{}]'.format(
-            self.mapped(lambda item : f'"{item}"' if isinstance(item, str) else str(item))
-                .join(', ')
-        )
-
-    def stat(self, msg = '') :
-        print(f"{'' if msg == '' else f'{msg}: '}{self.len()}个")
-        return self
+    @_print
+    def printJson(self) :
+       return f'{self.json().j()}', False
 
     def inspect(self) :
         from Inspect import Inspect
@@ -324,6 +332,15 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().append(item)
 
+    def uniqueAppend(self, item, /) :
+        '''IN PLACE'''
+        if self.has(item) : return self
+        else : return self.append(item)
+
+    def uniqueAppended(self, item, /) :
+        '''NOT IN PLACE'''
+        return self.copy().uniqueAppend(item)
+
     def prepend(self, item, /) :
         '''L.prepend(object) -> None -- append object to start'''
         '''IN PLACE'''
@@ -332,6 +349,15 @@ class List(list) :
     def prepended(self, item, /) :
         '''NOT IN PLACE'''
         return self.copy().prepend(item)
+
+    def uniquePrepend(self, item, /) :
+        '''IN PLACE'''
+        if self.has(item) : return self
+        else : return self.prepend(item)
+
+    def uniquePrepended(self, item, /) :
+        '''NOT IN PLACE'''
+        return self.copy().uniquePrepend()
 
     def insert(self, index, item, /) :
         '''L.insert(index, object) -> None -- insert object before index'''
@@ -516,6 +542,10 @@ class List(list) :
             return self.mapped(getValue)
         else : raise UserTypeError(key_list_or_func_name)
 
+    def format(self, pattern, /) :
+        '''NOT IN PLACE'''
+        return self.mapped(lambda _ : pattern.format(_))
+
     def _stripItem(self, item, string, /) :
         self._importTypes()
         if item is None or isinstance(item, (int, float, bool, range, bytes, zip, self._datetime)):
@@ -617,7 +647,7 @@ class List(list) :
         from itertools import groupby
         from Dict import Dict
         result = Dict()
-        for k, g in groupby(self.sorted(key_func), key = key_func) :
+        for k, g in groupby(self.sorted((lambda _ : f'{_}' if _ is not None else '') if key_func is None else key_func), key = key_func) :
             if value_func is None :
                 result[k] = List(g)
             else :

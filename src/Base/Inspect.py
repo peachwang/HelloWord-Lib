@@ -1,161 +1,256 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, UserTypeError
+from util import List, Dict, Str, Object, UserTypeError, P, R, Y
+from functools import cached_property, lru_cache
+
+# DataStructure Module
+#   def inspect() # 返回拉平后的字段tuple的列表，统计字段类型和可能的取值，数组长度，存在性检验
+#   def compatibleTo
+#   def validate
+#   def difference/delta
+
+class _FieldSlot(Object) :
+    
+    def __init__(self, path, /) :
+        Object.__init__(self)
+        self._registerProperty(['parent', 'path', 'field_list', 'type_list', 'value_list', 'list_len_list', 'child_field_slot_list'])
+        self._path   = path
+        self._field_list = List()
+
+    @cached_property
+    def is_root(self) :
+        return self._parent is None
+
+    @cached_property
+    def path(self) :
+        return List(list(self._path)).join('.')
+
+    @cached_property
+    def name(self) :
+        if self.is_root : return ''
+        else : return self._path[-1]
+
+    @cached_property
+    def is_list(self) :
+        return self.type_list.join(", ") == "List"
+
+    @cached_property
+    def is_dict(self) :
+        return self.type_list.join(", ") == "Dict"
+
+    @cached_property
+    def in_list(self) :
+        if self.is_root : return False
+        else : return self._parent.is_list
+
+    @cached_property
+    def in_dict(self) :
+        if self.is_root : return False
+        else : return self._parent.is_dict
+
+    def addField(self, field, /) :
+        self.appendField(field).uniqueAppendType(field.type)
+        if field.is_list : self.appendListLen(field.value.len())
+        elif field.is_dict : pass
+        else : self.appendValue(field.value, filter_none = False)
+        return self
+
+    @cached_property
+    def field_num(self) :
+        return self._field_list.len()
+
+    @lru_cache
+    def getSiblingFieldSlotList(self) :
+        if self.is_root :
+            return List()
+        else :
+            return self.parent.child_field_slot_list.removed(self)
+
+    @lru_cache
+    def getAllFieldSlotList(self) :
+        if self.hasNotChildFieldSlotList() :
+            return List(self)
+        else :
+            return self._child_field_slot_list.getAllFieldSlotList.merged().unique().prepend(self)
+
+    @cached_property
+    def existence(self) :
+        if self.is_root : return True
+        return self.field_num == self._parent.field_num
+
+    def __format__(self, code) :
+        max_len = 3
+        max_width = 15
+        result = f'{self.path!s:80}{self.name:>25} {P(Y(self.type_list.join(", ")) == "Dict") == "List":<10} {"  " if self.is_root or self.in_list else (P("必") if self.field_num == self._parent.field_num else Y("可"))}存在{self.field_num:>3} 次'
+        if self.hasChildFieldSlotList() or self.is_list or self.is_dict :
+            if self.is_list :
+                if self._list_len_list.len() <= max_len :
+                    result += f' 含     {self._list_len_list.sort(reverse = True).join(", ")} 个元素'
+                else :
+                    __ = self._list_len_list.countBy()
+                    _ = List(f'({length}, {count}次)' for length, count in __.items().sort(lambda _ : _[1], reverse = True))[:max_len].join(', ')
+                    result += f' 含     {_}{", etc." if __.len() > max_len else ""} 个元素'
+            elif self.is_dict :
+                result += f' 含字段 {Y(self._child_field_slot_list.name.unique().sort().join(", "))}'
+        else :
+            if self.hasNotValueList() : 
+                result += f'{R(" 无取值")}'
+            elif self._value_list.len() <= max_len :
+                result += f' 取值   {P(self._value_list.sort().format(f"{{!s:.{max_width}}}").join(", "))}'
+            else :
+                __ = self._value_list.countBy()
+                _ = List(f'({value!s:.{max_width}}, {count}次)' for value, count in __.items().sort(lambda _ : _[1], reverse = True))[:max_len].join(', ')
+                result += f' 取值   {P(_)}{", etc." if __.len() > max_len else ""}'
+        return result
+
+class _Field(Object) :
+    
+    def __init__(self, parent, name, value, slot_dict, /) :
+        Object.__init__(self)
+        self._registerProperty(['parent', 'name', 'value', 'child_field_list', 'field_slot'])
+        self._parent   = parent
+        self._name     = name
+        self._value = value
+        self._build(slot_dict)
+        if slot_dict.hasNot(self.slot_path) :
+            slot_dict[self.slot_path] = _FieldSlot(self.slot_path)
+        self._field_slot = slot_dict[self.slot_path].addField(self)
+        if not self.is_leaf :
+            for child_field in self._child_field_list : # 建立双向映射
+                self._field_slot.uniqueAppendChildFieldSlot(child_field.field_slot)
+                child_field.field_slot.setParent(self._field_slot)
+        if self.is_root :
+            self._field_slot.setParent(None)
+
+    def _build(self, slot_dict, /) :
+        if self.is_root :
+            self._path = List()
+        else :
+            self._path = self._parent._path.appended(self._name)
+        if isinstance(self._value, Dict) :
+            for key, value in self._value.items() :
+                self.appendChildField(_Field(self, key, value, slot_dict))
+        elif isinstance(self._value, List) :
+            for index, item in self._value.enum() :
+                self.appendChildField(_Field(self, f'#{index}', item, slot_dict))
+        return self
+
+    @cached_property
+    def is_root(self) :
+        return self._parent is None
+
+    @cached_property
+    def is_leaf(self) :
+        return not isinstance(self._value, (List, Dict)) or self._value.isEmpty()
+
+    @cached_property
+    def is_list(self) :
+        return isinstance(self._value, List)
+
+    @cached_property
+    def is_dict(self) :
+        return isinstance(self._value, Dict)
+
+    @cached_property
+    def in_list(self) :
+        if self.is_root : return False
+        else : return isinstance(self._parent.type, List)
+
+    @cached_property
+    def in_dict(self) :
+        if self.is_root : return False
+        else : return isinstance(self._parent.type, Dict)
+
+    @cached_property
+    def type(self) :
+        return Dict({int : 'int', float : 'float', bool : 'bool', type(Str()) : 'Str', type(List()) : 'List', type(Dict()) : 'Dict'})\
+            .get(type(self._value), Str(str(type(self._value))).fullMatch(r'<class \'([^\'\.]+\.)?([^\']+)\'>').oneGroup(2))
+
+    @cached_property
+    def path(self) :
+        return self._path.join('.')
+    
+    @cached_property
+    def slot_path(self) :
+        return tuple('#' if name.fullMatch(r'#\d+') else name for name in self._path)
+
+    @lru_cache
+    def getSiblingFieldList(self) :
+        if self.is_root :
+            return List()
+        else :
+            return self._parent.child_field_list.removed(self)
+
+    @lru_cache
+    def getLeafFieldList(self) :
+        if self.is_leaf :
+            return List(self)
+        else :
+            return self._child_field_list.getLeafFieldList.merged()
+
+    @lru_cache
+    def getNonLeafFieldList(self) :
+        if self.is_leaf :
+            return List()
+        else :
+            return self._child_field_list.getNonLeafFieldList.merged().prepend(self)
+
+    @lru_cache
+    def getAllFieldList(self) :
+        if self.is_leaf :
+            return List(self)
+        else :
+            return self._child_field_list.getAllFieldList.merged().prepend(self)
+
+    def __format__(self, code) :
+        result = f'{self.path!s:80}{self.name:>25} {Y(P(self.type) == "List") == "Dict":10} '
+        if self.is_leaf :
+            result += f'{P(self._value)}'
+        else :
+            if isinstance(self._value, List) :
+                result += f'含 {self._child_field_list.len()} 个元素'
+            elif isinstance(self._value, Dict) :
+                result += f'含 {self._child_field_list.len()} 个字段: {Y(self._child_field_list.name.sort().join(", "))}'
+        return result
 
 class Inspect(Object) :
 
     def __init__(self, raw_data) :
         Object.__init__(self)
-        self._registerProperty(['raw_data', 'field_path_list'])
+        self._registerProperty(['raw_data', 'root', 'slot_container'])
         if not isinstance(raw_data, (List, Dict)) :
             raise UserTypeError(raw_data)
-        self._raw_data = raw_data
-        self._field_path_list = List()
-        self._field_path_list = self._inspect(self._raw_data).field_path_list
+        self._raw_data  = raw_data
+        self._slot_dict = Dict()
+        self._root      = _Field(None, '', self._raw_data, self._slot_dict)
 
-    # 返回拉平后的字段tuple的列表，统计字段类型和可能的取值，数组长度，存在性检验
-    def _inspect(self, data) :
-        def prepend_path_list(field, path_list) :
-            return List(tuple(List(list(path)).prepended(field)) for path in path_list)
+    @lru_cache
+    def getLeafList(self) :
+        return self._root.getLeafFieldList()
 
-        result = Dict(
-            field_path_list = List()
-        )
-        if isinstance(data, Dict) :
-            for key, value in data.items() :
-                if isinstance(value, (List, Dict)) :
-                    res = self._inspect(value)
-                    result.field_path_list.extend(prepend_path_list(key, res.field_path_list))
-                else :
-                    result.field_path_list.append(tuple([key]))
-        elif isinstance(data, List) :
-            for index, item in data.enum() :
-                if isinstance(item, (List, Dict)) :
-                    res = self._inspect(item)
-                    result.field_path_list.extend(prepend_path_list('#', res.field_path_list))
-                else :
-                    result.field_path_list.append(tuple(['#']))
-        result.field_path_list.unique().sort()
-        return result
+    def printLeafList(self) :
+        self.getLeafFieldList().printFormat()
+        return self
 
+    @lru_cache
+    def getNonLeafList(self) :
+        return self._root.getNonLeafFieldList()
 
+    def printNonLeafList(self) :
+        self.getNonLeafFieldList().printFormat()
+        return self
 
+    @lru_cache
+    def getAllFieldList(self) :
+        return self._root.getAllFieldList()
 
+    def printAllFieldList(self) :
+        self.getAllFieldList().printFormat()
+        return self
 
-# DataStructure Module
-#   def inspect()
-#   def compatibleTo
-#   def validate
-#   def difference/delta
+    @lru_cache
+    def getAllFieldSlotList(self) :
+        return self._root.field_slot.getAllFieldSlotList().sort(lambda _ : _.path)
 
-
-# # move
-# def inspect(data, max_depth = 10, depth = 0) :
-# https://docs.python.org/3/library/reprlib.html
-#     # print(str(data)[:120])
-#     if depth > max_depth :
-#         if data is None : return None 
-#         elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
-#         elif isinstance(data, list) : return '[ {} items folded ]'.format(len(data))
-#         elif isinstance(data, dict) : return '{{ {} keys folded }}'.format(len(data))
-#         else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
-#     if data is None : return None
-#     elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
-#     elif isinstance(data, list) :
-#         if len(data) == 0 : return data
-#         elif len(data) == 1 : return List([ inspect(data[0], max_depth, depth + 1) ])
-#         elif len(data) == 2 : return List([ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1) ])
-        
-#         # len >= 3
-#         result_0 = inspect(data[0], max_depth, depth + 1)
-#         _ = '------------------------------'
-#         if isinstance(result_0, dict) :
-#             for index, datum_i in enumerate(data) :
-#                 if not isinstance(datum_i, dict) : raise Exception('列表中元素类型不一致({})'.format(datum_i))
-#                 for key, value in datum_i.items() :
-#                     if key not in result_0 :
-#                         result_0[key] = inspect(value, max_depth, depth + 1) # 【补充】第0个元素中不存在的字段
-#                         continue
-#                     if data[0].get(key) is not None and isinstance(data[0][key], list) : continue # 列表类【原生】字段不扩充POSSIBLE VALUES
-#                     if data[0].get(key) is not None and isinstance(data[0][key], dict) : continue # 字典类【原生】字段不扩充POSSIBLE VALUES
-#                     if data[0].get(key) is None and isinstance(result_0[key], list)
-#                         and not (isinstance(result_0[key][0], str) and 'POSSIBLE VALUES' in result_0[key][0]) : continue # 列表类【补充】字段不扩充POSSIBLE VALUES
-#                     if data[0].get(key) is None and isinstance(result_0[key], dict) : continue # 字典类【补充】字段不扩充POSSIBLE VALUES
-#                     # 此时待补充的是非列表字典类字段
-#                     if isinstance(value, list) or isinstance(value, dict) : raise Exception('列表中元素类型不一致({})'.format(value))
-#                     # 此时value一定为非列表字典类数据
-#                     if not isinstance(result_0[key], list) : # 暂未扩充过，现进行首次扩充POSSIBLE VALUES
-#                         result_0[key] = [
-#                             _ + 'POSSIBLE VALUES' + _, 
-#                             result_0[key]
-#                         ]
-#                         if inspect(value, max_depth, depth + 1) != result_0[key][1] :
-#                             result_0[key].append(inspect(value, max_depth, depth + 1))
-#                     else : # 非首次扩充POSSIBLE VALUES
-#                         if len(result_0[key]) < 5 :
-#                             if inspect(value, max_depth, depth + 1) not in result_0[key] :
-#                                 result_0[key].append(inspect(value, max_depth, depth + 1)) # 扩充
-#                         if index == len(data) - 1 :
-#                             result_0[key].append('{} TOTAL {} SIMILAR ITEMS {}'.format(_, len(data), _))
-#             return [ result_0, '{} TOTAL {} SIMILAR DICTS {}'.format(_, len(data), _) ]
-#         else : # 非字典类数据，含列表
-#             return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1), '{} TOTAL {} SIMILAR LISTS {}'.formart(_, len(data), _) ]
-#     elif isinstance(data, dict) : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
-#     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
-
-
-# DataStructure Module
-#   def inspect()
-#   def compatibleTo
-#   def validate
-#   def difference/delta
-
-# print(str(data)[:120])
-# if depth > max_depth :
-#     if data is None : return None 
-#     elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
-#     elif isinstance(data, list) : return '[ {} items folded ]'.format(len(data))
-#     elif isinstance(data, dict) : return '{{ {} keys folded }}'.format(len(data))
-#     else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
-# if data is None : return None
-# elif isinstance(data, (str, int, float, bool, tuple, set)) : return data
-# elif isinstance(data, list) :
-#     if len(data) == 0 : return data
-#     elif len(data) == 1 : return List([ inspect(data[0], max_depth, depth + 1) ])
-#     elif len(data) == 2 : return List([ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1) ])
-    
-#     # len >= 3
-#     result_0 = inspect(data[0], max_depth, depth + 1)
-#     _ = '------------------------------'
-#     if isinstance(result_0, dict) :
-#         for index, datum_i in enumerate(data) :
-#             if not isinstance(datum_i, dict) : raise Exception('列表中元素类型不一致({})'.format(datum_i))
-#             for key, value in datum_i.items() :
-#                 if key not in result_0 :
-#                     result_0[key] = inspect(value, max_depth, depth + 1) # 【补充】第0个元素中不存在的字段
-#                     continue
-#                 if data[0].get(key) is not None and isinstance(data[0][key], list) : continue # 列表类【原生】字段不扩充POSSIBLE VALUES
-#                 if data[0].get(key) is not None and isinstance(data[0][key], dict) : continue # 字典类【原生】字段不扩充POSSIBLE VALUES
-#                 if data[0].get(key) is None and isinstance(result_0[key], list)
-#                     and not (isinstance(result_0[key][0], str) and 'POSSIBLE VALUES' in result_0[key][0]) : continue # 列表类【补充】字段不扩充POSSIBLE VALUES
-#                 if data[0].get(key) is None and isinstance(result_0[key], dict) : continue # 字典类【补充】字段不扩充POSSIBLE VALUES
-#                 # 此时待补充的是非列表字典类字段
-#                 if isinstance(value, list) or isinstance(value, dict) : raise Exception('列表中元素类型不一致({})'.format(value))
-#                 # 此时value一定为非列表字典类数据
-#                 if not isinstance(result_0[key], list) : # 暂未扩充过，现进行首次扩充POSSIBLE VALUES
-#                     result_0[key] = [
-#                         _ + 'POSSIBLE VALUES' + _, 
-#                         result_0[key]
-#                     ]
-#                     if inspect(value, max_depth, depth + 1) != result_0[key][1] :
-#                         result_0[key].append(inspect(value, max_depth, depth + 1))
-#                 else : # 非首次扩充POSSIBLE VALUES
-#                     if len(result_0[key]) < 5 :
-#                         if inspect(value, max_depth, depth + 1) not in result_0[key] :
-#                             result_0[key].append(inspect(value, max_depth, depth + 1)) # 扩充
-#                     if index == len(data) - 1 :
-#                         result_0[key].append('{} TOTAL {} SIMILAR ITEMS {}'.format(_, len(data), _))
-#         return [ result_0, '{} TOTAL {} SIMILAR DICTS {}'.format(_, len(data), _) ]
-#     else : # 非字典类数据，含列表
-#         return [ inspect(data[0], max_depth, depth + 1), inspect(data[1], max_depth, depth + 1), '{} TOTAL {} SIMILAR LISTS {}'.formart(_, len(data), _) ]
-# elif isinstance(data, dict) : return { key : inspect(value, max_depth, depth + 1) for key, value in data.items() }
-# else : raise UserTypeError('data', data, [str, list, tuple, set, dict, int, float, bool])
+    def printAllFieldSlotList(self) :
+        self.getAllFieldSlotList().printFormat()
+        return self

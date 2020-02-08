@@ -127,3 +127,14 @@ def ensureArgsType(func) :
             ensureType('return', result, func.__annotations__['return'])
         return result
     return wrapper
+
+def _print(func) :
+    @wraps(func)
+    def wrapper(self, *, color = '', **kwargs) :
+        from util import E
+        content, print_len = func(self)
+        print(f"{color}{content}{E() if color != '' else ''}", **kwargs)
+        if print_len :
+            self.printLen(color = '', **kwargs)
+        return self
+    return wrapper

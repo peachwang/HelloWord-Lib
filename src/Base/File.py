@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError
+from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError, _print
 from os.path import exists, getsize, isfile, realpath
 from Timer import Timer
 
@@ -21,6 +21,20 @@ class File(Object) :
     def absolute_path(self):
         return realpath(self._path)
 
+    def __format__(self, code) :
+        return f'File({realpath(self._path)})'
+
+    @_print
+    def printFormat(self) :
+        return f'{self}', False
+
+    def __str__(self) :
+        return self.__format__('')
+
+    @_print
+    def printStr(self) :
+        return f'{str(self)}', False
+
     def jsonSerialize(self) :
         return f'{self}'
 
@@ -29,16 +43,9 @@ class File(Object) :
         from util import j
         return j(self.jsonSerialize())
 
-    def print(self, *, color = '') :
-        from util import E
-        print(f"{color}{self.j()}{E() if color != '' else ''}")
-        return self
-
-    def __format__(self, code) :
-        return f'File({realpath(self._path)})'
-
-    def __str__(self) :
-        return self.__format__('')
+    @_print
+    def printJ(self) :
+        return f'{self.j()}', False
 
     def extIs(self, ext, /) :
         return self._ext.toLower() == Str(ext).toLower()

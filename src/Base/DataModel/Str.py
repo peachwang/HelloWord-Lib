@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 import re
-from shared import ensureArgsType, Optional, Union, UserTypeError
+from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 from Object import Object
 # from Timer import Timer
 
@@ -133,7 +133,7 @@ class _Match(Object) :
         groups that did not participate in the match; it defaults to None.
         (?P<name>...)
         '''
-        return (self._wrap(_) for _ in self._match.groups(default))
+        return tuple(self._wrap(_) for _ in self._match.groups(default))
 
     def namedGroupDict(self, *, default = None) :
         '''
@@ -142,9 +142,9 @@ class _Match(Object) :
         keyed by the subgroup name. The default argument is used for groups that
         did not participate in the match; it defaults to None.'''
         from Dict import Dict
-        return Dict(self._match.groupdict(default))
+        return Dict((key, value) for key, value in self._match.groupdict(default).items() if value is not None)
 
-    def startOfGroup(self, group = 0, /) :
+    def startOfGroup(self, group, /) :
         '''
         Match.start([group])
         Return the indices of the start of the substring matched by group;
@@ -156,19 +156,28 @@ class _Match(Object) :
         m.end(group) if group matched a null string.'''
         return self._match.start(group)
 
-    def endOfGroup(self, group = 0, /) :
+    def endOfGroup(self, group, /) :
         '''
         Match.end([group])
         Return the indices of the end of the substring matched by group;'''
         return self._match.end(group)
 
-    def spanOfGroup(self, group = 0, /) :
+    def spanOfGroup(self, group, /) :
         '''
         Match.span([group])
         For a match m, return the 2-tuple (m.start(group), m.end(group)).
         Note that if group did not contribute to the match, this is (-1, -1).
         group defaults to zero, the entire match.'''
         return self._match.span(group)
+
+    def replaceGroup(self, group, repl_str_or_func, /) :
+        if self.oneGroup(group) is None :
+            return self.string
+        if isinstance(repl_str_or_func, str) :
+            replacement = repl_str_or_func
+        else :
+            replacement = repl_str_or_func(self.oneGroup(group))
+        return self.string[ : self.startOfGroup(group)] + replacement + self.string[self.endOfGroup(group) : ]
 
 class Str(str) :
 
@@ -197,10 +206,9 @@ class Str(str) :
         from util import j
         return j(self.jsonSerialize())
 
-    def print(self, *, color = '') :
-        from util import E
-        print(f"{color}{self.j()}{E() if color != '' else ''}")
-        return self
+    @_print
+    def printJ(self, *, color = '', **kwargs) :
+        return f'{self.j()}', False
 
     # def __format__(self) :
         '''

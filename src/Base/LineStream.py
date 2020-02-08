@@ -49,7 +49,7 @@ class LineStream(Object) :
         def __format__(self, code) :
             return f'index = [{self._index}] tag_name = [{self._tag_name}] content = [{self._content}]'
 
-        def print(self) :
+        def printFormat(self) :
             print(f'{self}')
             return self
 

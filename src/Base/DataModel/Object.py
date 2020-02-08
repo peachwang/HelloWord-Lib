@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
-from functools import wraps, partial, lru_cache, singledispatchmethod
-from shared import ensureArgsType, Optional, Union, UserTypeError
+from functools import wraps, partial
+from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 
 class Object() :
 
@@ -75,6 +75,21 @@ class Object() :
         else : appendValue(value_or_generator_or_iterator)
         return self
 
+    def _uniqueAppendProperty(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
+        from List import List
+        from inspect import isgenerator
+        name = f'_{name}'
+        def uniqueAppendValue(value) :
+            if filter_none and value == None : return
+            if self._data.hasNot(name) :
+                self._data[name] = List()
+            self._data[name].uniqueAppend(value)
+        if isgenerator(value_or_generator_or_iterator) or '__next__' in dir(value_or_generator_or_iterator) :
+            for value in value_or_generator_or_iterator :
+                uniqueAppendValue(value)
+        else : uniqueAppendValue(value_or_generator_or_iterator)
+        return self
+
     def updateProperty(self, mapping, /) :
         pd = self.__getattribute__('_property_dict')
         for name, value in mapping.items() :
@@ -98,10 +113,10 @@ class Object() :
         if name in self._data : return self._data[name]
         if f'_{name}' in self._data : return self._data[f'_{name}'] # 未注册属性
 
-        for prefix in ( 'has', 'hasNot', 'ensureHas', 'set', 'append' ) :
+        for prefix in ( 'has', 'hasNot', 'ensureHas', 'set', 'append', 'uniqueAppend' ) :
             l = len(prefix)
-            suffix_1 = ('List' if prefix == 'append' else '')
-            suffix_2 = ('_list' if prefix == 'append' else '')
+            suffix_1 = ('List' if prefix in ('append', 'uniqueAppend') else '')
+            suffix_2 = ('_list' if prefix in ('append', 'uniqueAppend') else '')
             if name[:l] == prefix and (name[l].isupper() or name[l] == '_') :
                 if (existence_2 := pd.has(name_2 := Str(name[l:]).toSnakeCase() + suffix_2))\
                     or (existence_1 := pd.has(name_1 := Str(name[l:]).toPascalCase() + suffix_1)) :
@@ -116,7 +131,7 @@ class Object() :
                         return pd[name_0][prefix]
 
         from util import P, E
-        raise Exception(f"Object {P(type(self))} 中无 {P(name)} 属性或方法, 只有这些属性: {P(self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object)))}\n{pd=}")
+        raise Exception(f"Object {P(type(self))} 中无 {P(name)} 属性或方法, 只有这些属性: {P((self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object))))}\n{pd=}")
 
     def __getitem__(self, name) :
         return self.__getattr__(name)
@@ -242,6 +257,22 @@ class Object() :
         return f'<{self.__class__} at {self.getId()}>'
 
     @_antiLoop
+    def __format__(self, code) :
+        return f'{self._data}'
+
+    @_print
+    def printFormat(self) :
+        return f'{self}', False
+
+    @_antiLoop
+    def __str__(self) :
+        return f'<{self.__class__} at {self.getId()}>._data={str(self._data)}'
+
+    @_print
+    def printStr(self) :
+        return f'{str(self)}', False
+
+    @_antiLoop
     def jsonSerialize(self) :
         result = self._data.jsonSerialize()
         result['__instance__'] = self.getSignature()
@@ -252,24 +283,16 @@ class Object() :
         from util import j
         return j(self.jsonSerialize())
 
+    @_print
+    def printJ(self) :
+        return f'{self.j()}', False
+
     @_antiLoop
     def json(self) :
         from Dict import Dict
         return Dict((name, value.json() if 'json' in dir(value := self.__getattr__(name)) else value)
             for name in self.__getattribute__('_property_dict') if self._data.has(f'_{name}') or name in dir(self))
 
-    def print(self, *, color = '', json = True) :
-        from util import E
-        if json :
-            print(f"{color}{_ if isinstance(_ := self.json(), str) else _.j()}{E() if color != '' else ''}")
-        else :
-            print(f"{color}{self.j()}{E() if color != '' else ''}")
-        return self
-
-    @_antiLoop
-    def __format__(self, code) :
-        return f'{self._data}'
-
-    @_antiLoop
-    def __str__(self) :
-        return f'<{self.__class__} at {self.getId()}>._data={str(self._data)}'
+    @_print
+    def printJson(self) :
+       return f'{_ if isinstance(_ := self.json(), str) else _.j()}', False

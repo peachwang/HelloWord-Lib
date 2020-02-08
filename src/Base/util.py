@@ -5,7 +5,7 @@ import json, re, requests
 from sys import exit
 from Color import G, Y, R, B, P, W, E, GREEN as _G, YELLOW as _Y, RED as _R, BLUE as _B, PINK as _P, WHITE as _W, END as _E
 from functools import wraps
-from shared import ensureArgsType, UserTypeError
+from shared import ensureArgsType, UserTypeError, _print
 from typing import Optional, Union
 from Object import Object
 from List import List

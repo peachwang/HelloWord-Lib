@@ -23,7 +23,7 @@ class _Color :
             self._value     = value # 赋值
             self._now_color = WHITE # 初始无染色
             self._colored   = False # 初始无染色
-            if value == NONE :
+            if isinstance(value, str) and value == NONE :
                 self._evaluated = True # 纯颜色标记
             else :
                 self._evaluated = False # 非纯颜色标记
@@ -33,28 +33,22 @@ class _Color :
         # return f'{self._now_color}{self._colored=} {self._evaluated=}{END} {self._color}{self._value=}{END}'
 
     def __format__(self, code) :
-        if self._value == NONE : # 纯颜色标记
+        if isinstance(self._value, str) and self._value == NONE : # 纯颜色标记
             return self._color
-        # print(code)
-        if isinstance(self._value, (int, float)) :
-            if len(code) > 0 :
-                if code[0] in '123456789' :
-                    code = str(int(code) + 13)
-                else :
-                    code = code[0] + str(int(code[1:]) + 13)
-        # print(code)
         # 非纯颜色标记
         if self._colored : # 已染色
             _ = f'{self._now_color}{self._value}{END}'
-            # print(len(_))
-            return format(_, code)
         else : # 未染色
             if self._evaluated : # 已求值
                 _ = f'{WHITE}{self._value}{END}'
             else : # 未求值
                 _ = f'{self._color}{self._value}{END}'
-            # print(len(_))
-            return format(_, code)
+        delta = len(_) - len(f"{self._value}")
+        from Str import Str
+        pattern = r'((?P<fill>.)?(?P<align>[<>=^]))?(?P<sign>[+\- ])?(?P<alter>#)?(?P<zero>0)?(?P<width>\d+)?(?P<group>[_,])?(\.(?P<precision>\d+))?(?P<type>[bcdeEfFgGnosxX%])?'
+        code = Str(code).fullMatch(pattern).replaceGroup('width', lambda _ : str(int(_) + delta))
+        # _ += f'[{code}]'
+        return format(_, code)
 
     def _wrapper(func) :
         @wraps(func)

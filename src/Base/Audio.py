@@ -4,21 +4,7 @@ from pydub import AudioSegment
 
 class Audio(File) :
 
-    def jsonSerialize(self) :
-        return f'{self}'
-
-    # 可读化
-    def j(self) :
-        from util import j
-        return j(self.jsonSerialize())
-
-    def print(self, *, color = '') :
-        from util import E
-        print(color, self.j(), E() if color != '' else '')
-        return self
-
-    def len(self) :
-        raise NotImplementedError
+    pass
 
 def wav2mp3(import_file_path, export_path = None, flog = None) :
     if flog is None : flog = sys.stdout

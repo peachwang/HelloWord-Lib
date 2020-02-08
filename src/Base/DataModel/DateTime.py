@@ -2,7 +2,7 @@
 from Object import Object
 from datetime import datetime, timedelta
 from time import time, strftime
-from shared import ensureArgsType, Optional, Union, UserTypeError
+from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 
 class DateTime(Object) :
 
@@ -25,26 +25,6 @@ class DateTime(Object) :
     def getRaw(self) :
         return self.datetime
 
-    def jsonSerialize(self) :
-        return str(self.datetime)
-
-    # 可读化
-    def j(self) :
-        from util import j
-        return j(self.jsonSerialize())
-
-    def print(self, *, color = '') :
-        from util import E
-        print(color, self.j(), E() if color != '' else '')
-        return self
-
-    def __format__(self, pattern) :
-        if pattern == '' : pattern = '%Y-%m-%d %H:%M:%S'
-        return strftime(pattern, self.datetime.timetuple())
-
-    def __str__(self) :
-        return f'DateTime({self.__format__("%Y-%m-%d %H:%M:%S")})'
-
     @property
     def datetime(self):
         return datetime.fromtimestamp(self._timestamp)
@@ -62,3 +42,30 @@ class DateTime(Object) :
 
     def timeStr(self, pattern, /) :
         return self.__format__(pattern)
+
+    def __format__(self, pattern) :
+        if pattern == '' : pattern = '%Y-%m-%d %H:%M:%S'
+        return strftime(pattern, self.datetime.timetuple())
+
+    @_print
+    def printFormat(self) :
+        return f'{self}', False
+
+    def __str__(self) :
+        return f'DateTime({self.__format__("%Y-%m-%d %H:%M:%S")})'
+
+    @_print
+    def printStr(self) :
+        return f'{str(self)}', False
+
+    def jsonSerialize(self) :
+        return str(self.datetime)
+
+    # 可读化
+    def j(self) :
+        from util import j
+        return j(self.jsonSerialize())
+
+    @_print
+    def printJ(self) :
+        return f'{self.j()}', False

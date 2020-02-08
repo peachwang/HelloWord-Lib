@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
-from collections import defaultdict
-from shared import ensureArgsType, Optional, Union, UserTypeError
+from functools import wraps
+from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 # from Timer import Timer
 
 class Dict(dict) :
@@ -119,6 +119,46 @@ class Dict(dict) :
                 self[key].toMongoDoc()
         return self
 
+    @_print
+    def printLen(self) :
+        return f'{self.len()}个键值', False
+
+    @_print
+    def printLine(self) :
+        return self.keys().mapped(lambda key : f'{key}: {self[key]}').join('\n'), True
+
+    def __format__(self, code) :
+        '''default object formatter'''
+        return "{{{}}}".format(
+            self.keys()
+                .map(lambda key : '{} : {}'.format(
+                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else '{}'.format(key),
+                        '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else '{}'.format(self[key])
+                    )
+                )
+                .join(', ')
+        )
+
+    @_print
+    def printFormat(self) :
+        return self.keys().mapped(lambda key : f'{key}: {self[key]}').join('\n'), True
+
+    def __str__(self) :
+        '''Return str(self).'''
+        return 'Dict{{{}}}'.format(
+            self.keys()
+                .map(lambda key : '{} : {}'.format(
+                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else str(key),
+                        '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else str(self[key])
+                    )
+                )
+                .join(', ')
+        )
+
+    @_print
+    def printStr(self) :
+        return self.keys().mapped(lambda key : f'{str(key)}: {str(self[key])}').join('\n'), True
+
     def jsonSerialize(self) :
         '''NOT IN PLACE'''
         self._importTypes()
@@ -137,51 +177,18 @@ class Dict(dict) :
         from util import j
         return j(self.jsonSerialize(), indent = 4 if indent else None)
 
+    @_print
+    def printJ(self) :
+        return f'{self.j()}', True
+
     def json(self) :
         '''带有业务逻辑，与 j 不同'''
         '''NOT IN PLACE'''
         return Dict((key, self[key].json()) if 'json' in dir(self[key]) else (key, self[key]) for key in self)
 
-    def printLen(self, *, color = '') :
-        from util import E
-        print(f"{color}{self.len()}个键值{E() if color != '' else ''}")
-        return self
-
-    def print(self, color = '', json = True) :
-        from util import E
-        if json :
-            print(f"{color}{self.json().j()}{E() if color != '' else ''}")
-        else :
-            print(f"{color}{self.j()}{E() if color != '' else ''}")
-        return self.printLen()
-
-    def __format__(self, code) :
-        '''default object formatter'''
-        return "{{{}}}".format(
-            self.keys()
-                .map(lambda key : '{} : {}'.format(
-                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else '{}'.format(key),
-                        '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else '{}'.format(self[key])
-                    )
-                )
-                .join(', ')
-        )
-
-    def __str__(self) :
-        '''Return str(self).'''
-        return 'Dict{{{}}}'.format(
-            self.keys()
-                .map(lambda key : '{} : {}'.format(
-                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else str(key),
-                        '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else str(self[key])
-                    )
-                )
-                .join(', ')
-        )
-
-    def stat(self, msg = '') :
-        print(f"{'' if msg == '' else f'{msg}: '}{self.len()}条")
-        return self
+    @_print
+    def printJson(self) :
+       return f'{self.json().j()}', False
 
     def inspect(self) :
         from Inspect import Inspect
@@ -210,7 +217,7 @@ class Dict(dict) :
 
     def has(self, key_list, /) :
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
             return dict.__contains__(self, key_list)
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -275,7 +282,7 @@ class Dict(dict) :
     def get(self, key_list, /, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
             if default == self.NV and not dict.__contains__(self, key_list) :
                 raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
             return dict.get(self, key_list, self._wrapValue(default))
@@ -338,7 +345,7 @@ class Dict(dict) :
     def set(self, key_list, value, /) :
         '''IN PLACE'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
             self[key_list] = value
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -393,7 +400,7 @@ class Dict(dict) :
         If key is not found, d is returned if given, otherwise KeyError is raised'''
         '''IN PLACE'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime)) :
+        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
             if default == 'NONE' :
                 return dict.pop(self, key_list)
             else :
@@ -437,7 +444,7 @@ class Dict(dict) :
 
     def _stripValue(self, value, string, /) :
         self._importTypes()
-        if value is None or isinstance(value, (int, float, bool, range, bytes, zip, self._datetime)):
+        if value is None or isinstance(value, (int, float, bool, range, bytes, zip, self._datetime, type)):
             return value
         elif isinstance(value, (self._List, self._Dict, self._Str)) : # can't be list, dict, str
             return value.strip(string)
