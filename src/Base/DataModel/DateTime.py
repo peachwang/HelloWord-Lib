@@ -2,41 +2,47 @@
 from Object import Object
 from datetime import datetime, timedelta
 from time import time, strftime
-from shared import ensureArgsType, Optional, Union, UserTypeError, _print
+from shared import ensureArgsType, Optional, Union, UserTypeError, _print, cached_property, lru_cache
 
 class DateTime(Object) :
 
     # @ensureArgsType
-    def __init__(self, timestamp_or_datetime: Optional[Union[datetime, int, float]] = None, /) :
+    def __init__(self, timestamp_or_datetime_or_string: Optional[Union[datetime, int, float, str]] = None, pattern = '%Y-%m-%d %H:%M:%S', /) :
         Object.__init__(self)
         self._registerProperty(['timestamp'])
-        if timestamp_or_datetime is None :
+        if timestamp_or_datetime_or_string is None :
             self._timestamp = time()
-        elif isinstance(timestamp_or_datetime, datetime) :
-            self._timestamp = timestamp_or_datetime.timestamp()
-        elif isinstance(timestamp_or_datetime, (int, float)) :
-            self._timestamp = timestamp_or_datetime
-        else : raise UserTypeError(timestamp_or_datetime)
+        elif isinstance(timestamp_or_datetime_or_string, datetime) :
+            self._timestamp = timestamp_or_datetime_or_string.timestamp()
+        elif isinstance(timestamp_or_datetime_or_string, (int, float)) :
+            self._timestamp = timestamp_or_datetime_or_string
+        elif isinstance(timestamp_or_datetime_or_string, str) :
+            self._timestamp = datetime.strptime(timestamp_or_datetime_or_string, pattern).timestamp()
+        else : raise UserTypeError(timestamp_or_datetime_or_string)
 
-    def fromStr(self, string, pattern = '%Y-%m-%d %H:%M:%S', /) :
-        self._timestamp = datetime.strptime(string, pattern).timestamp()
-        return self
-
+    @cached_property
     def getRaw(self) :
         return self.datetime
 
-    @property
-    def datetime(self):
+    @cached_property
+    def datetime(self) :
         return datetime.fromtimestamp(self._timestamp)
 
-    @property
+    def __lt__(self, other, /) : return self.timestamp < other.timestamp
+    def __le__(self, other, /) : return self.timestamp <= other.timestamp
+    def __gt__(self, other, /) : return self.timestamp > other.timestamp
+    def __ge__(self, other, /) : return self.timestamp >= other.timestamp
+    def __eq__(self, other, /) : return self.timestamp == other.timestamp
+    def __ne__(self, other, /) : return self.timestamp != other.timestamp
+
+    @cached_property
     def date_str(self) :
         return self.__format__('%Y-%m-%d')
 
     def dateStr(self, pattern, /) :
         return self.__format__(pattern)
 
-    @property
+    @cached_property
     def time_str(self) :
         return self.__format__('%H:%M:%S')
 

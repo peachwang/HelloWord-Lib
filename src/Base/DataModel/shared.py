@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from functools import wraps
+from functools import wraps, cached_property, lru_cache
 import inspect
 from pprint import pformat as pf, pprint as pp
 from typing import Optional, Union
@@ -130,9 +130,9 @@ def ensureArgsType(func) :
 
 def _print(func) :
     @wraps(func)
-    def wrapper(self, *, color = '', **kwargs) :
+    def wrapper(self, *args, color = '', **kwargs) :
         from util import E
-        content, print_len = func(self)
+        content, print_len = func(self, *args)
         print(f"{color}{content}{E() if color != '' else ''}", **kwargs)
         if print_len :
             self.printLen(color = '', **kwargs)

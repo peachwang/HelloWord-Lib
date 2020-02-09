@@ -55,6 +55,9 @@ class Object() :
         if _hasNotProperty(name) :
             raise Exception(f'{self}必须拥有属性{name}.')
         return self
+    
+    def _getProperty(self, name, /, default = None) :
+        return self._data.get(f'_{name}', default)
 
     def _setProperty(self, name, value, /) :
         self._data[f'_{name}'] = value
@@ -113,7 +116,7 @@ class Object() :
         if name in self._data : return self._data[name]
         if f'_{name}' in self._data : return self._data[f'_{name}'] # 未注册属性
 
-        for prefix in ( 'has', 'hasNot', 'ensureHas', 'set', 'append', 'uniqueAppend' ) :
+        for prefix in ( 'has', 'hasNot', 'ensureHas', 'get', 'set', 'append', 'uniqueAppend' ) :
             l = len(prefix)
             suffix_1 = ('List' if prefix in ('append', 'uniqueAppend') else '')
             suffix_2 = ('_list' if prefix in ('append', 'uniqueAppend') else '')

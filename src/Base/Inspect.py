@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, UserTypeError, P, R, Y
-from functools import cached_property, lru_cache
+from util import List, Dict, Str, Object, UserTypeError, P, R, Y, cached_property, lru_cache
 
 # DataStructure Module
-#   def inspect() # 返回拉平后的字段tuple的列表，统计字段类型和可能的取值，数组长度，存在性检验
 #   def compatibleTo
 #   def validate
 #   def difference/delta
@@ -216,16 +214,16 @@ class Inspect(Object) :
 
     def __init__(self, raw_data) :
         Object.__init__(self)
-        self._registerProperty(['raw_data', 'root', 'slot_container'])
+        self._registerProperty(['raw_data', 'root_field', '_slot_dict'])
         if not isinstance(raw_data, (List, Dict)) :
             raise UserTypeError(raw_data)
         self._raw_data  = raw_data
         self._slot_dict = Dict()
-        self._root      = _Field(None, '', self._raw_data, self._slot_dict)
+        self._root_field = _Field(None, '', self._raw_data, self._slot_dict)
 
     @lru_cache
     def getLeafList(self) :
-        return self._root.getLeafFieldList()
+        return self._root_field.getLeafFieldList()
 
     def printLeafList(self) :
         self.getLeafFieldList().printFormat()
@@ -233,7 +231,7 @@ class Inspect(Object) :
 
     @lru_cache
     def getNonLeafList(self) :
-        return self._root.getNonLeafFieldList()
+        return self._root_field.getNonLeafFieldList()
 
     def printNonLeafList(self) :
         self.getNonLeafFieldList().printFormat()
@@ -241,7 +239,7 @@ class Inspect(Object) :
 
     @lru_cache
     def getAllFieldList(self) :
-        return self._root.getAllFieldList()
+        return self._root_field.getAllFieldList()
 
     def printAllFieldList(self) :
         self.getAllFieldList().printFormat()
@@ -249,7 +247,7 @@ class Inspect(Object) :
 
     @lru_cache
     def getAllFieldSlotList(self) :
-        return self._root.field_slot.getAllFieldSlotList().sort(lambda _ : _.path)
+        return self._root_field.field_slot.getAllFieldSlotList().sort('path')
 
     def printAllFieldSlotList(self) :
         self.getAllFieldSlotList().printFormat()

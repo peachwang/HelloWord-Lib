@@ -4,7 +4,7 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../DataModel/'));
 import json, re, requests
 from sys import exit
 from Color import G, Y, R, B, P, W, E, GREEN as _G, YELLOW as _Y, RED as _R, BLUE as _B, PINK as _P, WHITE as _W, END as _E
-from functools import wraps
+from functools import wraps, cached_property, lru_cache
 from shared import ensureArgsType, UserTypeError, _print
 from typing import Optional, Union
 from Object import Object

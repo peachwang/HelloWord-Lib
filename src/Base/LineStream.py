@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../../../../HelloWord-Lib/src/Base')); from util import *
-from functools import cached_property
 
 class LineStream(Object) :
 

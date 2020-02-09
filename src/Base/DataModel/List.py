@@ -106,8 +106,11 @@ class List(list) :
         return f'{self.len()}个元素', False
 
     @_print
-    def printLine(self) :
-        return List(f'{item}' for item in self).join('\n'), True
+    def printLine(self, pattern = None, /) :
+        if pattern is None :
+            return self.mapped(lambda item : f'{item}').join('\n'), True
+        else :
+            return self.mapped(lambda item, index : pattern.format(item, index)).join('\n'), True
 
     def __format__(self, code) :
         '''default object formatter'''
@@ -117,8 +120,11 @@ class List(list) :
         )
 
     @_print
-    def printFormat(self) :
-        return self.mapped(lambda item : f'{item}').join('\n'), True
+    def printFormat(self, pattern = None, /) :
+        if pattern is None :
+            return self.mapped(lambda item : f'{item}').join('\n'), True
+        else :
+            return self.mapped(lambda item, index : pattern.format(item, index)).join('\n'), True
 
     def __str__(self) :
         '''Return str(self).'''
@@ -434,15 +440,20 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().reverse()
 
-    def sort(self, key_func = None, /, *, reverse = False) :
+    def sort(self, key_func_or_attr_name = None, /, *, reverse = False) :
         '''L.sort(key=None, reverse=False) -> None -- stable sort *IN PLACE*'''
         '''IN PLACE'''
-        list.sort(self, key = key_func, reverse = reverse)
+        if callable(key_func_or_attr_name) :
+            list.sort(self, key = key_func_or_attr_name, reverse = reverse)
+        elif isinstance(key_func_or_attr_name, str) :
+            key_func = lambda _ : _.__getattr__(key_func_or_attr_name)
+            list.sort(self, key = key_func, reverse = reverse)
+        else : raise UserTypeError(key_func_or_attr_name)
         return self
 
-    def sorted(self, key_func = None, /, *, reverse = False) :
+    def sorted(self, key_func_or_attr_name = None, /, *, reverse = False) :
         '''NOT IN PLACE'''
-        return self.copy().sort(key_func, reverse = reverse)
+        return self.copy().sort(key_func_or_attr_name, reverse = reverse)
 
     def shuffle(self) :
         '''IN PLACE'''
