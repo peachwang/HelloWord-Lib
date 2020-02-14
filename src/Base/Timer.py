@@ -97,7 +97,7 @@ class Timer() :
         if Timer._timeitTotalOff : return cls
         def printTimer(timer) :
             from util import P, E
-            print(P(f'类目({timer._key:50}) 总共({timer.len():-5}次, {timer._total:.6f}s) 平均({timer.average:.6f}s) [ {msg} ]'))
+            print(P(f'类目({timer._key:50}) 总共({timer.len():-5}次, {timer._total:.6f}s) 平均{timer.average:.6f}s [ {msg} ]'))
         if cls._timer_dict.has(key) :
             _ = cls._timer_dict[key]
             if isinstance(_, dict) :
@@ -117,10 +117,10 @@ class Timer() :
         cls._global_delta_list.append(timing_delta)
         cls._global_total += timing_delta
         if delta is None :
-            print(Y(f'[{DateTime()}] ({cls._global_total:.6f}s) 间隔({timing_delta:.6f}s) [ {msg} ]'))
+            print(Y(f'[{DateTime().__format__("%m-%d %H:%M:%S")}] {cls._global_total:5.2f}s 间隔{timing_delta:9.6f}s'), f'[ {msg} ]')
         else :
             indent = '\t' * indent
-            print(Y(f'{indent}[{DateTime()}] ({cls._global_total:.6f}s) 本轮({delta:.6f}s) [ {msg} ]'))
+            print(Y(f'{indent}[{DateTime().__format__("%m-%d %H:%M:%S")}] {cls._global_total:5.2f}s 本轮{delta:9.6f}s'), f'[ {msg} ]')
         sys.stdout.flush()
         cls._global_current = time()
         return cls

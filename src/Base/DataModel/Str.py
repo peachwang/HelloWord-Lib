@@ -279,12 +279,12 @@ class Str(str) :
         else :
             raise Exception(f'{self=}应该不为空串')
 
-    def isIn(self, item_list, /) :
+    def isIn(self, *item_list) :
         from List import List
-        return List(item_list).has(self)
+        return List(list(item_list)).has(self)
 
-    def isNotIn(self, item_list, /) :
-        return not self.isIn(item_list)
+    def isNotIn(self, *item_list) :
+        return not self.isIn(*item_list)
 
     def __contains__(self, sub, /) :
         '''

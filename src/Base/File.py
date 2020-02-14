@@ -7,15 +7,16 @@ class File(Object) :
 
     def __init__(self, file_path, folder = None, /) :
         Object.__init__(self)
-        self._registerProperty(['path', 'folder', 'folder_path', 'name', 'ext', 'range'])
-        file_path           = Str(file_path)
-        self._folder        = folder
-        self._path          = file_path
-        _                   = file_path.split('/')
-        self._name          = _[-1]
-        self._ext           = self._name.split('.')[-1] if self._name.has('.') else Str('')
-        self._name          = self._name[ : - self._ext.len() - 1]
-        self._folder_path   = _[ : -1].join('/')
+        self._registerProperty(['path', 'folder', 'folder_path', 'full_name', 'name', 'ext', 'range'])
+        file_path         = Str(file_path)
+        self._folder      = folder
+        self._path        = file_path
+        _                 = file_path.split('/')
+        self._full_name   = _[-1]
+        self._name        = self._full_name
+        self._ext         = self._name.split('.')[-1] if self._name.has('.') else Str('')
+        self._name        = self._name[ : - self._ext.len() - 1]
+        self._folder_path = _[ : -1].join('/')
 
     @property
     def absolute_path(self):
@@ -116,11 +117,11 @@ class File(Object) :
     def dumpJson(self, data, /, *, indent = True) :
         return self.writeData(data, indent = indent)
 
-    def loadData(self) :
+    def loadData(self, **kwargs) :
         if self.isTxt() :
-            return self.readLineList()
+            return self.readLineList(**kwargs)
         elif self.isJson() :
-            return self.loadJson()
+            return self.loadJson(**kwargs)
         else :
             raise Exception(f'不支持的后缀名：{self._ext=}')
 

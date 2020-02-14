@@ -194,6 +194,12 @@ class Dict(dict) :
         from Inspect import Inspect
         return Inspect(self)
 
+    def isList(self) :
+        return False
+
+    def isDict(self) :
+        return True
+
     def __len__(self) :
         '''
         Return len(self).
@@ -395,7 +401,7 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         return self.updated(mapping)
 
-    def pop(self, key_list, /, default = 'NONE') :
+    def popKey(self, key_list, /, default = 'NONE') :
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
         If key is not found, d is returned if given, otherwise KeyError is raised'''
         '''IN PLACE'''
@@ -422,18 +428,18 @@ class Dict(dict) :
         else :
             raise UserTypeError(key_list)
 
-    def popped(self, key_list, /, default = 'NONE') :
+    def poppedKey(self, key_list, /, default = 'NONE') :
         '''NOT IN PLACE'''
-        return self.copy().pop(key_list, default = default)
+        return self.copy().popKey(key_list, default = default)
 
-    def drop(self, key_list, /, default = 'NONE') :
+    def dropKey(self, key_list, /, default = 'NONE') :
         '''IN PLACE'''
-        self.pop(key_list, default = None)
+        self.popKey(key_list, default = None)
         return self
 
-    def dropped(self, key_list, /, default = 'NONE') :
+    def droppedKey(self, key_list, /, default = 'NONE') :
         '''NOT IN PLACE'''
-        self.copy().drop(key_list, default = default)
+        self.copy().dropKey(key_list, default = default)
         return self
 
     def popitem(self) :

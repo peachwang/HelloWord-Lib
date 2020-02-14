@@ -3,7 +3,7 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../DataModel/'));
 
 import json, re, requests
 from sys import exit
-from Color import G, Y, R, B, P, W, E, GREEN as _G, YELLOW as _Y, RED as _R, BLUE as _B, PINK as _P, WHITE as _W, END as _E
+from Color import R, Y, G, C, B, P, S, W, E
 from functools import wraps, cached_property, lru_cache
 from shared import ensureArgsType, UserTypeError, _print
 from typing import Optional, Union
@@ -16,6 +16,7 @@ from Timer import Timer
 from File import File
 from Audio import Audio
 from Folder import Folder, makedirs as mkdir
+# from Inspect import Validator
 from LineStream import LineStream
 
 # ==================== Data ====================
@@ -97,7 +98,10 @@ def highlightTraceback(func) :
     @wraps(func)
     def wrapper(*args, **kwargs) :
         try :
-            return func(*args, **kwargs)
+            Timer.printTiming('开始')
+            result = func(*args, **kwargs)
+            Timer.printTiming('结束')
+            return result
         except :
             import traceback
             line_list = List(traceback.format_exception(*sys.exc_info())).reverse()

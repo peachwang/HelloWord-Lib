@@ -2,6 +2,7 @@
 from util import List, Dict, Str, Object, UserTypeError, _print
 from File import File, realpath
 from os import path, rename, listdir, remove, makedirs, walk
+from Timer import Timer
 
 class Folder(Object) :
 
@@ -74,3 +75,7 @@ class Folder(Object) :
         for folder in self._sub_folder_list :
             result.extend(folder.flattern_sub_file_list)
         return result
+
+    def printFilePathList(self) :
+        self.flattern_sub_file_list.path.printLine()
+        return self

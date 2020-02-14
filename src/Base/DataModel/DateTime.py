@@ -49,8 +49,12 @@ class DateTime(Object) :
     def timeStr(self, pattern, /) :
         return self.__format__(pattern)
 
+    @cached_property
+    def micro_second(self) :
+        return self.datetime.microsecond
+
     def __format__(self, pattern) :
-        if pattern == '' : pattern = '%Y-%m-%d %H:%M:%S'
+        if pattern == '' : pattern = '%Y-%m-%d %H:%M:%S' # Microsecond %f
         return strftime(pattern, self.datetime.timetuple())
 
     @_print

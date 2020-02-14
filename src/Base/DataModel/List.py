@@ -172,6 +172,12 @@ class List(list) :
         from Inspect import Inspect
         return Inspect(self)
 
+    def isList(self) :
+        return True
+
+    def isDict(self) :
+        return False
+
     def __len__(self) :
         '''
         Return len(self).
@@ -403,26 +409,26 @@ class List(list) :
         '''NOT IN PLACE'''
         return self.copy().extend(item_list)
 
-    def pop(self, index = -1, /) :
+    def popIndex(self, index = -1, /) :
         '''L.pop([index]) -> item -- remove and return item at index (default last).
         Raises IndexError if list is empty or index is out of range.'''
         '''IN PLACE'''
         return list.pop(self, index)
 
-    def popped(self, index = -1, /) :
+    def poppedIndex(self, index = -1, /) :
         '''NOT IN PLACE'''
-        return self.copy().pop(index)
+        return self.copy().popIndex(index)
 
-    def remove(self, item, /) :
+    def dropItem(self, item, /) :
         '''L.remove(value) -> None -- remove first occurrence of value.
         Raises ValueError if the value is not present.'''
         '''IN PLACE'''
         list.remove(self, item)
         return self
 
-    def removed(self, item, /) :
+    def droppedItem(self, item, /) :
         '''NOT IN PLACE'''
-        return self.copy().remove()
+        return self.copy().dropItem()
     
     def __reversed__(self) :
         '''
@@ -443,7 +449,7 @@ class List(list) :
     def sort(self, key_func_or_attr_name = None, /, *, reverse = False) :
         '''L.sort(key=None, reverse=False) -> None -- stable sort *IN PLACE*'''
         '''IN PLACE'''
-        if callable(key_func_or_attr_name) :
+        if callable(key_func_or_attr_name) or key_func_or_attr_name is None :
             list.sort(self, key = key_func_or_attr_name, reverse = reverse)
         elif isinstance(key_func_or_attr_name, str) :
             key_func = lambda _ : _.__getattr__(key_func_or_attr_name)
@@ -596,11 +602,11 @@ class List(list) :
         if isinstance(func_or_func_name, str) :
             while index < self.len() :
                 if self[index].__getattribute__(func_or_func_name)(*args, **kwargs) : index += 1
-                else : self.pop(index)
+                else : self.popIndex(index)
         else :
             while index < self.len() :
                 if func_or_func_name(self[index], *args, **kwargs) : index += 1
-                else : self.pop(index)
+                else : self.popIndex(index)
         return self
 
     def filtered(self, func_or_func_name, /, *args, **kwargs) :

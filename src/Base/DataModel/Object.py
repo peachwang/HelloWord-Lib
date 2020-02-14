@@ -5,7 +5,7 @@ from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 
 class Object() :
 
-    _id_list = [ ]
+    __id_list = [ ]
     NV = P_NON_VACANCY  = 'P_NON_VACANCY'
     
     def __init__(self) :
@@ -147,12 +147,12 @@ class Object() :
     def _antiLoop(func) :
         @wraps(func)
         def wrapper(self, *args, **kwargs) :
-            if self.getId() in Object._id_list :
+            if self.getId() in Object.__id_list :
                 result = object.__str__(self)
             else :
-                Object._id_list.append(self.getId())
+                Object.__id_list.append(self.getId())
                 result = func(self, *args, **kwargs)
-                Object._id_list.remove(self.getId())
+                Object.__id_list.dropItem(self.getId())
             return result
         return wrapper
 

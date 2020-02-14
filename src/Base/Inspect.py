@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, UserTypeError, P, R, Y, cached_property, lru_cache
+from util import List, Dict, Str, Object, UserTypeError, G, Y, R, P, cached_property, lru_cache
 
 # DataStructure Module
 #   def compatibleTo
@@ -20,11 +20,11 @@ class _FieldSlot(Object) :
 
     @cached_property
     def path(self) :
-        return List(list(self._path)).join('.')
+        return List(list(self._path)).join('.') if len(self._path) > 0 else 'ROOT'
 
     @cached_property
     def name(self) :
-        if self.is_root : return ''
+        if self.is_root : return 'ROOT'
         else : return self._path[-1]
 
     @cached_property
@@ -61,7 +61,7 @@ class _FieldSlot(Object) :
         if self.is_root :
             return List()
         else :
-            return self.parent.child_field_slot_list.removed(self)
+            return self.parent.child_field_slot_list.droppedItem(self)
 
     @lru_cache
     def getAllFieldSlotList(self) :
@@ -77,23 +77,28 @@ class _FieldSlot(Object) :
 
     def __format__(self, code) :
         max_len = 3
-        max_width = 15
+        max_width = 25
         result = f'{self.path!s:80}{self.name:>25} {P(Y(self.type_list.join(", ")) == "Dict") == "List":<10} {"  " if self.is_root or self.in_list else (P("必") if self.field_num == self._parent.field_num else Y("可"))}存在{self.field_num:>3} 次'
         if self.hasChildFieldSlotList() or self.is_list or self.is_dict :
             if self.is_list :
-                if self._list_len_list.len() <= max_len :
+                if not self.hasListLenList() :
+                    result += f' {G("为空")}'
+                elif self._list_len_list.len() <= max_len :
                     result += f' 含     {self._list_len_list.sort(reverse = True).join(", ")} 个元素'
                 else :
                     __ = self._list_len_list.countBy()
                     _ = List(f'({length}, {count}次)' for length, count in __.items().sort(lambda _ : _[1], reverse = True))[:max_len].join(', ')
                     result += f' 含     {_}{", etc." if __.len() > max_len else ""} 个元素'
             elif self.is_dict :
-                result += f' 含字段 {Y(self._child_field_slot_list.name.unique().sort().join(", "))}'
+                if self.hasChildFieldSlotList() :
+                    result += f' 含字段 {Y(self._child_field_slot_list.name.unique().sort().join(", "))}'
+                else :
+                    result += f' {G("为空")}'
         else :
             if self.hasNotValueList() : 
                 result += f'{R(" 无取值")}'
             elif self._value_list.len() <= max_len :
-                result += f' 取值   {P(self._value_list.sort().format(f"{{!s:.{max_width}}}").join(", "))}'
+                result += f' 取值   {P(self._value_list.sort(lambda _ : f"{_}").format(f"{{!s:.{max_width}}}").join(", "))}'
             else :
                 __ = self._value_list.countBy()
                 _ = List(f'({value!s:.{max_width}}, {count}次)' for value, count in __.items().sort(lambda _ : _[1], reverse = True))[:max_len].join(', ')
@@ -165,7 +170,7 @@ class _Field(Object) :
 
     @cached_property
     def path(self) :
-        return self._path.join('.')
+        return self._path.join('.') if len(self._path) > 0 else 'ROOT'
     
     @cached_property
     def slot_path(self) :
@@ -176,7 +181,7 @@ class _Field(Object) :
         if self.is_root :
             return List()
         else :
-            return self._parent.child_field_list.removed(self)
+            return self._parent.child_field_list.droppedItem(self)
 
     @lru_cache
     def getLeafFieldList(self) :
@@ -201,25 +206,31 @@ class _Field(Object) :
 
     def __format__(self, code) :
         result = f'{self.path!s:80}{self.name:>25} {Y(P(self.type) == "List") == "Dict":10} '
-        if self.is_leaf :
+        if self.is_leaf and not self.is_list and not self.is_dict :
             result += f'{P(self._value)}'
         else :
             if isinstance(self._value, List) :
-                result += f'含 {self._child_field_list.len()} 个元素'
+                if self.hasChildFieldList() :
+                    result += f'含 {self._child_field_list.len()} 个元素'
+                else :
+                    result += f'{G("为空")}'
             elif isinstance(self._value, Dict) :
-                result += f'含 {self._child_field_list.len()} 个字段: {Y(self._child_field_list.name.sort().join(", "))}'
+                if self.hasChildFieldList() :
+                    result += f'含 {self._child_field_list.len()} 个字段: {Y(self._child_field_list.name.sort().join(", "))}'
+                else :
+                    result += f'{G("为空")}'
         return result
 
 class Inspect(Object) :
 
     def __init__(self, raw_data) :
         Object.__init__(self)
-        self._registerProperty(['raw_data', 'root_field', '_slot_dict'])
+        self._registerProperty(['raw_data', 'root_field', 'slot_dict'])
         if not isinstance(raw_data, (List, Dict)) :
             raise UserTypeError(raw_data)
         self._raw_data  = raw_data
         self._slot_dict = Dict()
-        self._root_field = _Field(None, '', self._raw_data, self._slot_dict)
+        self._root_field = _Field(None, 'ROOT', self._raw_data, self._slot_dict)
 
     @lru_cache
     def getLeafList(self) :
@@ -252,3 +263,6 @@ class Inspect(Object) :
     def printAllFieldSlotList(self) :
         self.getAllFieldSlotList().printFormat()
         return self
+
+    def print(self) :
+        return self.printAllFieldList().printAllFieldSlotList()
