@@ -6,7 +6,7 @@ from Timer import Timer
 class File(Object) :
 
     def __init__(self, file_path, folder = None, /) :
-        Object.__init__(self)
+        super().__init__()
         self._registerProperty(['path', 'folder', 'folder_path', 'full_name', 'name', 'ext', 'range'])
         file_path         = Str(file_path)
         self._folder      = folder

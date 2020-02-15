@@ -194,6 +194,10 @@ class Dict(dict) :
         from Inspect import Inspect
         return Inspect(self)
 
+    def diff(self, other, /) :
+        from Inspect import Diff
+        return Diff(self, other)
+
     def isList(self) :
         return False
 

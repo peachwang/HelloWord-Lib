@@ -7,7 +7,7 @@ from Timer import Timer
 class Folder(Object) :
 
     def __init__(self, folder_path, /) :
-        Object.__init__(self)
+        super().__init__()
         self._registerProperty(['path', 'name'])
         try :
             self._path, self._sub_folder_name_list, self._sub_file_name_list = list(walk(folder_path))[0]

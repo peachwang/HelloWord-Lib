@@ -2,6 +2,8 @@
 from functools import wraps
 
 # https://stackoverflow.com/questions/287871/how-to-print-colored-text-in-terminal-in-python
+# https://github.com/tartley/colorama
+# https://github.com/dslackw/colored
 from bcolors import OKMSG as OK, ERRMSG as ERROR, WAITMSG as WAIT
 
 END            = f'\x1b[0m'
@@ -92,11 +94,15 @@ class _Color :
                 _ = f'{FG_WHITE}{self._value}{END}'
             else : # 未求值
                 _ = f'{self._color}{self._value}{END}'
-        delta = len(_) - len(f"{self._value}")
+        from wcwidth import wcswidth
+        len_value = len(f"{self._value}")
+        len_wcs   = wcswidth(f"{self._value}")
+        len_total = len(_)
+        len_color = len_total - len_value
         from Str import Str
         pattern = r'((?P<fill>.)?(?P<align>[<>=^]))?(?P<sign>[+\- ])?(?P<alter>#)?(?P<zero>0)?(?P<width>\d+)?(?P<group>[_,])?(\.(?P<precision>\d+))?(?P<type>[bcdeEfFgGnosxX%])?'
-        code = Str(code).fullMatch(pattern).replaceGroup('width', lambda _ : str(int(_) + delta))
-        # _ += f'[{code}]'
+        code = Str(code).fullMatch(pattern).replaceGroup('width', lambda __ : str(int(__) + len_color + len_value - len_wcs))
+        # _ += f'[{len_value}][{len_wcs}][{len_color}][{len_total}][{code}]'
         return format(_, code)
 
     def _wrapper(func) :

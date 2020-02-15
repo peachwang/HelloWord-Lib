@@ -16,7 +16,7 @@ from Timer import Timer
 from File import File
 from Audio import Audio
 from Folder import Folder, makedirs as mkdir
-# from Inspect import Validator
+# from Inspect import *
 from LineStream import LineStream
 
 # ==================== Data ====================

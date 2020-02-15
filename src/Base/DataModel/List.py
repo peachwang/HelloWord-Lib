@@ -6,6 +6,13 @@ from functools import wraps
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 # from Timer import Timer
 
+
+
+# ListDiff: 以 item 作为最小比较单元。降维后可用于StrDiff
+
+
+
+
 class List(list) :
 
     _has_imported_types = False
@@ -171,6 +178,10 @@ class List(list) :
     def inspect(self) :
         from Inspect import Inspect
         return Inspect(self)
+
+    def diff(self, other, /) :
+        from Inspect import Diff
+        return Diff(self, other)
 
     def isList(self) :
         return True

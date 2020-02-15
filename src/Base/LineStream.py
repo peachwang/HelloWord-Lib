@@ -7,7 +7,7 @@ class LineStream(Object) :
 
         @Timer.timeitTotal('Line.__init__')
         def __init__(self, index, raw_line, /) :
-            Object.__init__(self)
+            super().__init__()
             self._registerProperty(['index', 'raw_line', 'tag_format'])
             self._index, self._raw_line = index, Str(raw_line)
 
@@ -54,7 +54,7 @@ class LineStream(Object) :
 
     # @Timer.timeitTotal('LineStream.__init__')
     def __init__(self, raw_line_list = [], /) :
-        Object.__init__(self)
+        super().__init__()
         self._registerProperty(['raw_line_list', 'line_list', 'tag_line', 'tag_name', 'sub_stream_list'])
         self._raw_line_list = List(raw_line_list)
 

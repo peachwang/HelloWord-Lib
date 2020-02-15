@@ -25,7 +25,7 @@ class Timer() :
         cls._has_inited = True
 
     def __init__(self, key, /) :
-        # Object.__init__(self)
+        # super().__init__()
         Timer.__initclass__()
         # self._registerProperty(['key', 'total'])
         self._key = key

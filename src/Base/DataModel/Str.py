@@ -5,6 +5,12 @@ from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 from Object import Object
 # from Timer import Timer
 
+
+
+# ListDiff: 以 item 作为最小比较单元。降维后可用于StrDiff
+
+
+
 # https://docs.python.org/3/library/re.html
 
 SRE_MATCH_TYPE = type(re.match('', ''))
@@ -12,7 +18,7 @@ SRE_MATCH_TYPE = type(re.match('', ''))
 class Pattern(Object) :
 
     def __init__(self, pattern, /) :
-        Object.__init__(self)
+        super().__init__()
         self._registerProperty(['pattern'])
         self._pattern = Str(pattern)
 
@@ -40,7 +46,7 @@ class Pattern(Object) :
 class _Match(Object) :
     
     def __init__(self, match, /) :
-        Object.__init__(self)
+        super().__init__()
         self._registerProperty(['match'])
         self._match = match
         self._data.update(self.namedGroupDict())
