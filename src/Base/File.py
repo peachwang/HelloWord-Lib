@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError, _print
-from os.path import exists, getsize, isfile, realpath
+from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError, _print, R
+from os.path import exists, getsize, realpath
+from os import remove, rename
 from Timer import Timer
 
 class File(Object) :
@@ -66,6 +67,15 @@ class File(Object) :
     @property
     def size(self) :
         return getsize(self._path)
+
+    def delete(self) :
+        '''
+        os.remove(path, *, dir_fd=None)
+        Remove (delete) the file path. If path is a directory, an IsADirectoryError is raised. Use rmdir() to remove directories.
+        '''
+        remove(self._path)
+        print(f'{R(self._path + " 已删除")}')
+        return self
 
     def readLineList(self, *, filter_white_lines = False, replace_abnormal_char = True) :
         if self._hasProperty('range') :

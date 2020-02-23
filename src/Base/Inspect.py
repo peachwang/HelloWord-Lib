@@ -107,7 +107,7 @@ class _FieldSlot(Object) :
 
 class _Field(Object) :
     
-    def __init__(self, parent, name, value, field_slot_dict, /) :
+    def __init__(self, parent, name, value, field_slot_dict, /, **kwargs) :
         super().__init__()
         self._registerProperty(['parent', 'name', 'value', 'child_field_list', 'field_slot'])
         self._parent           = parent
@@ -115,7 +115,7 @@ class _Field(Object) :
         self._name             = name
         self._value            = value
         self._child_field_dict = Dict()
-        self._build(field_slot_dict)
+        self._build(field_slot_dict, **kwargs)
         
         if field_slot_dict.hasNot(self.slot_path) :
             field_slot_dict[self.slot_path] = _FieldSlot(self.slot_path)
@@ -244,14 +244,14 @@ class _Field(Object) :
 
 class Inspect(Object) :
 
-    def __init__(self, raw_data) :
+    def __init__(self, raw_data, **kwargs) :
         super().__init__()
         self._registerProperty(['raw_data', 'root_field', 'field_slot_dict'])
         if not isinstance(raw_data, (List, Dict)) :
             raise UserTypeError(raw_data)
         self._raw_data   = raw_data
         self._field_slot_dict  = Dict()
-        self._root_field = _Field(None, 'ROOT', self._raw_data, self._field_slot_dict)
+        self._root_field = _Field(None, 'ROOT', self._raw_data, self._field_slot_dict, **kwargs)
 
     @lru_cache
     def getLeafList(self) :

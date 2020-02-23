@@ -130,11 +130,12 @@ def ensureArgsType(func) :
 
 def _print(func) :
     @wraps(func)
-    def wrapper(self, *args, color = '', **kwargs) :
+    def wrapper(self, *args, pattern = '{}', color = None, **kwargs) :
         from util import E
         content, print_len = func(self, *args)
-        print(f"{color}{content}{E() if color != '' else ''}", **kwargs)
+        content = pattern.format(content)
+        print(f"{color}{content}{E() if color is not None else ''}", **kwargs)
         if print_len :
-            self.printLen(color = '', **kwargs)
+            self.printLen(color = color, **kwargs)
         return self
     return wrapper

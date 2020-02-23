@@ -1,28 +1,37 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, UserTypeError, _print
+from util import List, Dict, Str, Object, UserTypeError, _print, wraps
 from File import File, realpath
-from os import path, rename, listdir, remove, makedirs, walk
+from os import path, makedirs, rmdir, walk
 from Timer import Timer
 
 class Folder(Object) :
 
-    def __init__(self, folder_path, /) :
+    def __init__(self, folder_path, /, *, auto_build = True) :
         super().__init__()
         self._registerProperty(['path', 'name'])
+        self._path = folder_path
+        self._name = realpath(self._path).split('/')[-1]
+        self._auto_build = auto_build
+        if not auto_build :
+            self._has_built = False
+            return
+        else :
+            self.build()
+
+    def build(self) :
         try :
-            self._path, self._sub_folder_name_list, self._sub_file_name_list = list(walk(folder_path))[0]
+            for self._path, self._sub_folder_name_list, self._sub_file_name_list in walk(self._path) :
+                break
             self._path, self._sub_folder_name_list, self._sub_file_name_list = Str(self._path), List(self._sub_folder_name_list), List(self._sub_file_name_list)
             self._sub_file_name_list.filter(lambda file_name : file_name != '.DS_Store')
         except Exception as e :
-            raise e
-            # raise Exception(f'Fail to walk folder path: {folder_path=}')
+            # raise e
+            raise Exception(f'Fail to walk folder path: {self._path=}')
         self._path.rstrip('/')
         self._name = self._path.split('/')[-1]
-        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}'))
+        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}', auto_build = self._auto_build))
         self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name : File(f'{self._path}/{file_name}', self))
-
-    def len(self) :
-        return self.flattern_sub_file_list.len()
+        self._has_built = True
 
     def __format__(self, code) :
         return f'Folder({realpath(self._path)})'
@@ -51,6 +60,40 @@ class Folder(Object) :
         _ = self.flattern_sub_file_list.path.join('\n')
         return f'{self.j()}\n{_}', True
 
+    @property
+    def path(self) :
+        return self._path
+
+    @property
+    def name(self) :
+        return self._name
+
+    @property
+    def sub_file_list(self) :
+        if not self._has_built : self.build()
+        return self._sub_file_list.copy()
+
+    @property
+    def sub_folder_list(self) :
+        if not self._has_built : self.build()
+        return self._sub_folder_list.copy()
+
+    @property
+    def flattern_sub_file_list(self) :
+        if not self._has_built : self.build()
+        result = self._sub_file_list.copy()
+        for folder in self._sub_folder_list :
+            result.extend(folder.flattern_sub_file_list)
+        return result
+
+    @property
+    def num_flattern_sub_file(self) :
+        return self.flattern_sub_file_list.len()
+
+    def printFilePathList(self) :
+        self.flattern_sub_file_list.path.printLine()
+        return self
+
     def mkdir(folder_path) :
         makedirs(folder_path, exist_ok = True)
         return Folder
@@ -61,21 +104,12 @@ class Folder(Object) :
     def notExists(folder_path) :
         return not Folder.exists(folder_path)
 
-    @property
-    def sub_file_list(self) :
-        return self._sub_file_list.copy()
-
-    @property
-    def sub_folder_list(self) :
-        return self.sub_folder_list.copy()
-
-    @property
-    def flattern_sub_file_list(self) :
-        result = self._sub_file_list.copy()
-        for folder in self._sub_folder_list :
-            result.extend(folder.flattern_sub_file_list)
-        return result
-
-    def printFilePathList(self) :
-        self.flattern_sub_file_list.path.printLine()
-        return self
+    def rmdir(folder_path) :
+        '''
+        os.rmdir(path, *, dir_fd=None)
+        Remove (delete) the directory path. If the directory does not exist or is not empty,
+        an FileNotFoundError or an OSError is raised respectively.
+        In order to remove whole directory trees, shutil.rmtree() can be used.
+        '''
+        rmdir(folder_path)
+        return Folder

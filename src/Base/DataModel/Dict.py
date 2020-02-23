@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-  
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
-from functools import wraps
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 # from Timer import Timer
 
@@ -71,9 +70,11 @@ class Dict(dict) :
         return Dict(self)
 
     def getId(self) :
-        '''id(object) -> integer
+        '''
+        id(object) -> integer
         Return the identity of an object.  This is guaranteed to be unique among
-        simultaneously existing objects.  (Hint: it's the object's memory address.)'''
+        simultaneously existing objects.  (Hint: it's the object's memory address.)
+        '''
         return hex(id(self))
 
     def iter(self) :
@@ -190,9 +191,9 @@ class Dict(dict) :
     def printJson(self) :
        return f'{self.json().j()}', False
 
-    def inspect(self) :
+    def inspect(self, **kwargs) :
         from Inspect import Inspect
-        return Inspect(self)
+        return Inspect(self, **kwargs)
 
     def diff(self, other, /) :
         from Inspect import Diff
@@ -204,10 +205,33 @@ class Dict(dict) :
     def isDict(self) :
         return True
 
+    def __eq__(self, other, /) :
+        '''Return self==value.'''
+        if not isinstance(other, Dict) or self.len() != other.len() : return False
+        return self.j() == other.j()
+
+    def __ne__(self, other, /) :
+        '''Return self!=value.'''
+        return not self.__eq__(other)
+
+    def __ge__(self, other, /) :
+        '''Return self>=value.'''
+        raise NotImplementedError
+
+    def __gt__(self, other, /) :
+        '''Return self>value.'''
+        raise NotImplementedError
+
+    def __le__(self, other, /) :
+        '''Return self<=value.'''
+        raise NotImplementedError
+
+    def __lt__(self, other, /) :
+        '''Return self<value.'''
+        raise NotImplementedError
+
     def __len__(self) :
-        '''
-        Return len(self).
-        '''
+        '''Return len(self).'''
         return dict.__len__(self)
 
     def len(self) :
@@ -220,9 +244,7 @@ class Dict(dict) :
         return not self.isEmpty()
 
     def __contains__(self, key, /) :
-        '''
-        D.__contains__(k) -> True if D has a key k, else False.
-        '''
+        '''D.__contains__(k) -> True if D has a key k, else False.'''
         return dict.__contains__(self, key)
 
     def has(self, key_list, /) :
@@ -276,11 +298,13 @@ class Dict(dict) :
         # return dict.__getattribute__(self, key)
 
     def __getattr__(self, key) :
-        '''getattr(object, name[, default]) -> value
+        '''
+        getattr(object, name[, default]) -> value
         
         Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
         When a default argument is given, it is returned when the attribute doesn't
-        exist; without it, an exception is raised in that case.'''
+        exist; without it, an exception is raised in that case.
+        '''
         # if key in ('List', 'Dict', 'Str', 'Object') :
             # print(f'__getattr__ {key=}')
         return self[key]
@@ -333,10 +357,11 @@ class Dict(dict) :
         return result
 
     def __setattr__(self, key, value) :
-        '''Implement setattr(self, name, value).
-        
+        '''
+        Implement setattr(self, name, value).
         Sets the named attribute on the given object to the specified value.
-        setattr(x, 'y', v) is equivalent to ``x.y = v'''
+        setattr(x, 'y', v) is equivalent to ``x.y = v
+        '''
         '''IN PLACE'''
         self.__setitem__(key, value)
         return value
@@ -380,10 +405,12 @@ class Dict(dict) :
 
     # @ensureArgsType
     def update(self, mapping: dict, /, **kwargs) :
-        '''D.update([E, ]**F) -> None.  Update D from dict/iterable E and F.
+        '''
+        D.update([E, ]**F) -> None.  Update D from dict/iterable E and F.
         If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]
         If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
-        In either case, this is followed by: for k in F:  D[k] = F[k]'''
+        In either case, this is followed by: for k in F:  D[k] = F[k]
+        '''
         '''IN PLACE'''
         if isinstance(mapping, dict) :
             dict.update(self, Dict(mapping))
@@ -406,8 +433,10 @@ class Dict(dict) :
         return self.updated(mapping)
 
     def popKey(self, key_list, /, default = 'NONE') :
-        '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
-        If key is not found, d is returned if given, otherwise KeyError is raised'''
+        '''
+        D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
+        If key is not found, d is returned if given, otherwise KeyError is raised
+        '''
         '''IN PLACE'''
         self._importTypes()
         if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
@@ -447,8 +476,10 @@ class Dict(dict) :
         return self
 
     def popitem(self) :
-        '''D.popitem() -> (k, v), remove and return some (key, value) pair as a
-        2-tuple; but raise KeyError if D is empty.'''
+        '''
+        D.popitem() -> (k, v), remove and return some (key, value) pair as a
+        2-tuple; but raise KeyError if D is empty.
+        '''
         '''IN PLACE'''
         return dict.popitem(self)
 
@@ -535,21 +566,6 @@ class Dict(dict) :
         default dir() implementation
         '''
 
-    # def __eq__(self) :
-        '''
-        Return self==value.
-        '''
-
-    # def __ge__(self) :
-        '''
-        Return self>=value.
-        '''
-
-    # def __gt__(self) :
-        '''
-        Return self>value.
-        '''
-
     # def __hash__(self) :
         '''
         None
@@ -562,21 +578,6 @@ class Dict(dict) :
         The default implementation does nothing. It may be
         overridden to extend subclasses.
 
-        '''
-
-    # def __le__(self) :
-        '''
-        Return self<=value.
-        '''
-
-    # def __lt__(self) :
-        '''
-        Return self<value.
-        '''
-
-    # def __ne__(self) :
-        '''
-        Return self!=value.
         '''
 
     # def __new__(self) :

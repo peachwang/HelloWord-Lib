@@ -128,7 +128,8 @@ class _Match(Object) :
         Match.__getitem__(g)
         m[group] <--> m.group(group)
         This is identical to m.group(group). This allows easier access to an
-        individual group from a match.'''
+        individual group from a match.
+        '''
         return self._wrap(self._match.__getitem__(group))
 
     def allGroupTuple(self, *, default = None) :
@@ -146,7 +147,8 @@ class _Match(Object) :
         Match.groupdict(default=None)
         Return a dictionary containing all the named subgroups of the match,
         keyed by the subgroup name. The default argument is used for groups that
-        did not participate in the match; it defaults to None.'''
+        did not participate in the match; it defaults to None.
+        '''
         from Dict import Dict
         return Dict((key, value) for key, value in self._match.groupdict(default).items() if value is not None)
 
@@ -159,13 +161,15 @@ class _Match(Object) :
         For a match object m, and a group g that did contribute to the match,
         the substring matched by group g (equivalent to m.group(g)) is
         m.string[m.start(g):m.end(g)]. Note that m.start(group) will equal
-        m.end(group) if group matched a null string.'''
+        m.end(group) if group matched a null string.
+        '''
         return self._match.start(group)
 
     def endOfGroup(self, group, /) :
         '''
         Match.end([group])
-        Return the indices of the end of the substring matched by group;'''
+        Return the indices of the end of the substring matched by group;
+        '''
         return self._match.end(group)
 
     def spanOfGroup(self, group, /) :
@@ -173,7 +177,8 @@ class _Match(Object) :
         Match.span([group])
         For a match m, return the 2-tuple (m.start(group), m.end(group)).
         Note that if group did not contribute to the match, this is (-1, -1).
-        group defaults to zero, the entire match.'''
+        group defaults to zero, the entire match.
+        '''
         return self._match.span(group)
 
     def replaceGroup(self, group, repl_str_or_func, /) :
@@ -191,16 +196,15 @@ class Str(str) :
         '''
         id(object) -> integer
         Return the identity of an object.  This is guaranteed to be unique among
-        simultaneously existing objects.  (Hint: it's the object's memory address.)'''
+        simultaneously existing objects.  (Hint: it's the object's memory address.)
+        '''
         return hex(id(self))
 
     def getRaw(self) :
         return str(self)
 
     def __iter__(self) :
-        '''
-        Implement iter(self).
-        '''
+        '''Implement iter(self).'''
         for char in str.__iter__(self) :
             yield Str(char)
 
@@ -213,20 +217,26 @@ class Str(str) :
         return j(self.jsonSerialize())
 
     @_print
-    def printJ(self, *, color = '', **kwargs) :
+    def printJ(self) :
         return f'{self.j()}', False
+
+    @_print
+    def print(self) :
+        return f'{self}', False
 
     # def __format__(self) :
         '''
         S.__format__(format_spec) -> str
-        Return a formatted version of S as described by format_spec.'''
+        Return a formatted version of S as described by format_spec.
+        '''
         # return str.__str__(self)
     
     def format(self, *args, **kwargs) :
         '''
         S.format(*args, **kwargs) -> str
         Return a formatted version of S, using substitutions from args and kwargs.
-        The substitutions are identified by braces ('{' and '}').'''
+        The substitutions are identified by braces ('{' and '}').
+        '''
         '''NOT IN PLACE'''
         return Str(str.format(self, *args, **kwargs))
 
@@ -238,7 +248,8 @@ class Str(str) :
         '''
         S.center(width[, fillchar]) -> str
         Return S centered in a string of length width. Padding is
-        done using the specified fill character (default is a space)'''
+        done using the specified fill character (default is a space)
+        '''
         '''NOT IN PLACE'''
         return Str(str.center(self, width, fillchar))
 
@@ -261,9 +272,7 @@ class Str(str) :
         return self.__add__(string)
 
     def __len__(self) :
-        '''
-        Return len(self).
-        '''
+        '''Return len(self).'''
         return str.__len__(self)
 
     def len(self) :
@@ -293,9 +302,7 @@ class Str(str) :
         return not self.isIn(*item_list)
 
     def __contains__(self, sub, /) :
-        '''
-        x.__contains__(y) <==> y in x
-        '''
+        '''x.__contains__(y) <==> y in x'''
         return str.__contains__(self, sub)
 
     def has(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
@@ -329,7 +336,8 @@ class Str(str) :
         S.count(sub[, start[, end]]) -> int
         Return the number of non-overlapping occurrences of substring sub in
         string S[start:end].  Optional arguments start and end are
-        interpreted as in slice notation.'''
+        interpreted as in slice notation.
+        '''
         if re_mode :
             return self.findall(sub_or_pattern, flags).len()
         else :
@@ -341,7 +349,8 @@ class Str(str) :
         Return the lowest or highest index in S where substring sub is found, 
         such that sub is contained within S[start:end].  Optional
         arguments start and end are interpreted as in slice notation.
-        Raises ValueError when the substring is not found.'''
+        Raises ValueError when the substring is not found.
+        '''
         if not reverse :
             return str.index(sub, start, end)
         else :
@@ -353,7 +362,8 @@ class Str(str) :
         Return the lowest or highest index in S where substring sub is found,
         such that sub is contained within S[start:end].  Optional
         arguments start and end are interpreted as in slice notation.
-        Return -1 on failure.'''
+        Return -1 on failure.
+        '''
         # if not reverse :
         #     return str.find(sub, start, end)
         # else :
@@ -368,12 +378,14 @@ class Str(str) :
         note that this is different from a zero-length match.
         Note that even in MULTILINE mode, re.match() will only match at the
         beginning of the string and not at the beginning of each line.
-        If you want to locate a match anywhere in string, use search() instead'''
+        If you want to locate a match anywhere in string, use search() instead
+        '''
         _ = re.match(pattern, self, flags)
         return _Match(_) if _ else None
 
     def ensureLeftMatch(self, pattern = None, /, *, flags = 0) :
-        if self.leftMatch(pattern, flags = flags) : return self
+        if self.leftMatch(pattern, flags = flags) :
+            return self
         else :
             raise Exception(f'\n{self=}\n应该左匹配\n{pattern=}')
     
@@ -384,7 +396,8 @@ class Str(str) :
         If the whole string matches the regular expression pattern,
         return a corresponding match object. Return None if the string
         does not match the pattern; note that this is different from
-        a zero-length match.'''
+        a zero-length match.
+        '''
         try :
             _ = re.fullmatch(pattern, self, flags)
         except KeyboardInterrupt as e :
@@ -394,7 +407,8 @@ class Str(str) :
         return _Match(_) if _ else None
 
     def ensureFullMatch(self, pattern = None, /, *, flags = 0) :
-        if self.fullMatch(pattern, flags = flags) : return self
+        if self.fullMatch(pattern, flags = flags) :
+            return self
         else :
             raise Exception(f'\n{self=}\n应该完全匹配\n{pattern=}')
 
@@ -405,7 +419,8 @@ class Str(str) :
         expression pattern produces a match, and return a corresponding match
         object. Return None if no position in the string matches the pattern;
         note that this is different from finding a zero-length match at some
-        point in the string.'''
+        point in the string.
+        '''
         _ = re.search(pattern, self, flags)
         return _Match(_) if _ else None
 
@@ -415,7 +430,8 @@ class Str(str) :
         Return an iterator yielding match objects over all non-overlapping
         matches for the RE pattern in string. The string is scanned left-to-right,
         and matches are returned in the order found. Empty matches are included
-        in the result.'''
+        in the result.
+        '''
         from List import List
         return List(_Match(match) for match in re.finditer(pattern, self, flags))
 
@@ -429,7 +445,8 @@ class Str(str) :
         groups are present in the pattern, return a list of groups;
         this will be a list of tuples if the pattern has more than
         one group. Empty matches are included in the result. Non-empty
-        matches can now start just after a previous empty match.'''
+        matches can now start just after a previous empty match.
+        '''
         from List import List
         return List(re.findall(pattern, self, flags))
 
@@ -438,7 +455,8 @@ class Str(str) :
         S.replace(old, new[, count]) -> str
         Return a copy of S with all occurrences of substring
         old replaced by new.  If the optional argument count is
-        given, only the first count occurrences are replaced.'''
+        given, only the first count occurrences are replaced.
+        '''
         if re_mode :
             if count is None :
                 return self._sub(sub_or_pattern, repl_str_func, flags = flags)
@@ -479,14 +497,16 @@ class Str(str) :
         equivalent to \2, but isn’t ambiguous in a replacement such as \g<2>0.
         \20 would be interpreted as a reference to group 20, not a reference to
         group 2 followed by the literal character '0'. The backreference \g<0>
-        substitutes in the entire substring matched by the RE.'''
+        substitutes in the entire substring matched by the RE.
+        '''
         return Str(re.sub(pattern, repl_str_or_func, self, count, flags))
 
     def _subn(self, pattern, repl_str_or_func, /, *, count = 0, flags = 0) :
         '''
         re.subn(pattern, repl, string, count=0, flags=0)
         Perform the same operation as sub(), but return a tuple
-        (new_string, number_of_subs_made).'''
+        (new_string, number_of_subs_made).
+        '''
         _ = re.subn(pattern, repl_str_or_func, self, count, flags)
         return (Str(_[0]), _[1])
 
@@ -495,7 +515,8 @@ class Str(str) :
         '''
         S.join(iterable) -> str
         Return a string which is the concatenation of the strings in the
-        iterable.  The separator between elements is S.'''
+        iterable.  The separator between elements is S.
+        '''
         '''NOT IN PLACE'''
         return Str(str.join(self, [f'{_}' for _ in str_list]))
 
@@ -574,7 +595,8 @@ class Str(str) :
         '''
         S.strip([chars]) -> str
         Return a copy of the string S with leading and trailing whitespace removed.
-        If chars is given and not None, remove characters in chars instead.'''
+        If chars is given and not None, remove characters in chars instead.
+        '''
         '''NOT IN PLACE'''
         if (not left) and right : 
             return Str(str.rstrip(self, string))
@@ -691,14 +713,16 @@ class Str(str) :
     def toLower(self) :
         '''
         S.lower() -> str
-        Return a copy of the string S converted to lowercase.'''
+        Return a copy of the string S converted to lowercase.
+        '''
         '''NOT IN PLACE'''
         return Str(str.lower(self))
 
     def toUpper(self) :
         '''
         S.upper() -> str
-        Return a copy of S converted to uppercase.'''
+        Return a copy of S converted to uppercase.
+        '''
         '''NOT IN PLACE'''
         return Str(str.upper(self))
 
@@ -706,7 +730,8 @@ class Str(str) :
         '''
         S.title() -> str
         Return a titlecased version of S, i.e. words start with title case
-        characters, all remaining cased characters have lower case.'''
+        characters, all remaining cased characters have lower case.
+        '''
         '''NOT IN PLACE'''
         return Str(str.title(self))
 
@@ -714,7 +739,8 @@ class Str(str) :
         '''
         S.capitalize() -> str
         Return a capitalized version of S, i.e. make the first character
-        have upper case and the rest lower case.'''
+        have upper case and the rest lower case.
+        '''
         '''NOT IN PLACE'''
         return Str(str.capitalize(self))
 
@@ -722,14 +748,16 @@ class Str(str) :
         '''
         S.swapcase() -> str
         Return a copy of S with uppercase characters converted to lowercase
-        and vice versa.'''
+        and vice versa.
+        '''
         '''NOT IN PLACE'''
         return Str(str.swapcase(self))
 
     def foldCase(self) :
         '''
         S.casefold() -> str
-        Return a version of S suitable for caseless comparisons.'''
+        Return a version of S suitable for caseless comparisons.
+        '''
         '''NOT IN PLACE'''
         return Str(str.casefold(self))
 
@@ -738,7 +766,8 @@ class Str(str) :
         S.ljust(width[, fillchar]) -> str
         S.rjust(width[, fillchar]) -> str
         Return S left-justified or right-justified in a Unicode string of length width. Padding is
-        done using the specified fill character (default is a space).'''
+        done using the specified fill character (default is a space).
+        '''
         '''NOT IN PLACE'''
         if reverse :
             return Str(str.rjust(self, width, fillchar))

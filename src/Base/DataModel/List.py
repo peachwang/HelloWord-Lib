@@ -2,7 +2,6 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from inspect import isgenerator
-from functools import wraps
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 # from Timer import Timer
 
@@ -109,8 +108,8 @@ class List(list) :
         return self
 
     @_print
-    def printLen(self) :
-        return f'{self.len()}个元素', False
+    def printLen(self, msg = None) :
+        return f"{'' if msg is None else f'{msg}: '}{self.len()}个元素", False
 
     @_print
     def printLine(self, pattern = None, /) :
@@ -175,9 +174,9 @@ class List(list) :
     def printJson(self) :
        return f'{self.json().j()}', False
 
-    def inspect(self) :
+    def inspect(self, **kwargs) :
         from Inspect import Inspect
-        return Inspect(self)
+        return Inspect(self, **kwargs)
 
     def diff(self, other, /) :
         from Inspect import Diff
@@ -189,10 +188,17 @@ class List(list) :
     def isDict(self) :
         return False
 
+    def __eq__(self, other, /) :
+        '''Return self==value.'''
+        if not isinstance(other, List) or self.len() != other.len() : return False
+        return self.j() == other.j()
+
+    def __ne__(self, other, /) :
+        '''Return self!=value.'''
+        return not self.__eq__(other)
+
     def __len__(self) :
-        '''
-        Return len(self).
-        '''
+        '''Return len(self).'''
         return list.__len__(self)
 
     def len(self) :
@@ -205,9 +211,7 @@ class List(list) :
         return not self.isEmpty()
 
     def __contains__(self, item, /) :
-        '''
-        x.__contains__(y) <==> y in x
-        '''
+        '''x.__contains__(y) <==> y in x'''
         return list.__contains__(self, item)
 
     def has(self, item, /) :
@@ -226,9 +230,7 @@ class List(list) :
         return all(self.hasNot(item) for item in item_list)
 
     def count(self, item, /) :
-        '''
-        L.count(value) -> integer -- return number of occurrences of value
-        '''
+        '''L.count(value) -> integer -- return number of occurrences of value'''
         return list.count(self, item)
 
     def leftIndex(self, item, /, *, start = 0) :
@@ -421,8 +423,10 @@ class List(list) :
         return self.copy().extend(item_list)
 
     def popIndex(self, index = -1, /) :
-        '''L.pop([index]) -> item -- remove and return item at index (default last).
-        Raises IndexError if list is empty or index is out of range.'''
+        '''
+        L.pop([index]) -> item -- remove and return item at index (default last).
+        Raises IndexError if list is empty or index is out of range.
+        '''
         '''IN PLACE'''
         return list.pop(self, index)
 
@@ -431,8 +435,10 @@ class List(list) :
         return self.copy().popIndex(index)
 
     def dropItem(self, item, /) :
-        '''L.remove(value) -> None -- remove first occurrence of value.
-        Raises ValueError if the value is not present.'''
+        '''
+        L.remove(value) -> None -- remove first occurrence of value.
+        Raises ValueError if the value is not present.
+        '''
         '''IN PLACE'''
         list.remove(self, item)
         return self
@@ -442,9 +448,7 @@ class List(list) :
         return self.copy().dropItem()
     
     def __reversed__(self) :
-        '''
-        L.__reversed__() -- return a reverse iterator over the list
-        '''
+        '''L.__reversed__() -- return a reverse iterator over the list'''
         return list.__reversed__(self)
 
     def reverse(self) :
@@ -761,6 +765,7 @@ class List(list) :
         '''Update itself with the intersection of itself and another.'''
         '''IN PLACE'''
         '''O(N^2)???'''
+        if not isinstance(item_list, list) : raise UserTypeError(item_list)
         return self.filter(lambda item, item_list : item in item_list, List(item_list))
 
     def intersected(self, item_list, /) :
@@ -777,6 +782,7 @@ class List(list) :
         '''Remove all elements of another list from this list.'''
         '''IN PLACE'''
         '''O(N^2)???'''
+        if not isinstance(item_list, list) : raise UserTypeError(item_list)
         return self.filter(lambda item, item_list : item not in item_list, List(item_list))
 
     def differenced(self, item_list, /) :
@@ -793,6 +799,7 @@ class List(list) :
         '''Update a set with the union of itself and others.'''
         '''IN PLACE'''
         '''O(N^2)???'''
+        if not isinstance(item_list, list) : raise UserTypeError(item_list)
         return self.extend(List(item_list).difference(self))
 
     def unioned(self, item_list, /) :
@@ -814,37 +821,29 @@ class List(list) :
         '''O(N^2)???'''
         return (self - item_list).len() == 0
 
-    def __le__(self, item_list) :
+    def __le__(self, other, /) :
         '''Return self<=value.'''
-        return self.isSubsetOf(item_list)
+        return self.isSubsetOf(other)
 
-    def __lt__(self, item_list) :
+    def __lt__(self, other, /) :
         '''Return self<value.'''
-        raise NotImplementedError
+        return self.len() < other.len() and self.__le__(other)
 
     def isSupersetOf(self, item_list, /) :
         '''Report whether this set contains another set.'''
         '''O(N^2)???'''
         return (List(item_list) - self).len() == 0
 
-    def __ge__(self, item_list) :
+    def __ge__(self, other, /) :
         '''Return self>=value.'''
-        return self.isSupersetOf(item_list)
+        return self.isSupersetOf(other)
 
-    def __gt__(self, item_list) :
+    def __gt__(self, other, /) :
         '''Return self>value.'''
-        raise NotImplementedError
+        return self.len() > other.len() and self.__ge__(other)
 
     def isSameSetOf(self, item_list, /) :
         return self <= item_list and self >= item_list
-
-    def __eq__(self, item_list) :
-        '''Return self==value.'''
-        raise NotImplementedError
-
-    def __ne__(self, item_list) :
-        '''Return self!=value.'''
-        raise NotImplementedError
 
     def clear(self) :
         '''L.clear() -> None -- remove all items from L'''
