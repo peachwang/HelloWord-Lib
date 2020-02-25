@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'));
+import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'))
 from functools import wraps, partial
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
 

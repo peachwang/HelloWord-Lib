@@ -130,11 +130,17 @@ def ensureArgsType(func) :
 
 def _print(func) :
     @wraps(func)
-    def wrapper(self, *args, pattern = '{}', color = None, **kwargs) :
+    def wrapper(self, *args, pattern = '{}', color = None, timing = False, **kwargs) :
         from util import E
         content, print_len = func(self, *args)
         content = pattern.format(content)
-        print(f"{color}{content}{E() if color is not None else ''}", **kwargs)
+        text = f"{color if color is not None else ''}{content}{E() if color is not None else ''}"
+        if timing :
+            import sys, os; sys.path.append(os.path.realpath(__file__ + '/../../'))
+            from Timer import Timer
+            Timer.printTiming(text)
+        else :
+            print(text, **kwargs)
         if print_len :
             self.printLen(color = color, **kwargs)
         return self

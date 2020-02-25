@@ -112,7 +112,8 @@ class File(Object) :
         return self
 
     def loadJson(self, *, encoding = 'utf-8') :
-        data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
+        # data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
+        data = json.load(open(self._path), encoding = encoding)
         if isinstance(data, list) :
             if self._hasProperty('range') :
                 return List(data)[self._range]

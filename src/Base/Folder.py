@@ -19,6 +19,7 @@ class Folder(Object) :
             self.build()
 
     def build(self) :
+        Timer.printTiming(f'build {self} 开始')
         try :
             for self._path, self._sub_folder_name_list, self._sub_file_name_list in walk(self._path) :
                 break
@@ -30,8 +31,9 @@ class Folder(Object) :
         self._path.rstrip('/')
         self._name = self._path.split('/')[-1]
         self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}', auto_build = self._auto_build))
-        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name : File(f'{self._path}/{file_name}', self))
+        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(f'{self._path}/{file_name}', self))#.printFormat(pattern = f'{index + 1} {{}}', timing = True))
         self._has_built = True
+        Timer.printTiming(f'build {self} 结束')
 
     def __format__(self, code) :
         return f'Folder({realpath(self._path)})'
@@ -57,7 +59,7 @@ class Folder(Object) :
 
     @_print
     def printJ(self) :
-        _ = self.flattern_sub_file_list.path.join('\n')
+        _ = self.flat_sub_file_list.path.join('\n')
         return f'{self.j()}\n{_}', True
 
     @property
@@ -79,19 +81,19 @@ class Folder(Object) :
         return self._sub_folder_list.copy()
 
     @property
-    def flattern_sub_file_list(self) :
+    def flat_sub_file_list(self) :
         if not self._has_built : self.build()
         result = self._sub_file_list.copy()
         for folder in self._sub_folder_list :
-            result.extend(folder.flattern_sub_file_list)
+            result.extend(folder.flat_sub_file_list)
         return result
 
     @property
-    def num_flattern_sub_file(self) :
-        return self.flattern_sub_file_list.len()
+    def num_flat_sub_file(self) :
+        return self.flat_sub_file_list.len()
 
-    def printFilePathList(self) :
-        self.flattern_sub_file_list.path.printLine()
+    def printFlatSubFilePathList(self) :
+        self.flat_sub_file_list.path.printLine()
         return self
 
     def mkdir(folder_path) :
