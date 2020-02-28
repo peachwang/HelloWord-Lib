@@ -18,7 +18,7 @@ class List(list) :
 
     def _importTypes(self) :
         if self._has_imported_types : return
-                                              self._List      = List
+        self._List      = List
         from Dict     import Dict;            self._Dict      = Dict
         from Str      import Str;             self._Str       = Str
         from Object   import Object;          self._Object    = Object

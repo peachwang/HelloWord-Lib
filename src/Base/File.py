@@ -94,6 +94,7 @@ class File(Object) :
 
     def __iter__(self) :
         raise NotImplementedError
+        # yield
 
     def readFieldList(self, *, index, sep = '\t') :
         return self.readLineList(filter_white_lines = True).map(lambda line : line.split(sep)[index])

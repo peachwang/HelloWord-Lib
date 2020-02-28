@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from functools import wraps, cached_property, lru_cache
+from functools import wraps, cached_property, lru_cache, total_ordering
 import inspect
 from pprint import pformat as pf, pprint as pp
 from typing import Optional, Union

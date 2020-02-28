@@ -12,7 +12,7 @@ class Dict(dict) :
     def _importTypes(self) :
         if self.__getattribute__('_has_imported_types') : return
         from List     import List;            dict.__setattr__(self, '_List',      List)
-                                              dict.__setattr__(self, '_Dict',      Dict)
+        dict.__setattr__(self, '_Dict',      Dict)
         from Str      import Str;             dict.__setattr__(self, '_Str',       Str)
         from Object   import Object;          dict.__setattr__(self, '_Object',    Object)
         from DateTime import timedelta_class; dict.__setattr__(self, '_timedelta', timedelta_class)

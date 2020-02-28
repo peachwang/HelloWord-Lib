@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-  
 import sys
-from time import time
 from functools import wraps
 # from Object import Object
 
@@ -16,13 +15,14 @@ class Timer() :
     @classmethod
     def __initclass__(cls) :
         if cls._has_inited : return
-        from List import List
-        from Dict import Dict
-        cls._global_total = 0
-        cls._global_current = time()
+        from List     import List
+        from Dict     import Dict
+        from DateTime import time
+        cls._global_total      = 0
+        cls._global_current    = time.time()
         cls._global_delta_list = List()
-        cls._timer_dict = Dict()
-        cls._has_inited = True
+        cls._timer_dict        = Dict()
+        cls._has_inited        = True
 
     def __init__(self, key, /) :
         # super().__init__()
@@ -50,12 +50,13 @@ class Timer() :
         @wraps(func)
         def wrapper(self = None, *args, **kwargs) :
             Timer.printTiming(f'{func.__qualname__}{msg} 开始')
-            current = time()
+            from DateTime import time
+            current = time.time()
             if self is None :
                 result = func(*args, **kwargs)
             else :
                 result = func(self, *args, **kwargs)
-            delta = time() - current
+            delta = time.time() - current
             Timer.printTiming(f'{func.__qualname__}{msg} 结束', delta = delta)
             return result
         return wrapper
@@ -68,6 +69,7 @@ class Timer() :
                 Timer.__initclass__()
                 # key = func.__qualname__
                 from Dict import Dict
+                from DateTime import time
                 if group_args :
                     key_args = f'{args}{kwargs if len(kwargs) > 0 else ""}'
                     if Timer._timer_dict.hasNot(key) :
@@ -81,12 +83,12 @@ class Timer() :
                         timer = Timer._timer_dict[key]
                     else :
                         Timer._timer_dict[key] = timer = Timer(key)
-                current = time()
+                current = time.time()
                 if self is None :
                     result = func(*args, **kwargs)
                 else :
                     result = func(self, *args, **kwargs)
-                timer.add(time() - current)
+                timer.add(time.time() - current)
                 return result
             return wrapper
         return decorator
@@ -112,8 +114,8 @@ class Timer() :
     def printTiming(cls, msg = '', *, delta = None, indent = 0) :
         cls.__initclass__()
         from util import Y, E
-        from DateTime import DateTime
-        timing_delta = time() - cls._global_current
+        from DateTime import DateTime, time
+        timing_delta = time.time() - cls._global_current
         cls._global_delta_list.append(timing_delta)
         cls._global_total += timing_delta
         if delta is None :
@@ -122,7 +124,7 @@ class Timer() :
             indent = '\t' * indent
             print(Y(f'{indent}[{DateTime():%m-%d %H:%M:%S}] {cls._global_total:5.2f}s 本轮{delta:9.6f}s'), f'[ {msg} ]')
         sys.stdout.flush()
-        cls._global_current = time()
+        cls._global_current = time.time()
         return cls
 
 if __name__ == '__main__':
