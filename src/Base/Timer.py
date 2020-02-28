@@ -117,10 +117,10 @@ class Timer() :
         cls._global_delta_list.append(timing_delta)
         cls._global_total += timing_delta
         if delta is None :
-            print(Y(f'[{DateTime().__format__("%m-%d %H:%M:%S")}] {cls._global_total:5.2f}s 间隔{timing_delta:9.6f}s'), f'[ {msg} ]')
+            print(Y(f'[{DateTime():%m-%d %H:%M:%S}] {cls._global_total:5.2f}s 间隔{timing_delta:9.6f}s'), f'[ {msg} ]')
         else :
             indent = '\t' * indent
-            print(Y(f'{indent}[{DateTime().__format__("%m-%d %H:%M:%S")}] {cls._global_total:5.2f}s 本轮{delta:9.6f}s'), f'[ {msg} ]')
+            print(Y(f'{indent}[{DateTime():%m-%d %H:%M:%S}] {cls._global_total:5.2f}s 本轮{delta:9.6f}s'), f'[ {msg} ]')
         sys.stdout.flush()
         cls._global_current = time()
         return cls

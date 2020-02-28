@@ -165,7 +165,6 @@ class Object() :
         prefix = self.getSignature()
         try :
             pd = self.__getattribute__('_property_dict')
-            from DateTime import DateTime, datetime
             for name in pd.keys() :
                 if self._data.has(f'_{name}') :
                     value = self._data[f'_{name}']
@@ -212,10 +211,10 @@ class Object() :
 
                     # if isinstance(pv, str) and isinstance(value, str) :
                         # print(f'{value=} {pv=}')
-
+                    from DateTime import timedelta_class, date_class, time_class, datetime_class
                     if isinstance(pv, tuple) and value not in pv :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不属于: \n{pv}\n{self}\n')
-                    elif isinstance(pv, str) and isinstance(value, (int, float, bool, bytes, range, tuple, set, list, dict, DateTime, datetime))\
+                    elif isinstance(pv, str) and isinstance(value, (int, float, bool, bytes, range, tuple, set, list, dict, timedelta_class, date_class, time_class, datetime_class))\
                         and eval(pv.replace('#', 'value', re_mode = False)) is not True :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不合法: [{pv}]\n{self}\n')
                     elif isinstance(pv, str) and isinstance(value, str) and not value.fullMatch(pv) :
@@ -233,14 +232,17 @@ class Object() :
         from Dict import Dict
         from List import List
         from Str import Str
-        from DateTime import DateTime, datetime
-        if isinstance(value, list)        : return List(value)
-        elif isinstance(value, dict)      : return Dict(value)
-        elif isinstance(value, str)       : return Str(value)
-        elif isinstance(value, bytes)     : return Str(value.decode())
-        elif isinstance(value, tuple)     : return tuple([ self._wrapValue(_) for _ in value ])
-        elif isinstance(value, set)       : return set([ self._wrapValue(_) for _ in value ])
-        elif isinstance(value, datetime)  : return DateTime(value)
+        from DateTime import timedelta_class, TimeDelta, date_class, Date, time_class, Time, datetime_class, DateTime
+        if isinstance(value, list)              : return List(value)
+        elif isinstance(value, dict)            : return Dict(value)
+        elif isinstance(value, str)             : return Str(value)
+        elif isinstance(value, bytes)           : return Str(value.decode())
+        elif isinstance(value, tuple)           : return tuple([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, set)             : return set([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, timedelta_class) : return TimeDelta(value)
+        elif isinstance(value, date_class)      : return Date(value)
+        elif isinstance(value, time_class)      : return Time(value)
+        elif isinstance(value, datetime_class)  : return DateTime(value)
         else : return value
 
     def __setattr__(self, name, value) :
@@ -254,7 +256,7 @@ class Object() :
         return hex(id(self))
 
     def getRaw(self) :
-        return self._data
+        return self._data.getRaw()
 
     def getSignature(self) :
         return f'<{self.__class__} at {self.getId()}>'

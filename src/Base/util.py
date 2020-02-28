@@ -2,21 +2,21 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../DataModel/'))
 
 import json, re, requests
-from sys import exit
-from Color import R, Y, G, C, B, P, S, W, E
-from functools import wraps, cached_property, lru_cache
-from shared import ensureArgsType, UserTypeError, _print
-from typing import Optional, Union
-from Object import Object
-from List import List
-from Dict import Dict
-from Str import Str
-from DateTime import DateTime, datetime, timedelta, time
-from Timer import Timer
-from File import File
-from Audio import Audio
-from Folder import Folder, makedirs as mkdir
-# from Inspect import *
+from sys        import exit
+from Color      import R, Y, G, C, B, P, S, W, E
+from functools  import wraps, cached_property, lru_cache
+from shared     import ensureArgsType, UserTypeError, _print
+from typing     import Optional, Union
+from Object     import Object
+from List       import List
+from Dict       import Dict
+from Str        import Str
+from DateTime   import TimeDelta, Date, Time, DateTime, DateRange, Year, Month, Week, timedelta_class, date_class, time_class, datetime_class
+from Timer      import Timer
+from File       import File
+from Audio      import Audio
+from Folder     import Folder
+# from Inspect    import *
 from LineStream import LineStream
 
 # ==================== Data ====================
@@ -68,7 +68,7 @@ def load_json(fin, object_hook = None, encoding = 'utf-8') :
     return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
 
 def json_serialize(data, /) :
-    if isinstance(data, (List, Dict, Str, Object, DateTime, File, Folder, Audio)) :
+    if isinstance(data, (List, Dict, Str, Object, TimeDelta, Date, Time, DateTime, File, Folder, Audio)) :
         return data.jsonSerialize()
     elif isinstance(data, (type(None), str, int, float, bool)) :
         return data
@@ -84,7 +84,13 @@ def json_serialize(data, /) :
         return f'{data}'
     elif isinstance(data, zip) :
         return f'zip{json_serialize(list(data))}'
-    elif isinstance(data, datetime) :
+    elif isinstance(data, timedelta_class) :
+        return f'timedelta({data})'
+    elif isinstance(data, date_class) :
+        return f'date({data})'
+    elif isinstance(data, time_class) :
+        return f'time({data})'
+    elif isinstance(data, datetime_class) :
         return f'datetime({data})'
     else : raise UserTypeError(data)
 

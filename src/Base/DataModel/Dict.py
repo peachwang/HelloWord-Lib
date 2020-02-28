@@ -11,25 +11,41 @@ class Dict(dict) :
 
     def _importTypes(self) :
         if self.__getattribute__('_has_imported_types') : return
-        from List import List; dict.__setattr__(self, '_List', List)
-        dict.__setattr__(self, '_Dict', Dict)
-        from Str import Str; dict.__setattr__(self, '_Str', Str)
-        from Object import Object; dict.__setattr__(self, '_Object', Object)
-        from DateTime import DateTime, datetime; dict.__setattr__(self, '_DateTime', DateTime); dict.__setattr__(self, '_datetime', datetime)
-        from File import File; dict.__setattr__(self, '_File', File)
-        from Folder import Folder; dict.__setattr__(self, '_Folder', Folder)
-        from Audio import Audio; dict.__setattr__(self, '_Audio', Audio)
+        from List     import List;            dict.__setattr__(self, '_List',      List)
+                                              dict.__setattr__(self, '_Dict',      Dict)
+        from Str      import Str;             dict.__setattr__(self, '_Str',       Str)
+        from Object   import Object;          dict.__setattr__(self, '_Object',    Object)
+        from DateTime import timedelta_class; dict.__setattr__(self, '_timedelta', timedelta_class)
+        from DateTime import TimeDelta;       dict.__setattr__(self, '_TimeDelta', TimeDelta)
+        from DateTime import date_class;      dict.__setattr__(self, '_date',      date_class)
+        from DateTime import Date;            dict.__setattr__(self, '_Date',      Date)
+        from DateTime import time_class;      dict.__setattr__(self, '_time',      time_class)
+        from DateTime import Time;            dict.__setattr__(self, '_Time',      Time)
+        from DateTime import datetime_class;  dict.__setattr__(self, '_datetime',  datetime_class)
+        from DateTime import DateTime;        dict.__setattr__(self, '_DateTime',  DateTime)
+        from DateTime import DateRange;       dict.__setattr__(self, '_DateRange', DateRange)
+        from DateTime import Year;            dict.__setattr__(self, '_Year',      Year)
+        from DateTime import Month;           dict.__setattr__(self, '_Month',     Month)
+        from DateTime import Week;            dict.__setattr__(self, '_Week',      Week)
+        from File     import File;            dict.__setattr__(self, '_File',      File)
+        from Folder   import Folder;          dict.__setattr__(self, '_Folder',    Folder)
+        from Audio    import Audio;           dict.__setattr__(self, '_Audio',     Audio)
+        dict.__setattr__(self, '_raw_types_tuple', (type(None), str, bytes, int, float, bool, tuple, range, zip, self._timedelta, self._date, self._time, self._datetime, type))
+        dict.__setattr__(self, '_types_tuple', (self._List, self._Dict, self._Str, self._Object, self._TimeDelta, self._Date, self._Time, self._DateTime, self._DateRange, self._Year, self._Month, self._Week, self._File, self._Folder, self._Audio))
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         dict.__setattr__(self, '_has_imported_types', True)
 
     def _wrapValue(self, value, /) :
         self._importTypes()
-        if isinstance(value, list)        : return self._List(value)
-        elif isinstance(value, dict)      : return self._Dict(value)
-        elif isinstance(value, str)       : return self._Str(value)
-        elif isinstance(value, bytes)     : return self._Str(value.decode())
-        elif isinstance(value, tuple)     : return tuple([ self._wrapValue(_) for _ in value ])
-        elif isinstance(value, set)       : return set([ self._wrapValue(_) for _ in value ])
+        if isinstance(value, list)              : return self._List(value)
+        elif isinstance(value, dict)            : return self._Dict(value)
+        elif isinstance(value, str)             : return self._Str(value)
+        elif isinstance(value, bytes)           : return self._Str(value.decode())
+        elif isinstance(value, tuple)           : return tuple([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, set)             : return set([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, self._timedelta) : return self._TimeDelta(value)
+        elif isinstance(value, self._date)      : return self._Date(value)
+        elif isinstance(value, self._time)      : return self._Time(value)
         elif isinstance(value, self._datetime)  : return self._DateTime(value)
         else : return value
 
@@ -92,18 +108,12 @@ class Dict(dict) :
     def _getData(self) :
         return { key : self[key] for key in self }
 
-    # 原生化 list, dict, str, Object._data, datetime
+    # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     def getRaw(self) :
         '''NOT IN PLACE'''
         self._importTypes()
-        from util import json_serialize
-        _ = {}
-        for key in self :
-            if isinstance(self[key], (self._List, self._Dict, self._Str, self._Object, self._DateTime, self._File, self._Folder, self._Audio)) :
-                _[json_serialize(key)] = self[key].jsonSerialize()
-            else :
-                _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
-        return _
+        # else 可能是 int, float, bool, tuple, set, range, zip, object，不可能是 list. dict, str, bytes, timedelta, date, time, datetime
+        return { key : self[key].getRaw() if isinstance(self[key], self._types_tuple) else self[key] for key in self }
 
     def toMongoDoc(self) :
         from bson import ObjectId
@@ -164,13 +174,8 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         self._importTypes()
         from util import json_serialize
-        _ = {}
-        for key in self :
-            if isinstance(self[key], (self._List, self._Dict, self._Str, self._Object, self._DateTime, self._File, self._Folder, self._Audio)) :
-                _[json_serialize(key)] = self[key].jsonSerialize()
-            else :
-                _[json_serialize(key)] = json_serialize(self[key]) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
-        return _
+        # else 可能是 int, float, bool, tuple, set, range, zip, object，不可能是 list. dict, str, bytes, timedelta, date, time, datetime
+        return { json_serialize(key) : self[key].jsonSerialize() if isinstance(self[key], self._types_tuple) else json_serialize(self[key]) for key in self }
 
     # 可读化
     def j(self, *, indent = True) :
@@ -249,7 +254,7 @@ class Dict(dict) :
 
     def has(self, key_list, /) :
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
+        if isinstance(key_list, self._raw_types_tuple) :
             return dict.__contains__(self, key_list)
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -316,7 +321,7 @@ class Dict(dict) :
     def get(self, key_list, /, default = None) :
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
+        if isinstance(key_list, self._raw_types_tuple) :
             if default == self.NV and not dict.__contains__(self, key_list) :
                 raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
             return dict.get(self, key_list, self._wrapValue(default))
@@ -380,7 +385,7 @@ class Dict(dict) :
     def set(self, key_list, value, /) :
         '''IN PLACE'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
+        if isinstance(key_list, self._raw_types_tuple) :
             self[key_list] = value
         elif isinstance(key_list, list) :
             if len(key_list) == 0 :
@@ -439,7 +444,7 @@ class Dict(dict) :
         '''
         '''IN PLACE'''
         self._importTypes()
-        if isinstance(key_list, (type(None), str, bytes, int, float, bool, tuple, range, zip, self._datetime, type)) :
+        if isinstance(key_list, self._raw_types_tuple) :
             if default == 'NONE' :
                 return dict.pop(self, key_list)
             else :
@@ -485,9 +490,7 @@ class Dict(dict) :
 
     def _stripValue(self, value, string, /) :
         self._importTypes()
-        if value is None or isinstance(value, (int, float, bool, range, bytes, zip, self._datetime, type)):
-            return value
-        elif isinstance(value, (self._List, self._Dict, self._Str)) : # can't be list, dict, str
+        if isinstance(value, (self._List, self._Dict, self._Str)) : # can't be list, dict, str
             return value.strip(string)
         elif isinstance(value, tuple) :
             return (self._stripValue(_, string) for _ in value)
@@ -495,6 +498,8 @@ class Dict(dict) :
             return set([self._stripValue(_, string) for _ in value])
         elif isinstance(value, object) :
             if 'strip' in dir(value) : value.strip(string)
+            return value
+        elif isinstance(value, self._raw_types_tuple):
             return value
         else :
             raise UserTypeError(value)

@@ -18,26 +18,42 @@ class List(list) :
 
     def _importTypes(self) :
         if self._has_imported_types : return
-        self._List = List
-        from Dict import Dict; self._Dict = Dict
-        from Str import Str; self._Str = Str
-        from Object import Object; self._Object = Object
-        from DateTime import DateTime, datetime; self._DateTime, self._datetime = DateTime, datetime
-        from File import File; self._File = File
-        from Folder import Folder; self._Folder = Folder
-        from Audio import Audio; self._Audio = Audio
+                                              self._List      = List
+        from Dict     import Dict;            self._Dict      = Dict
+        from Str      import Str;             self._Str       = Str
+        from Object   import Object;          self._Object    = Object
+        from DateTime import timedelta_class; self._timedelta = timedelta_class
+        from DateTime import TimeDelta;       self._TimeDelta = TimeDelta
+        from DateTime import date_class;      self._date      = date_class
+        from DateTime import Date;            self._Date      = Date
+        from DateTime import time_class;      self._time      = time_class
+        from DateTime import Time;            self._Time      = Time
+        from DateTime import datetime_class;  self._datetime  = datetime_class
+        from DateTime import DateTime;        self._DateTime  = DateTime
+        from DateTime import DateRange;       self._DateRange = DateRange
+        from DateTime import Year;            self._Year      = Year
+        from DateTime import Month;           self._Month     = Month
+        from DateTime import Week;            self._Week      = Week
+        from File     import File;            self._File      = File
+        from Folder   import Folder;          self._Folder    = Folder
+        from Audio    import Audio;           self._Audio     = Audio
+        self._raw_types_tuple = (type(None), str, bytes, int, float, bool, tuple, range, zip, self._timedelta, self._date, self._time, self._datetime, type)
+        self._types_tuple     = (self._List, self._Dict, self._Str, self._Object, self._TimeDelta, self._Date, self._Time, self._DateTime, self._DateRange, self._Year, self._Month, self._Week, self._File, self._Folder, self._Audio)
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         self._has_imported_types = True
 
     def _wrapItem(self, item, /) :
         self._importTypes()
-        if isinstance(item, list)            : return self._List(item)
-        elif isinstance(item, dict)          : return self._Dict(item)
-        elif isinstance(item, str)           : return self._Str(item)
-        elif isinstance(item, bytes)         : return self._Str(item.decode())
-        elif isinstance(item, tuple)         : return tuple([ self._wrapItem(_) for _ in item ])
-        elif isinstance(item, set)           : return set([ self._wrapItem(_) for _ in item ])
-        elif isinstance(item, self._datetime) : return self._DateTime(item)
+        if isinstance(item, list)              : return self._List(item)
+        elif isinstance(item, dict)            : return self._Dict(item)
+        elif isinstance(item, str)             : return self._Str(item)
+        elif isinstance(item, bytes)           : return self._Str(item.decode())
+        elif isinstance(item, tuple)           : return tuple([ self._wrapItem(_) for _ in item ])
+        elif isinstance(item, set)             : return set([ self._wrapItem(_) for _ in item ])
+        elif isinstance(item, self._timedelta) : return self._TimeDelta(item)
+        elif isinstance(item, self._date)      : return self._Date(item)
+        elif isinstance(item, self._time)      : return self._Time(item)
+        elif isinstance(item, self._datetime)  : return self._DateTime(item)
         else : return item
 
     def __init__(self, *args) :
@@ -82,15 +98,12 @@ class List(list) :
     def _getData(self) :
         return [ item for item in self ]
 
-    # 原生化 list, dict, str, Object._data, datetime
+    # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     def getRaw(self) :
         '''NOT IN PLACE'''
         self._importTypes()
-        return [ (item.getRaw()
-                if isinstance(item, (self._List, self._Dict, self._Str, self._Object, self._DateTime, self._File, self._Folder, self._Audio))
-                else item # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
-            ) for item in self
-        ]
+        # else 可能是 int, float, bool, tuple, set, range, zip, object，不可能是 list. dict, str, bytes, timedelta, date, time, datetime
+        return [ item.getRaw() if isinstance(item, self._types_tuple) else item for item in self ]
 
     def toMongoDoc(self) :
         from bson import ObjectId
@@ -147,13 +160,8 @@ class List(list) :
         '''NOT IN PLACE'''
         self._importTypes()
         from util import json_serialize
-        _ = []
-        for item in self :
-            if isinstance(item, (self._List, self._Dict, self._Str, self._Object, self._DateTime, self._File, self._Folder, self._Audio)) :
-                _.append(item.jsonSerialize())
-            else :
-                _.append(json_serialize(item)) # 可能是int, float, bool, tuple, set, range, zip, object，不可能是list. dict, str, bytes, datetime
-        return _
+        # else 可能是 int, float, bool, tuple, set, range, zip, object，不可能是 list. dict, str, bytes, timedelta, date, time, datetime
+        return [ item.jsonSerialize() if isinstance(item, self._types_tuple) else json_serialize(item) for item in self ]
 
     # 可读化
     def j(self, *, indent = True) :
@@ -580,9 +588,7 @@ class List(list) :
 
     def _stripItem(self, item, string, /) :
         self._importTypes()
-        if item is None or isinstance(item, (int, float, bool, range, bytes, zip, self._datetime)):
-            return item
-        elif isinstance(item, (self._List, self._Dict, self._Str)) : # can't be list, dict, str
+        if isinstance(item, (self._List, self._Dict, self._Str)) : # can't be list, dict, str
             return item.strip(string)
         elif isinstance(item, tuple) :
             return (self._stripItem(_, string) for _ in item)
@@ -590,6 +596,8 @@ class List(list) :
             return set([self._stripItem(_, string) for _ in item])
         elif isinstance(item, object) :
             if 'strip' in dir(item) : item.strip(string)
+            return item
+        elif item is None or isinstance(item, self._raw_types_tuple):
             return item
         else :
             raise UserTypeError(item)

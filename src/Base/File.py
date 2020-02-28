@@ -92,6 +92,9 @@ class File(Object) :
                 .replaceStrList('．', '.', re_mode = False)
         return result
 
+    def __iter__(self) :
+        raise NotImplementedError
+
     def readFieldList(self, *, index, sep = '\t') :
         return self.readLineList(filter_white_lines = True).map(lambda line : line.split(sep)[index])
 
