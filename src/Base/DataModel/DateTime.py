@@ -222,10 +222,10 @@ class Date(_base_class) :
         return Date(date_class.fromisocalendar(year, week, day))
 
     #class datetime.date(year, month, day)
-    def __init__(self, timestamp_or_date_or_string = None, /, pattern = '%Y-%m-%d', *args) :
+    def __init__(self, timestamp_or_date_or_string = None, /, pattern = '%Y-%m-%d', **kwargs) :
         if timestamp_or_date_or_string is None :
             if len(kwargs) > 0 :
-                self._date = date_class(*args)
+                self._date = date_class(**kwargs)
             else :
                 self._date = date_class.fromtimestamp(time.time())
         elif isinstance(timestamp_or_date_or_string, date_class) :
@@ -305,15 +305,12 @@ class Date(_base_class) :
         '''返回日期的预期格列高利历序号，其中公元 1 年 1 月 1 日的序号为 1。 对于任意 date 对象 d，date.fromordinal(d.toordinal()) == d。'''
         return self._date.toordinal()
 
-    @lru_cache
     def toYear(self) :
         return Year(year = self.year)
 
-    @lru_cache
     def toMonth(self) :
         return Month(year = self.year, month = self.month)
 
-    @lru_cache
     def toWeek(self) :
         return Week(year = self.year, month = self.month, day = self.day)
 
@@ -329,7 +326,7 @@ class Date(_base_class) :
         if isinstance(timedelta_or_days, TimeDelta) :
             return Date(self.getRaw() + timedelta_or_days.getRaw())
         elif isinstance(timedelta_or_days, int) :
-            return Date(self.getRaw() + TimeDelta(days = timedelta_or_days))
+            return Date(self.getRaw() + TimeDelta(days = timedelta_or_days).getRaw())
         else :
             raise UserTypeError(timedelta)
 
@@ -343,7 +340,7 @@ class Date(_base_class) :
         elif isinstance(timedelta_or_date_or_days, Date) :
             return TimeDelta(self.getRaw() - timedelta_or_date_or_days.getRaw())
         elif isinstance(timedelta_or_date_or_days, int) :
-            return Date(self.getRaw() - TimeDelta(days = timedelta_or_date_or_days))
+            return Date(self.getRaw() - TimeDelta(days = timedelta_or_date_or_days).getRaw())
         else :
             raise UserTypeError(timedelta_or_date_or_days)
 
@@ -560,6 +557,7 @@ class DateTime(_base_class) :
 class _DateList(_base_class) :
 
     def __init__(self, date_list, /) :
+        from List import List
         if not isinstance(date_list, list) : raise UserTypeError(date_list)
         self._date_list = List(date_list)
 

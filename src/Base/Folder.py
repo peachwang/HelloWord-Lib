@@ -6,6 +6,26 @@ from Timer import Timer
 
 class Folder(Object) :
 
+    def mkdir(folder_path) :
+        makedirs(folder_path, exist_ok = True)
+        return Folder
+
+    def exists(folder_path) :
+        return path.exists(folder_path)
+
+    def notExists(folder_path) :
+        return not Folder.exists(folder_path)
+
+    def rmdir(folder_path) :
+        '''
+        os.rmdir(path, *, dir_fd=None)
+        Remove (delete) the directory path. If the directory does not exist or is not empty,
+        an FileNotFoundError or an OSError is raised respectively.
+        In order to remove whole directory trees, shutil.rmtree() can be used.
+        '''
+        rmdir(folder_path)
+        return Folder
+
     def __init__(self, folder_path, /, *, auto_build = True) :
         super().__init__()
         self._registerProperty(['path', 'name'])
@@ -95,23 +115,3 @@ class Folder(Object) :
     def printFlatSubFilePathList(self) :
         self.flat_sub_file_list.path.printLine()
         return self
-
-    def mkdir(folder_path) :
-        makedirs(folder_path, exist_ok = True)
-        return Folder
-
-    def exists(folder_path) :
-        return path.exists(folder_path)
-
-    def notExists(folder_path) :
-        return not Folder.exists(folder_path)
-
-    def rmdir(folder_path) :
-        '''
-        os.rmdir(path, *, dir_fd=None)
-        Remove (delete) the directory path. If the directory does not exist or is not empty,
-        an FileNotFoundError or an OSError is raised respectively.
-        In order to remove whole directory trees, shutil.rmtree() can be used.
-        '''
-        rmdir(folder_path)
-        return Folder
