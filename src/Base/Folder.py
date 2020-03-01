@@ -53,7 +53,7 @@ class Folder(Object) :
         self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}', auto_build = self._auto_build))
         self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(f'{self._path}/{file_name}', self))#.printFormat(pattern = f'{index + 1} {{}}', timing = True))
         self._has_built = True
-        Timer.printTiming(f'build {self} 结束')
+        # Timer.printTiming(f'build {self} 结束')
 
     def __format__(self, code) :
         return f'Folder({realpath(self._path)})'

@@ -339,7 +339,7 @@ class Str(str) :
         interpreted as in slice notation.
         '''
         if re_mode :
-            return self.findall(sub_or_pattern, flags).len()
+            return self.findall(sub_or_pattern, flags = flags).len()
         else :
             return str.count(self, sub_or_pattern, start, end)
 

@@ -116,10 +116,10 @@ def highlightTraceback(func) :
                 line_list[index] = line.strip('\n')
                 if line.has('HelloWord-Lib') :
                     flag = False
-                elif not flag and line.has('HelloWord') :
-                    line_list[index] = f'{P(line_list[index])}'
-                    if index >= 1 and line_list[index - 1].has('HelloWord-Lib') :
-                        line_list[index - 1] = f'{Y(line_list[index - 1])}'
+                elif not flag and (line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.hasNot('HelloWord-Lib')) :
+                    line_list[index] = f'{B(line_list[index])}'
+                    # if index >= 1 and line_list[index - 1].has('HelloWord-Lib') :
+                    #     line_list[index - 1] = f'{Y(line_list[index - 1])}'
                     flag = True
             line_list.reverse().forEach(lambda line : print(line))
             Timer.printTiming('失败')

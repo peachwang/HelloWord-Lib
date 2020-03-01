@@ -348,6 +348,11 @@ class Date(_base_class) :
         if pattern == '' : pattern = '%Y-%m-%d' # Microsecond %f
         return self._date.strftime(pattern)
 
+    @cached_property
+    def with_weekday(self) :
+        weekday = {1 : '一', 2 : '二', 3 : '三', 4 : '四', 5 : '五', 6 : '六', 7 : '日'}[self.weekday]
+        return f'{self}({weekday})'
+
     def __str__(self) :
         return f'Date({self.__format__("")})'
 
@@ -551,6 +556,11 @@ class DateTime(_base_class) :
         if pattern == '' : pattern = '%Y-%m-%d %H:%M:%S' # Microsecond %f
         return self._datetime.strftime(pattern)
 
+    @cached_property
+    def with_weekday(self) :
+        weekday = {1 : '一', 2 : '二', 3 : '三', 4 : '四', 5 : '五', 6 : '六', 7 : '日'}[self.date.weekday]
+        return f'{self}({weekday})'
+
     def __str__(self) :
         return f'DateTime({self.__format__("")})'
 
@@ -569,6 +579,9 @@ class _DateList(_base_class) :
 
     def __getitem__(self, index) :
         return self._date_list.__getitem__(index)
+
+    def __iter__(self) :
+        return self._date_list.__iter__()
 
     @cached_property
     def workday_list(self) :
