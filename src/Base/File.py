@@ -106,16 +106,19 @@ class File(Object) :
     def writeLineList(self, line_list, /, *, append = False) :
         return self.writeString(List(line_list).join('\n'), append = append)
 
+    def _dumpJson(self, json_serialized_obj, /, *, indent = True) :
+        json.dump(json_serialized_obj, open(self._path, 'w'), indent = 4 if indent else None, ensure_ascii = False, sort_keys = True)
+        return self
+
     # @ensureArgsType
     def writeData(self, data: Union[List, Dict], /, *, indent = True) :
-        data.writeToFile(self, indent = indent)
-        return self
+        return self._dumpJson(self.jsonSerialize(), indent = indent)
 
     def writeBytes(self, bytes_content, /) :
         open(self._path, 'wb').write(bytes_content)
         return self
 
-    def loadJson(self, *, encoding = 'utf-8') :
+    def _loadJson(self, *, encoding = 'utf-8') :
         # data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
         data = json.load(open(self._path), encoding = encoding)
         if isinstance(data, list) :
@@ -129,14 +132,11 @@ class File(Object) :
             return Dict(data)
         else : raise UserTypeError(data)
 
-    def dumpJson(self, data, /, *, indent = True) :
-        return self.writeData(data, indent = indent)
-
     def loadData(self, **kwargs) :
         if self.isTxt() :
             return self.readLineList(**kwargs)
         elif self.isJson() :
-            return self.loadJson(**kwargs)
+            return self._loadJson(**kwargs)
         else :
             raise Exception(f'不支持的后缀名：{self._ext=}')
 

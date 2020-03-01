@@ -527,7 +527,7 @@ class Dict(dict) :
         return self
 
     def writeToFile(self, file, /, *, indent = True) :
-        file.writeString(self.j(indent = indent))
+        file.writeData(self, indent = indent)
         return self
 
     # python2

@@ -860,7 +860,7 @@ class List(list) :
         return self
     
     def writeToFile(self, file, /, *, indent = True) :
-        file.writeString(self.j(indent = indent))
+        file.writeData(self, indent = indent)
         return self
 
     def writeLineListToFile(self, file, /) :
