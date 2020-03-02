@@ -112,7 +112,7 @@ class File(Object) :
 
     # @ensureArgsType
     def writeData(self, data: Union[List, Dict], /, *, indent = True) :
-        return self._dumpJson(self.jsonSerialize(), indent = indent)
+        return self._dumpJson(data.jsonSerialize(), indent = indent)
 
     def writeBytes(self, bytes_content, /) :
         open(self._path, 'wb').write(bytes_content)
