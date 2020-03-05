@@ -93,17 +93,6 @@ class Dict(dict) :
         '''
         return hex(id(self))
 
-    def iter(self) :
-        '''
-        Implement iter(self).
-        iter(iterable) -> iterator
-        iter(callable, sentinel) -> iterator
-        Get an iterator from an object.  In the first form, the argument must
-        supply its own iterator, or be a sequence.
-        In the second form, the callable is called until it returns the sentinel.
-        '''
-        return dict.__iter__(self)
-
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
     def _getData(self) :
         return { key : self[key] for key in self }
@@ -293,6 +282,21 @@ class Dict(dict) :
         '''D.items() -> a set-like object providing a view on D's items'''
         self._importTypes()
         return self._List(list(dict.items(self)))
+
+    def __iter__(self) :
+        '''
+        Implement iter(self).
+        iter(iterable) -> iterator
+        iter(callable, sentinel) -> iterator
+        Get an iterator from an object.  In the first form, the argument must
+        supply its own iterator, or be a sequence.
+        In the second form, the callable is called until it returns the sentinel.
+        '''
+        self._importTypes()
+        return self.keys().iter()
+
+    def iter(self) :
+        return self.__iter__()
 
     # def __getattribute__(self, key) :
         '''
