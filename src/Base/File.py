@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError, _print, R
+from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError, _print, antiDuplicateNew, antiDuplicateInit, R
 from os.path import exists, getsize, realpath
 from os import remove, rename
 from Timer import Timer
 
 class File(Object) :
 
+    @antiDuplicateNew
+    def __new__(cls, file_path, *args, **kwargs) :
+        return realpath(file_path)
+
+    @antiDuplicateInit
     def __init__(self, file_path, folder = None, /) :
         super().__init__()
         self._registerProperty(['path', 'folder', 'folder_path', 'full_name', 'name', 'ext', 'range'])
@@ -24,7 +29,8 @@ class File(Object) :
         return realpath(self._path)
 
     def __format__(self, code) :
-        return f'File({realpath(self._path)})'
+        # return f'File({realpath(self._path)})'
+        return f'File({self._path})'
 
     @_print
     def printFormat(self) :
@@ -118,25 +124,34 @@ class File(Object) :
         open(self._path, 'wb').write(bytes_content)
         return self
 
-    def _loadJson(self, *, encoding = 'utf-8') :
+    def _loadJson(self, *, encoding = 'utf-8', raw = False) :
         # data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
         data = json.load(open(self._path), encoding = encoding)
         if isinstance(data, list) :
-            if self._hasProperty('range') :
-                return List(data)[self._range]
+            if raw :
+                if self._hasProperty('range') :
+                    return data[self._range]
+                else :
+                    return data
             else :
-                return List(data)
+                if self._hasProperty('range') :
+                    return List(data)[self._range]
+                else :
+                    return List(data)
         elif isinstance(data, dict) :
             if self._hasProperty('range') :
-                raise Exception('Dict类File不可以有range')
-            return Dict(data)
+                raise Exception('Dict类 File 不可以有 range')
+            if raw :
+                return data
+            else :
+                return Dict(data)
         else : raise UserTypeError(data)
 
-    def loadData(self, **kwargs) :
+    def loadData(self, raw = False, **kwargs) :
         if self.isTxt() :
             return self.readLineList(**kwargs)
         elif self.isJson() :
-            return self._loadJson(**kwargs)
+            return self._loadJson(raw = raw, **kwargs)
         else :
             raise Exception(f'不支持的后缀名：{self._ext=}')
 

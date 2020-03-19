@@ -2,42 +2,45 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'))
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
-# from Timer import Timer
+from Timer import Timer
 
 class Dict(dict) :
 
     _has_imported_types = False
     NV = V_NON_VACANCY = 'V_NON_VACANCY'
 
-    def _importTypes(self) :
-        if self.__getattribute__('_has_imported_types') : return
-        from List     import List;            dict.__setattr__(self, '_List',      List)
-        dict.__setattr__(self, '_Dict',      Dict)
-        from Str      import Str;             dict.__setattr__(self, '_Str',       Str)
-        from Object   import Object;          dict.__setattr__(self, '_Object',    Object)
-        from DateTime import timedelta_class; dict.__setattr__(self, '_timedelta', timedelta_class)
-        from DateTime import TimeDelta;       dict.__setattr__(self, '_TimeDelta', TimeDelta)
-        from DateTime import date_class;      dict.__setattr__(self, '_date',      date_class)
-        from DateTime import Date;            dict.__setattr__(self, '_Date',      Date)
-        from DateTime import time_class;      dict.__setattr__(self, '_time',      time_class)
-        from DateTime import Time;            dict.__setattr__(self, '_Time',      Time)
-        from DateTime import datetime_class;  dict.__setattr__(self, '_datetime',  datetime_class)
-        from DateTime import DateTime;        dict.__setattr__(self, '_DateTime',  DateTime)
-        from DateTime import DateRange;       dict.__setattr__(self, '_DateRange', DateRange)
-        from DateTime import Year;            dict.__setattr__(self, '_Year',      Year)
-        from DateTime import Month;           dict.__setattr__(self, '_Month',     Month)
-        from DateTime import Week;            dict.__setattr__(self, '_Week',      Week)
-        from File     import File;            dict.__setattr__(self, '_File',      File)
-        from Folder   import Folder;          dict.__setattr__(self, '_Folder',    Folder)
-        from Audio    import Audio;           dict.__setattr__(self, '_Audio',     Audio)
-        dict.__setattr__(self, '_raw_types_tuple', (type(None), str, bytes, int, float, bool, tuple, range, zip, self._timedelta, self._date, self._time, self._datetime, type))
-        dict.__setattr__(self, '_types_tuple', (self._List, self._Dict, self._Str, self._Object, self._TimeDelta, self._Date, self._Time, self._DateTime, self._DateRange, self._Year, self._Month, self._Week, self._File, self._Folder, self._Audio))
+    @classmethod
+    def _importTypes(cls) :
+        if cls._has_imported_types : return
+        from List     import List;            cls._List = List
+        cls._Dict = Dict
+        from Str      import Str;             cls._Str       = Str
+        from Object   import Object;          cls._Object    = Object
+        from DateTime import timedelta_class; cls._timedelta = timedelta_class
+        from DateTime import TimeDelta;       cls._TimeDelta = TimeDelta
+        from DateTime import date_class;      cls._date      = date_class
+        from DateTime import Date;            cls._Date      = Date
+        from DateTime import time_class;      cls._time      = time_class
+        from DateTime import Time;            cls._Time      = Time
+        from DateTime import datetime_class;  cls._datetime  = datetime_class
+        from DateTime import DateTime;        cls._DateTime  = DateTime
+        from DateTime import DateRange;       cls._DateRange = DateRange
+        from DateTime import Year;            cls._Year      = Year
+        from DateTime import Month;           cls._Month     = Month
+        from DateTime import Week;            cls._Week      = Week
+        from File     import File;            cls._File      = File
+        from Folder   import Folder;          cls._Folder    = Folder
+        from Audio    import Audio;           cls._Audio     = Audio
+        cls._raw_types_tuple = (type(None), str, bytes, int, float, bool, tuple, range, zip, cls._timedelta, cls._date, cls._time, cls._datetime, type)
+        cls._types_tuple = (cls._List, cls._Dict, cls._Str, cls._Object, cls._TimeDelta, cls._Date, cls._Time, cls._DateTime, cls._DateRange, cls._Year, cls._Month, cls._Week, cls._File, cls._Folder, cls._Audio)
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
-        dict.__setattr__(self, '_has_imported_types', True)
+        cls._has_imported_types = True
 
+    # @Timer.timeitTotal('_wrapValue')
     def _wrapValue(self, value, /) :
         self._importTypes()
-        if isinstance(value, list)              : return self._List(value)
+        if isinstance(value, (self._List, self._Dict, self._Str)) : return value
+        elif isinstance(value, list)            : return self._List(value)
         elif isinstance(value, dict)            : return self._Dict(value)
         elif isinstance(value, str)             : return self._Str(value)
         elif isinstance(value, bytes)           : return self._Str(value.decode())
@@ -125,7 +128,7 @@ class Dict(dict) :
 
     @_print
     def printLine(self) :
-        return self.keys().mapped(lambda key : f'{key}: {self[key]}').join('\n'), True
+        return self.keys().mapped(lambda key, index : f'{index + 1} {key}: {self[key]}').join('\n'), True
 
     def __format__(self, code) :
         '''default object formatter'''

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, UserTypeError, _print, wraps
+from util import List, Dict, Str, Object, UserTypeError, _print, enterLog, antiDuplicateNew, antiDuplicateInit
 from File import File, realpath
 from os import path, makedirs, rmdir, walk
 from Timer import Timer
@@ -26,37 +26,52 @@ class Folder(Object) :
         rmdir(folder_path)
         return Folder
 
+    @antiDuplicateNew
+    def __new__(cls, folder_path, *args, **kwargs) :
+        return realpath(folder_path)
+
+    @antiDuplicateInit
     def __init__(self, folder_path, /, *, auto_build = True) :
+        if Folder.notExists(folder_path) : raise Exception(f'Folder({folder_path} = {realpath(folder_path)}) 不存在')
         super().__init__()
         self._registerProperty(['path', 'name'])
-        self._path = folder_path
-        self._name = realpath(self._path).split('/')[-1]
+        # self._path       = realpath(folder_path)
+        self._path       = folder_path
+        self._name       = self._path.split('/')[-1]
         self._auto_build = auto_build
+        self._has_walked = False
+        self._has_built  = False
         if not auto_build :
-            self._has_built = False
-            return
+            pass
         else :
-            self.build()
+            self._build()
 
-    def build(self) :
-        Timer.printTiming(f'build {self} 开始')
+    @enterLog('{self}')
+    def _walk(self) :
         try :
-            for self._path, self._sub_folder_name_list, self._sub_file_name_list in walk(self._path) :
+            for path, sub_folder_name_list, sub_file_name_list in walk(self._path) :
+                self._path, self._sub_folder_name_list, self._sub_file_name_list = path, sub_folder_name_list, sub_file_name_list
                 break
-            self._path, self._sub_folder_name_list, self._sub_file_name_list = Str(self._path), List(self._sub_folder_name_list), List(self._sub_file_name_list)
             self._sub_file_name_list.filter(lambda file_name : file_name != '.DS_Store')
+            self._path.rstrip('/')
+            self._name = self._path.split('/')[-1]
         except Exception as e :
             # raise e
             raise Exception(f'Fail to walk folder path: {self._path=}')
-        self._path.rstrip('/')
-        self._name = self._path.split('/')[-1]
+        self._has_walked = True
+        return self
+
+    @enterLog('{self}')
+    def _build(self) :
+        if not self._has_walked : self._walk()
         self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}', auto_build = self._auto_build))
         self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(f'{self._path}/{file_name}', self))#.printFormat(pattern = f'{index + 1} {{}}', timing = True))
         self._has_built = True
-        # Timer.printTiming(f'build {self} 结束')
+        # Timer.printTiming(f'_build {self} 结束')
+        return self
 
     def __format__(self, code) :
-        return f'Folder({realpath(self._path)})'
+        return f'Folder({self._path})'
 
     @_print
     def printFormat(self) :
@@ -91,18 +106,35 @@ class Folder(Object) :
         return self._name
 
     @property
+    def size(self) :
+        raise
+
+    @property
+    def sub_file_name_list(self) :
+        if not self._has_walked : self._walk()
+        return self._sub_file_name_list.copy()
+
+    @property
+    def sub_folder_name_list(self) :
+        if not self._has_walked : self._walk()
+        return self._sub_folder_name_list.copy()
+
+    @property
     def sub_file_list(self) :
-        if not self._has_built : self.build()
+        if not self._has_built : self._build()
         return self._sub_file_list.copy()
 
     @property
     def sub_folder_list(self) :
-        if not self._has_built : self.build()
+        if not self._has_built : self._build()
         return self._sub_folder_list.copy()
+
+    def getOneSubFile(self, *, name_contains) :
+        return File(f'{self._path}/{self.sub_file_name_list.filterOne(lambda name : name.has(name_contains))}', self)
 
     @property
     def flat_sub_file_list(self) :
-        if not self._has_built : self.build()
+        if not self._has_built : self._build()
         result = self._sub_file_list.copy()
         for folder in self._sub_folder_list :
             result.extend(folder.flat_sub_file_list)

@@ -198,7 +198,14 @@ class TimeDelta(_base_class) :
         return self._timedelta.__eq__(other.getRaw())
 
     def __format__(self, pattern) :
-        return f'{self.days:>3}d {self.hours:02}:{self.minutes:02}:{self.seconds:02}{"" if self.microseconds == 0 else f".{self.microseconds:06}"}'
+        if pattern == '时分秒' :
+            return (f'{self.days * 24 + self.hours:>2}时' if self.days > 0 or self.hours > 0 else '    ') + (f'{self.minutes:>2}分' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ') + f'{self.seconds:>2}秒'
+        elif pattern == '分秒' :
+            return (f'{self.days * 1440 + self.hours * 60 + self.minutes:>2}分' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ') + f'{self.seconds:>2}秒'
+        elif pattern == '秒' :
+            return f'{self.days * 86400 + self.hours * 3600 + self.minutes * 60 + self.seconds:>2}秒'
+        else :
+            return f'{self.days:>3}d {self.hours:02}:{self.minutes:02}:{self.seconds:02}{"" if self.microseconds == 0 else f".{self.microseconds:06}"}'
 
     def __str__(self) :
         return f'TimeDelta({self.__format__("")})'

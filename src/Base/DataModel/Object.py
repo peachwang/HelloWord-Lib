@@ -152,7 +152,7 @@ class Object() :
             else :
                 Object.__id_list.append(self.getId())
                 result = func(self, *args, **kwargs)
-                Object.__id_list.dropItem(self.getId())
+                Object.__id_list.remove(self.getId())
             return result
         return wrapper
 

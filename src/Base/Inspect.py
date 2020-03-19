@@ -286,7 +286,10 @@ class Inspect(Object) :
         return self
 
     def print(self) :
-        return self.printAllFieldList().printAllFieldSlotList()
+        self.printAllFieldList()
+        print('-' * 80)
+        self.printAllFieldSlotList()
+        return self
 
 S_DIFFTYPE  = '类型不同'
 S_DIFFLEN   = '数量不同'

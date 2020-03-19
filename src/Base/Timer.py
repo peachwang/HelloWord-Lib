@@ -5,33 +5,30 @@ from functools import wraps
 
 class Timer() :
 
-    _has_inited = False
-    _timeitTotalOff = False
+    _has_inited     = False
+    _timeit_total_off = False
 
     @classmethod
     def timeitTotalOff(cls) :
-        cls._timeitTotalOff = True
+        cls._timeit_total_off = True
 
     @classmethod
     def __initclass__(cls) :
         if cls._has_inited : return
-        from List     import List
-        from Dict     import Dict
         from DateTime import time
         cls._global_total      = 0
         cls._global_current    = time.time()
-        cls._global_delta_list = List()
-        cls._timer_dict        = Dict()
+        cls._global_delta_list = []
+        cls._timer_dict        = {}
         cls._has_inited        = True
 
     def __init__(self, key, /) :
-        # super().__init__()
         Timer.__initclass__()
-        # self._registerProperty(['key', 'total'])
         self._key = key
         self._total = 0
-        from List import List
-        self._delta_list = List()
+        self._last_total = 0
+        self._delta_list = []
+        self._last_len = 0
 
     def add(self, delta, /) :
         self._total += delta
@@ -39,11 +36,23 @@ class Timer() :
         return self
 
     def len(self) :
-        return self._delta_list.len()
+        return len(self._delta_list)
+
+    @property
+    def len_delta(self) :
+        result = self.len() - self._last_len
+        self._last_len = self.len()
+        return result
 
     @property
     def average(self):
         return self._total / self.len() if self.len() > 0 else 0
+
+    @property
+    def total_delta(self) :
+        result = self._total - self._last_total
+        self._last_total = self._total
+        return result
 
     def timeitOnce(func, msg = '', /) :
         Timer.__initclass__()
@@ -63,23 +72,22 @@ class Timer() :
 
     def timeitTotal(key, *, group_args = False) :
         def decorator(func) :
-            if Timer._timeitTotalOff : return func
+            if Timer._timeit_total_off : return func
             @wraps(func)
             def wrapper(self = None, *args, **kwargs) :
                 Timer.__initclass__()
                 # key = func.__qualname__
-                from Dict import Dict
                 from DateTime import time
                 if group_args :
                     key_args = f'{args}{kwargs if len(kwargs) > 0 else ""}'
-                    if Timer._timer_dict.hasNot(key) :
-                        Timer._timer_dict[key] = Dict()
-                    if Timer._timer_dict[key].has(key_args) :
+                    if key not in Timer._timer_dict :
+                        Timer._timer_dict[key] = {}
+                    if key_args in Timer._timer_dict[key] :
                         timer = Timer._timer_dict[key][key_args]
                     else :
                         Timer._timer_dict[key][key_args] = timer = Timer(f'{key}{key_args}')
                 else :
-                    if Timer._timer_dict.has(key) :
+                    if key in Timer._timer_dict :
                         timer = Timer._timer_dict[key]
                     else :
                         Timer._timer_dict[key] = timer = Timer(key)
@@ -96,11 +104,11 @@ class Timer() :
     @classmethod
     def printTotal(cls, key, /, msg = '') :
         cls.__initclass__()
-        if Timer._timeitTotalOff : return cls
+        if Timer._timeit_total_off : return cls
         def printTimer(timer) :
             from util import P, E
-            print(P(f'类目({timer._key:50}) 总共({timer.len():-5}次, {timer._total:.6f}s) 平均{timer.average:.6f}s [ {msg} ]'))
-        if cls._timer_dict.has(key) :
+            print(P(f'类目({timer._key:50}) 总共({timer.len():>10}次, +{timer.len_delta:>10}次, {timer._total:.6f}s, +{timer.total_delta:.6f}s) 平均{timer.average:.6f}s [ {msg} ]'))
+        if key in cls._timer_dict :
             _ = cls._timer_dict[key]
             if isinstance(_, dict) :
                 for key_args in _ :

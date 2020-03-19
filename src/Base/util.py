@@ -5,7 +5,7 @@ import json, re, requests
 from sys        import exit
 from Color      import R, Y, G, C, B, P, S, W, E
 from functools  import wraps, cached_property, lru_cache
-from shared     import ensureArgsType, UserTypeError, _print
+from shared     import ensureArgsType, UserTypeError, _print, enterLog, antiDuplicateNew, antiDuplicateInit
 from typing     import Optional, Union
 from Object     import Object
 from List       import List
@@ -16,7 +16,7 @@ from Timer      import Timer
 from File       import File
 from Audio      import Audio
 from Folder     import Folder
-# from Inspect    import *
+from Counter    import Counter
 from LineStream import LineStream
 
 # ==================== Data ====================

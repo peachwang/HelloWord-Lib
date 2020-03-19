@@ -3,7 +3,7 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'))
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from inspect import isgenerator
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
-# from Timer import Timer
+from Timer import Timer
 
 
 
@@ -16,35 +16,38 @@ class List(list) :
 
     _has_imported_types = False
 
-    def _importTypes(self) :
-        if self._has_imported_types : return
-        self._List      = List
-        from Dict     import Dict;            self._Dict      = Dict
-        from Str      import Str;             self._Str       = Str
-        from Object   import Object;          self._Object    = Object
-        from DateTime import timedelta_class; self._timedelta = timedelta_class
-        from DateTime import TimeDelta;       self._TimeDelta = TimeDelta
-        from DateTime import date_class;      self._date      = date_class
-        from DateTime import Date;            self._Date      = Date
-        from DateTime import time_class;      self._time      = time_class
-        from DateTime import Time;            self._Time      = Time
-        from DateTime import datetime_class;  self._datetime  = datetime_class
-        from DateTime import DateTime;        self._DateTime  = DateTime
-        from DateTime import DateRange;       self._DateRange = DateRange
-        from DateTime import Year;            self._Year      = Year
-        from DateTime import Month;           self._Month     = Month
-        from DateTime import Week;            self._Week      = Week
-        from File     import File;            self._File      = File
-        from Folder   import Folder;          self._Folder    = Folder
-        from Audio    import Audio;           self._Audio     = Audio
-        self._raw_types_tuple = (type(None), str, bytes, int, float, bool, tuple, range, zip, self._timedelta, self._date, self._time, self._datetime, type)
-        self._types_tuple     = (self._List, self._Dict, self._Str, self._Object, self._TimeDelta, self._Date, self._Time, self._DateTime, self._DateRange, self._Year, self._Month, self._Week, self._File, self._Folder, self._Audio)
+    @classmethod
+    def _importTypes(cls) :
+        if cls._has_imported_types : return
+        cls._List      = List
+        from Dict     import Dict;            cls._Dict      = Dict
+        from Str      import Str;             cls._Str       = Str
+        from Object   import Object;          cls._Object    = Object
+        from DateTime import timedelta_class; cls._timedelta = timedelta_class
+        from DateTime import TimeDelta;       cls._TimeDelta = TimeDelta
+        from DateTime import date_class;      cls._date      = date_class
+        from DateTime import Date;            cls._Date      = Date
+        from DateTime import time_class;      cls._time      = time_class
+        from DateTime import Time;            cls._Time      = Time
+        from DateTime import datetime_class;  cls._datetime  = datetime_class
+        from DateTime import DateTime;        cls._DateTime  = DateTime
+        from DateTime import DateRange;       cls._DateRange = DateRange
+        from DateTime import Year;            cls._Year      = Year
+        from DateTime import Month;           cls._Month     = Month
+        from DateTime import Week;            cls._Week      = Week
+        from File     import File;            cls._File      = File
+        from Folder   import Folder;          cls._Folder    = Folder
+        from Audio    import Audio;           cls._Audio     = Audio
+        cls._raw_types_tuple = (type(None), str, bytes, int, float, bool, tuple, range, zip, cls._timedelta, cls._date, cls._time, cls._datetime, type)
+        cls._types_tuple     = (cls._List, cls._Dict, cls._Str, cls._Object, cls._TimeDelta, cls._Date, cls._Time, cls._DateTime, cls._DateRange, cls._Year, cls._Month, cls._Week, cls._File, cls._Folder, cls._Audio)
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
-        self._has_imported_types = True
+        cls._has_imported_types = True
 
+    # @Timer.timeitTotal('_wrapItem')
     def _wrapItem(self, item, /) :
         self._importTypes()
-        if isinstance(item, list)              : return self._List(item)
+        if isinstance(item, (self._List, self._Dict, self._Str)) : return item
+        elif isinstance(item, list)            : return self._List(item)
         elif isinstance(item, dict)            : return self._Dict(item)
         elif isinstance(item, str)             : return self._Str(item)
         elif isinstance(item, bytes)           : return self._Str(item.decode())
@@ -127,7 +130,7 @@ class List(list) :
     @_print
     def printLine(self, pattern = None, /) :
         if pattern is None :
-            return self.mapped(lambda item : f'{item}').join('\n'), True
+            return self.mapped(lambda item, index : f'{index + 1} {item}').join('\n'), True
         else :
             return self.mapped(lambda item, index : pattern.format(item, index)).join('\n'), True
 
@@ -626,15 +629,23 @@ class List(list) :
             while index < self.len() :
                 if self[index].__getattribute__(func_or_func_name)(*args, **kwargs) : index += 1
                 else : self.popIndex(index)
-        else :
+        elif callable(func_or_func_name) :
             while index < self.len() :
                 if func_or_func_name(self[index], *args, **kwargs) : index += 1
                 else : self.popIndex(index)
+        else : raise UserTypeError(func_or_func_name)
         return self
 
     def filtered(self, func_or_func_name, /, *args, **kwargs) :
         '''NOT IN PLACE'''
         return self.copy().filter(func_or_func_name, *args, **kwargs)
+
+    def filterOne(self, func_or_func_name, /, *args, **kwargs) :
+        result = self.filtered(func_or_func_name, *args, **kwargs)
+        if result.len() != 1 :
+            raise UserTypeError(result)
+        else :
+            return result[0]
 
     # @ensureArgsType
     def filterByValue(self, key_list_or_func_name: Optional[Union[list, str]], value_or_list, /) :
@@ -712,7 +723,7 @@ class List(list) :
         if self.len() == 0 : return 0
         return self._reduce(key_list_or_func_name, lambda result, item : result + item, 0)
 
-    def mean(self, key_list_or_func_name = None, /, *, default = None) :
+    def ave(self, key_list_or_func_name = None, /, *, default = None) :
         '''NOT IN PLACE'''
         if self.len() == 0 : return default
         return 1.0 * self.sum(key_list_or_func_name) / self.len()

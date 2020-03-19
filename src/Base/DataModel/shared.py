@@ -145,3 +145,43 @@ def _print(func) :
             self.printLen(color = color, **kwargs)
         return self
     return wrapper
+
+def enterLog(key_pattern = '') :
+    def decorator(func) :
+        @wraps(func)
+        def wrapper(cls_or_self, *args, **kwargs) :
+            # kwargs['self'] = cls_or_self
+            msg = key_pattern.format(*args, self = cls_or_self, **kwargs)
+            # kwargs.pop('self')
+            import sys, os; sys.path.append(os.path.realpath(__file__ + '/../../'))
+            from Timer import Timer
+            from util import Y, G
+            Timer.printTiming(f'{func.__qualname__:30} {Y("开始")} {msg}')
+            result = func(cls_or_self, *args, **kwargs)
+            Timer.printTiming(f'{func.__qualname__:30} {G("结束")} {msg}')
+            return result
+        return wrapper
+    return decorator
+
+def antiDuplicateNew(func) :
+    @wraps(func)
+    def wrapper(cls, *args, **kwargs) :
+        key = func(cls, *args, **kwargs)
+        if not hasattr(cls, '_instance_dict') :
+            cls._instance_dict = {}
+        if cls._instance_dict.get(key) is not None :
+            return cls._instance_dict[key]
+        else :
+            instance = cls.__bases__[0].__new__(cls)
+            cls._instance_dict[key] = instance
+            return instance
+        return instance
+    return wrapper
+
+def antiDuplicateInit(func) :
+    @wraps(func)
+    def wrapper(self, *args, **kwargs) :
+        if '_has_init' in dir(self) : return
+        func(self, *args, **kwargs)
+        object.__setattr__(self, '_has_init', True)
+    return wrapper
