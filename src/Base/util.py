@@ -19,6 +19,21 @@ from Folder     import Folder
 from Counter    import Counter
 from LineStream import LineStream
 
+from operator import attrgetter, itemgetter, methodcaller
+# operator.attrgetter(*attrs)
+# Return a callable object that fetches attr from its operand. If more than one attribute is requested, returns a tuple of attributes. The attribute names can also contain dots. For example:
+# attrgetter('name.first', 'name.last')(a) = (a.name.first, a.name.last).
+
+# operator.itemgetter(*items)
+# Return a callable object that fetches item from its operand using the operand’s __getitem__() method. If multiple items are specified, returns a tuple of lookup values. For example:
+# itemgetter('name')({'name' : 'tu', 'age' : 18}) = 'tu'
+# itemgetter(1, 3, 5)('ABCDEFG') = ('B', 'D', 'F')
+# itemgetter(slice(2, None))('ABCDEFG') = 'CDEFG'
+
+# operator.methodcaller(name, /, *args, **kwargs)
+# Return a callable object that calls the method name on its operand. If additional arguments and/or keyword arguments are given, they will be given to the method as well. For example:
+# methodcaller('name', 'foo', bar = 1)(a) = a.name('foo', bar = 1).
+
 # ==================== Data ====================
 
 # delete
@@ -116,7 +131,7 @@ def highlightTraceback(func) :
                 line_list[index] = line.strip('\n')
                 if line.has('HelloWord-Lib') :
                     flag = False
-                elif not flag and (line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.hasNot('HelloWord-Lib')) :
+                elif not flag and (line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.hasNo('HelloWord-Lib')) :
                     line_list[index] = f'{B(line_list[index])}'
                     # if index >= 1 and line_list[index - 1].has('HelloWord-Lib') :
                     #     line_list[index - 1] = f'{Y(line_list[index - 1])}'

@@ -3,7 +3,7 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'))
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from inspect import isgenerator
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
-from Timer import Timer
+# from Timer import Timer
 
 
 
@@ -228,7 +228,7 @@ class List(list) :
     def has(self, item, /) :
         return list.__contains__(self, item)
 
-    def hasNot(self, item, /) :
+    def hasNo(self, item, /) :
         return not self.has(item)
 
     def hasAnyOf(self, item_list, /) :
@@ -238,7 +238,7 @@ class List(list) :
         return all(self.has(item) for item in item_list)
 
     def hasNoneOf(self, item_list, /) :
-        return all(self.hasNot(item) for item in item_list)
+        return all(self.hasNo(item) for item in item_list)
 
     def count(self, item, /) :
         '''L.count(value) -> integer -- return number of occurrences of value'''
@@ -309,8 +309,8 @@ class List(list) :
         '''
         if isinstance(index, int) : return list.__getitem__(self, index)
         elif isinstance(index, slice) : 
-            if (index.start is None or isinstance(index.start, int))\
-            and (index.stop is None or isinstance(index.stop, int)) :
+            if ((index.start is None or isinstance(index.start, int))
+            and (index.stop is None or isinstance(index.stop, int))) :
                 return List(list.__getitem__(self, index))
             else :
                 start, end = None, None

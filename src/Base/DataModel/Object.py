@@ -48,11 +48,11 @@ class Object() :
     def _hasProperty(self, name, /) :
         return self._data.has(f'_{name}')
 
-    def _hasNotProperty(self, name, /) :
+    def _hasNoProperty(self, name, /) :
         return not self._hasProperty(name)
 
     def _ensureHasProperty(self, name, /) :
-        if _hasNotProperty(name) :
+        if _hasNoProperty(name) :
             raise Exception(f'{self}必须拥有属性{name}.')
         return self
     
@@ -69,7 +69,7 @@ class Object() :
         name = f'_{name}'
         def appendValue(value) :
             if filter_none and value == None : return
-            if self._data.hasNot(name) :
+            if self._data.hasNo(name) :
                 self._data[name] = List()
             self._data[name].append(value)
         if isgenerator(value_or_generator_or_iterator) or '__next__' in dir(value_or_generator_or_iterator) :
@@ -84,7 +84,7 @@ class Object() :
         name = f'_{name}'
         def uniqueAppendValue(value) :
             if filter_none and value == None : return
-            if self._data.hasNot(name) :
+            if self._data.hasNo(name) :
                 self._data[name] = List()
             self._data[name].uniqueAppend(value)
         if isgenerator(value_or_generator_or_iterator) or '__next__' in dir(value_or_generator_or_iterator) :
@@ -116,13 +116,13 @@ class Object() :
         if name in self._data : return self._data[name]
         if f'_{name}' in self._data : return self._data[f'_{name}'] # 未注册属性
 
-        for prefix in ( 'has', 'hasNot', 'ensureHas', 'get', 'set', 'append', 'uniqueAppend' ) :
+        for prefix in ( 'has', 'hasNo', 'ensureHas', 'get', 'set', 'append', 'uniqueAppend' ) :
             l = len(prefix)
             suffix_1 = ('List' if prefix in ('append', 'uniqueAppend') else '')
             suffix_2 = ('_list' if prefix in ('append', 'uniqueAppend') else '')
             if name[:l] == prefix and (name[l].isupper() or name[l] == '_') :
-                if (existence_2 := pd.has(name_2 := Str(name[l:]).toSnakeCase() + suffix_2))\
-                    or (existence_1 := pd.has(name_1 := Str(name[l:]).toPascalCase() + suffix_1)) :
+                if ((existence_2 := pd.has(name_2 := Str(name[l:]).toSnakeCase() + suffix_2))
+                    or (existence_1 := pd.has(name_1 := Str(name[l:]).toPascalCase() + suffix_1))) :
                     if existence_2 : name_0 = str(name_2)
                     elif existence_1 : name_0 = str(name_1)
                     
@@ -135,9 +135,6 @@ class Object() :
 
         from util import P, E
         raise Exception(f"Object {P(type(self))} 中无 {P(name)} 属性或方法, 只有这些属性: {P((self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object))))}\n{pd=}")
-
-    def __getitem__(self, name) :
-        return self.__getattr__(name)
 
     def getPropertyDict(self, name_list, /) :
         raise NotImplementedError
@@ -214,8 +211,8 @@ class Object() :
                     from DateTime import timedelta_class, date_class, time_class, datetime_class
                     if isinstance(pv, tuple) and value not in pv :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不属于: \n{pv}\n{self}\n')
-                    elif isinstance(pv, str) and isinstance(value, (int, float, bool, bytes, range, tuple, set, list, dict, timedelta_class, date_class, time_class, datetime_class))\
-                        and eval(pv.replace('#', 'value', re_mode = False)) is not True :
+                    elif (isinstance(pv, str) and isinstance(value, (int, float, bool, bytes, range, tuple, set, list, dict, timedelta_class, date_class, time_class, datetime_class))
+                        and eval(pv.replace('#', 'value', re_mode = False)) is not True) :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不合法: [{pv}]\n{self}\n')
                     elif isinstance(pv, str) and isinstance(value, str) and not value.fullMatch(pv) :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不匹配: \n[{pv}]\n[{self}]\n')

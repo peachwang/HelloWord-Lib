@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, UserTypeError, _print, enterLog, antiDuplicateNew, antiDuplicateInit
+from util import List, Dict, Str, Object, UserTypeError, _print, cached_property, enterLog, antiDuplicateNew, antiDuplicateInit
 from File import File, realpath
 from os import path, makedirs, rmdir, walk
 from Timer import Timer
@@ -27,7 +27,7 @@ class Folder(Object) :
         return Folder
 
     @antiDuplicateNew
-    def __new__(cls, folder_path, *args, **kwargs) :
+    def __new__(cls, folder_path, **kwargs) :
         return realpath(folder_path)
 
     @antiDuplicateInit
@@ -46,6 +46,9 @@ class Folder(Object) :
         else :
             self._build()
 
+    @cached_property
+    def abs_path(self) : return realpath(self._path)
+
     @enterLog('{self}')
     def _walk(self) :
         try :
@@ -57,7 +60,7 @@ class Folder(Object) :
             self._name = self._path.split('/')[-1]
         except Exception as e :
             # raise e
-            raise Exception(f'Fail to walk folder path: {self._path=}')
+            raise Exception(f'Fail to walk folder path: {self._path} = {self.abs_path}')
         self._has_walked = True
         return self
 
@@ -71,7 +74,7 @@ class Folder(Object) :
         return self
 
     def __format__(self, code) :
-        return f'Folder({self._path})'
+        return f'Folder({self._path} = {self.abs_path})'
 
     @_print
     def printFormat(self) :
@@ -96,14 +99,6 @@ class Folder(Object) :
     def printJ(self) :
         _ = self.flat_sub_file_list.path.join('\n')
         return f'{self.j()}\n{_}', True
-
-    @property
-    def path(self) :
-        return self._path
-
-    @property
-    def name(self) :
-        return self._name
 
     @property
     def size(self) :

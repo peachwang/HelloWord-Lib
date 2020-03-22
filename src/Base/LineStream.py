@@ -14,9 +14,9 @@ class LineStream(Object) :
         def tagByFormatList(self, tag_format_list, /) :
             tag_format_list = List(tag_format_list)
             for tag_format in tag_format_list :
-                if (tag_format == '[]' and (m := self._raw_line.fullMatch(r'^\[(?P<tag_name>[^\[\]]+)\](?P<content>.*)$')))\
-                or (tag_format == '#' and (m := self._raw_line.fullMatch(r'^#(?P<tag_name>[^ ]+) *(?P<content>.*)$')))\
-                or (tag_format == '【】' and (m := self._raw_line.fullMatch(r'^【(?P<tag_name>[^【】]+)】(?P<content>.*)$'))) :
+                if (tag_format == '[]' and (m := self._raw_line.fullMatch(r'^\[(?P<tag_name>[^\[\]]+)\](?P<content>.*)$'))
+                    or tag_format == '#' and (m := self._raw_line.fullMatch(r'^#(?P<tag_name>[^ ]+) *(?P<content>.*)$'))
+                    or tag_format == '【】' and (m := self._raw_line.fullMatch(r'^【(?P<tag_name>[^【】]+)】(?P<content>.*)$'))) :
                     self._tag_name, self._content, self._tag_format = m.tag_name, m.content, tag_format
                     return self
             raise Exception(f'{self._index + 1}.[{self._raw_line}]不匹配{tag_format_list=}')
@@ -70,11 +70,12 @@ class LineStream(Object) :
         self._line_list = List()
         for index, raw_line in self._raw_line_list.enum() :
             self.appendLine(
-                self.Line(index + 1, raw_line)\
+                (self.Line(index + 1, raw_line)
                     .tagByContext(
                         tag_func      = tag_func,
                         raw_line_list = self._data['_raw_line_list']
                     )
+                )
             )
         return self
 
@@ -172,8 +173,8 @@ class LineStream(Object) :
     def hasSubStream(self, tag_name, /) :
         return self._hasProperty(tag_name)
 
-    def hasNotSubStream(self, tag_name, /) :
-        return self._hasNotProperty(tag_name)
+    def hasNoSubStream(self, tag_name, /) :
+        return self._hasNoProperty(tag_name)
 
     def print(self, indent = '') :
         print(f'{indent}{self!a}')

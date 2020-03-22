@@ -15,12 +15,19 @@ from Object import Object
 
 SRE_MATCH_TYPE = type(re.match('', ''))
 
-class Pattern(Object) :
+class _Pattern(Object) :
 
     def __init__(self, pattern, /) :
         super().__init__()
-        self._registerProperty(['pattern'])
-        self._pattern = Str(pattern)
+        # self._registerProperty([])
+        self._pattern = pattern
+
+    def getRaw(self) :
+        return self._pattern
+
+    @property
+    def string(self) :
+        return Str(self._pattern.pattern)
 
     @property
     def flags(self) :
@@ -44,17 +51,26 @@ class Pattern(Object) :
         return self._pattern.groupindex[name]
 
 class _Match(Object) :
+
+    NV = V_NON_VACANCY = 'V_NON_VACANCY'
     
     def __init__(self, match, /) :
         super().__init__()
-        self._registerProperty(['match'])
-        self._match = match
+        self._registerProperty(['pattern'])
+        self._pattern = _Pattern(match.re)
+        self._match   = match
         self._data.update(self.namedGroupDict())
+
+    def getRaw(self) :
+        return self._match
 
     @property
     def string(self) :
         '''The string passed to match() or search().'''
         return Str(self._match.string)
+
+    def __format__(self, code) :
+        return f'Match(pattern = [{self._pattern.string}], string = [{self.string}])'
 
     @property
     def whole_match(self) :
@@ -132,25 +148,37 @@ class _Match(Object) :
         '''
         return self._wrap(self._match.__getitem__(group))
 
-    def allGroupTuple(self, *, default = None) :
+    def allGroupTuple(self, *, default = None, ignore_missing = True) :
         '''
         Match.groups(default=None)
         Return a tuple containing all the subgroups of the match, from 1 up to
-        however many groups are in the pattern. The default argument is used for
+        however many groups(indexed and named!!!) are in the pattern. The default argument is used for
         groups that did not participate in the match; it defaults to None.
         (?P<name>...)
         '''
-        return tuple(self._wrap(_) for _ in self._match.groups(default))
+        return tuple(self._wrap(_) for _ in self._match.groups(default) if not ignore_missing or _ != default)
 
-    def namedGroupDict(self, *, default = None) :
+    def onlyOneGroup(self, *, default = NV) :
+        _ = self.allGroupTuple(ignore_missing = True)
+        if len(_) > 1 :
+            raise Exception(f'{self} 中出现不止一个 group')
+        elif len(_) == 0 :
+            if default == self.NV :
+                raise Exception(f'{self} 中不存在 group')
+            else :
+                return default
+        else :
+            return _[0]
+
+    def namedGroupDict(self, *, default = None, ignore_missing = True) :
         '''
         Match.groupdict(default=None)
-        Return a dictionary containing all the named subgroups of the match,
+        Return a dictionary containing all the named subgroups (not indexed!!!) of the match,
         keyed by the subgroup name. The default argument is used for groups that
         did not participate in the match; it defaults to None.
         '''
         from Dict import Dict
-        return Dict((key, value) for key, value in self._match.groupdict(default).items() if value is not None)
+        return Dict((key, value) for key, value in self._match.groupdict(default).items() if not ignore_missing or value != default)
 
     def startOfGroup(self, group, /) :
         '''
@@ -191,6 +219,8 @@ class _Match(Object) :
         return self.string[ : self.startOfGroup(group)] + replacement + self.string[self.endOfGroup(group) : ]
 
 class Str(str) :
+
+    NV = V_NON_VACANCY = 'V_NON_VACANCY'
 
     def getId(self) :
         '''
@@ -311,7 +341,7 @@ class Str(str) :
         else :
             return self.count(sub_or_pattern, re_mode = re_mode, flags = flags) > 0
 
-    def hasNot(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
+    def hasNo(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
         return not self.has(sub_or_pattern, re_mode = re_mode, flags = flags)
 
     def hasAnyOf(self, sub_list, /) :
@@ -324,7 +354,7 @@ class Str(str) :
 
     def hasNoneOf(self, sub_list, /) :
         if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
-        return all(self.hasNot(sub) for sub in sub_list)
+        return all(self.hasNo(sub) for sub in sub_list)
 
     def matchIn(self, sub_list, /) :
         if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
@@ -434,6 +464,23 @@ class Str(str) :
         '''
         from List import List
         return List(_Match(match) for match in re.finditer(pattern, self, flags))
+    
+    def onlyOneMatch(self, pattern, /, *, flags = 0, default = NV) :
+        matches = self.findAllMatchList(pattern, flags = flags)
+        if matches.len() > 1 :
+            raise Exception(f'[{pattern}] 在 [{self}] 中出现不止一次')
+        elif matches.len() == 0 :
+            if default != self.NV :
+                return default
+            else :
+                raise Exception(f'[{pattern}] 在 [{self}] 中不存在')
+        else :
+            return matches[0]
+
+    def onlyOneGroup(self, pattern, /, *, flags = 0, default = NV) :
+        m = self.onlyOneMatch(pattern, flags = flags, default = default)
+        if m == default : return default
+        else : return m.onlyOneGroup(default = default)
 
     # 待废弃！
     def findall(self, pattern, /, *, flags = 0) :
@@ -675,7 +722,7 @@ class Str(str) :
         return str.isdecimal(self)
 
     def isInt(self) :
-        return self.isNumber() and self.hasNot('.')
+        return self.isNumber() and self.hasNo('.')
 
     def ensureInt(self) :
         if self.isInt() : return self

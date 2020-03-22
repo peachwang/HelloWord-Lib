@@ -65,7 +65,7 @@ class _FieldSlot(Object) :
 
     @lru_cache
     def getAllFieldSlotList(self) :
-        if self.hasNotChildFieldSlotList() :
+        if self.hasNoChildFieldSlotList() :
             return List(self)
         else :
             return self._child_field_slot_list.getAllFieldSlotList.merged().unique().prepend(self)
@@ -87,7 +87,7 @@ class _FieldSlot(Object) :
                     result += f' 含     {self._list_len_list.sort(reverse = True).join(", ")} 个元素'
                 else :
                     __ = self._list_len_list.countBy()
-                    _ = List(f'({length}, {count}次)' for length, count in __.items().sort(lambda _ : _[1], reverse = True))[:max_len].join(', ')
+                    _ = List(f'({length}, {count}次)' for length, count in __.items().sort(itemgetter(1), reverse = True))[:max_len].join(', ')
                     result += f' 含     {_}{", etc." if __.len() > max_len else ""} 个元素'
             elif self.is_dict :
                 if self.hasChildFieldSlotList() :
@@ -95,13 +95,13 @@ class _FieldSlot(Object) :
                 else :
                     result += f' {G("为空")}'
         else :
-            if self.hasNotValueList() : 
+            if self.hasNoValueList() : 
                 result += f'{R(" 无取值")}'
             elif self._value_list.len() <= max_len :
                 result += f' 取值   {P(self._value_list.sort(lambda _ : f"{_}").format(f"{{!s:.{max_width}}}").join(", "))}'
             else :
                 __ = self._value_list.countBy()
-                _ = List(f'({value!s:.{max_width}}, {count}次)' for value, count in __.items().sort(lambda _ : _[1], reverse = True))[:max_len].join(', ')
+                _ = List(f'({value!s:.{max_width}}, {count}次)' for value, count in __.items().sort(itemgetter(1), reverse = True))[:max_len].join(', ')
                 result += f' 取值   {P(_)}{", etc." if __.len() > max_len else ""}'
         return result
 
@@ -117,7 +117,7 @@ class _Field(Object) :
         self._child_field_dict = Dict()
         self._build(field_slot_dict, **kwargs)
         
-        if field_slot_dict.hasNot(self.slot_path) :
+        if field_slot_dict.hasNo(self.slot_path) :
             field_slot_dict[self.slot_path] = _FieldSlot(self.slot_path)
         self._field_slot = field_slot_dict[self.slot_path].addField(self)
         if not self.is_leaf :
@@ -187,8 +187,16 @@ class _Field(Object) :
 
     @cached_property
     def type(self) :
-        return Dict({int : 'int', float : 'float', bool : 'bool', type(Str()) : 'Str', type(List()) : 'List', type(Dict()) : 'Dict'})\
+        return (Dict({
+                int          : 'int',
+                float        : 'float',
+                bool         : 'bool',
+                type(Str())  : 'Str',
+                type(List()) : 'List',
+                type(Dict()) : 'Dict'
+            })
             .get(type(self._value), Str(str(type(self._value))).fullMatch(r'<class \'([^\'\.]+\.)?([^\']+)\'>').oneGroup(2))
+        )
 
     @cached_property
     def path(self) :
@@ -228,7 +236,7 @@ class _Field(Object) :
         result = f'{Y(P(self.type) == "List") == "Dict":10} '
         if self.is_leaf and not self.is_list and not self.is_dict :
             result += f'{P(self._value)}'
-        elif self.hasNotChildFieldList() :
+        elif self.hasNoChildFieldList() :
             result += f'{G("为空")}'
         elif self.is_list :
             result += f'含 {self._child_field_list.len()} 个元素'
@@ -357,8 +365,8 @@ class _DiffField(_Field) :
         return self.getChildDiffFieldList([]).getAllDiffFieldList.merged().prepend(self)
 
     def getDifferentFieldList(self, filter_path_list = None, filter_status_list = None) :
-        if (isinstance(filter_path_list, list) and self.path.isIn(*filter_path_list))\
-        or (isinstance(filter_status_list, list) and self._status.isIn(*filter_status_list)) :
+        if (isinstance(filter_path_list, list) and self.path.isIn(*filter_path_list)
+            or isinstance(filter_status_list, list) and self._status.isIn(*filter_status_list)) :
             return List()
         result = List(_.getDifferentFieldList(filter_path_list = filter_path_list) for _ in self.getChildDiffFieldList([])).merged()
         if self.status != S_IDENTICAL :

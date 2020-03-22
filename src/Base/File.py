@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError, _print, antiDuplicateNew, antiDuplicateInit, R
+from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError, _print, cached_property, antiDuplicateNew, antiDuplicateInit, R
 from os.path import exists, getsize, realpath
 from os import remove, rename
 from Timer import Timer
@@ -24,13 +24,12 @@ class File(Object) :
         self._name        = self._name[ : - self._ext.len() - 1]
         self._folder_path = _[ : -1].join('/')
 
-    @property
-    def absolute_path(self):
-        return realpath(self._path)
+    @cached_property
+    def abs_path(self) : return realpath(self._path)
 
     def __format__(self, code) :
         # return f'File({realpath(self._path)})'
-        return f'File({self._path})'
+        return f'File({self._path} = {self.abs_path})'
 
     @_print
     def printFormat(self) :
@@ -80,7 +79,7 @@ class File(Object) :
         Remove (delete) the file path. If path is a directory, an IsADirectoryError is raised. Use rmdir() to remove directories.
         '''
         remove(self._path)
-        print(f'{R(self._path + " 已删除")}')
+        print(f'{R(self.abs_path + " 已删除")}')
         return self
 
     def readLineList(self, *, filter_white_lines = False, replace_abnormal_char = True) :
@@ -93,9 +92,9 @@ class File(Object) :
         if filter_white_lines :
             result.filter(lambda line : line.isNotEmpty())
         if replace_abnormal_char :
-            result\
-                .replaceStrList(' ', ' ', re_mode = False)\
-                .replaceStrList('．', '.', re_mode = False)
+            (result
+                .replaceStrList(' ', ' ', re_mode = False)
+                .replaceStrList('．', '.', re_mode = False))
         return result
 
     def __iter__(self) :
@@ -108,6 +107,9 @@ class File(Object) :
     def writeString(self, string, /, *, append = False) :
         open(self._path, 'a' if append else 'w').write(string)
         return self
+
+    def writeLine(self, string, /, *, append = False) :
+        return self.writeString(f'{string}\n', append = append)
 
     def writeLineList(self, line_list, /, *, append = False) :
         return self.writeString(List(line_list).join('\n'), append = append)
@@ -148,6 +150,8 @@ class File(Object) :
         else : raise UserTypeError(data)
 
     def loadData(self, raw = False, **kwargs) :
+        if self.notExists() :
+            raise Exception(f'{self} 不存在')
         if self.isTxt() :
             return self.readLineList(**kwargs)
         elif self.isJson() :

@@ -2,7 +2,7 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'))
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
-from Timer import Timer
+# from Timer import Timer
 
 class Dict(dict) :
 
@@ -259,7 +259,7 @@ class Dict(dict) :
         else :
             raise UserTypeError(key_list)
 
-    def hasNot(self, key_list, /) :
+    def hasNo(self, key_list, /) :
         return not self.has(key_list)
 
     def hasAnyOf(self, key_list_list, /) :
@@ -269,7 +269,7 @@ class Dict(dict) :
         return all(self.has(key_list) for key_list in key_list_list)
 
     def hasNoneOf(self, key_list_list, /) :
-        return all(self.hasNot(key_list) for key_list in key_list_list)
+        return all(self.hasNo(key_list) for key_list in key_list_list)
 
     def keys(self) :
         '''D.keys() -> a set-like object providing a view on D's keys'''
@@ -333,7 +333,7 @@ class Dict(dict) :
                 raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
             return dict.get(self, key_list, self._wrapValue(default))
         elif isinstance(key_list, list) :
-            if self.hasNot(key_list) :
+            if self.hasNo(key_list) :
                 if default == self.NV :
                     raise Exception(f'键 {key_list} 不能为空\n{self=}')
                 return self._wrapValue(default)
@@ -457,7 +457,7 @@ class Dict(dict) :
             else :
                 return dict.pop(self, key_list, self._wrapValue(default))
         elif isinstance(key_list, list) :
-            if self.hasNot(key_list) :
+            if self.hasNo(key_list) :
                 if default == 'NONE' :
                     raise KeyError(key_list)
                 else :
