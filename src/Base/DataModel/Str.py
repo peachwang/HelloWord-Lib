@@ -721,6 +721,10 @@ class Str(str) :
         '''
         return str.isdecimal(self)
 
+    def toDateTime(self, pattern = '%Y-%m-%d %H:%M:%S') :
+        from DateTime import DateTime
+        return DateTime(self, pattern)
+
     def isInt(self) :
         return self.isNumber() and self.hasNo('.')
 

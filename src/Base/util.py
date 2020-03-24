@@ -36,52 +36,6 @@ from operator import attrgetter, itemgetter, methodcaller
 
 # ==================== Data ====================
 
-# delete
-def load_mapping(fin) :
-    data = {}
-    current = None
-    for line in fin :
-        line = line.strip('\n\r')
-        if line.strip(' ') == '' : continue
-        if '\t' not in line :
-            current = line
-            if current not in data : data[current] = []
-            continue
-        elif current is None : raise
-        else :
-            line = line.strip('\t')
-            line = re.sub(r'\t+', '\t', line)
-            data[current].append(line.split('\t'))
-    data = strip(data)
-    return data
-
-# delete
-def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
-    if not is_matrix :
-        if fields == None :
-            fields = fin.readline().strip('\n\r').split(sep)
-        mapping_fields = dict([(_, fields[_]) for _ in range(len(fields))])
-    if primary_key is None or is_matrix : data = []
-    else : data = {}
-    for line in fin :
-        line = line.strip('\n\r')
-        if line == '' : continue
-        record = line.split(sep)
-        if cast is not None and isinstance(cast, list) :
-            record = [cast[_](record[_]) for _ in range(len(record))]
-        if not is_matrix : datum = dict(zip(mapping_fields.values(), record))
-        else : datum = record
-        if cast is not None and isinstance(cast, dict) and not is_matrix :
-            for field in cast.keys() :
-                datum[field] = cast[field](datum[field])
-        if primary_key is None or is_matrix: data.append(datum)
-        else : data[datum[primary_key]] = datum
-    return data
-
-# delete
-def load_json(fin, object_hook = None, encoding = 'utf-8') :
-    return json.loads(''.join([line.strip('\n') for line in fin.readlines()]), object_hook = object_hook, encoding = encoding)
-
 def json_serialize(data, /) :
     if isinstance(data, (List, Dict, Str, Object, TimeDelta, Date, Time, DateTime, File, Folder, Audio)) :
         return data.jsonSerialize()
@@ -129,13 +83,13 @@ def highlightTraceback(func) :
             flag = False
             for index, line in line_list.enum() :
                 line_list[index] = line.strip('\n')
-                if line.has('HelloWord-Lib') :
+                if line.has('HelloWord-Lib') or line.has('Python.framework') :
                     flag = False
-                elif not flag and (line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.hasNo('HelloWord-Lib')) :
+                elif not flag and (line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.hasNo('HelloWord-Lib') and line.hasNo('Python.framework')) :
                     line_list[index] = f'{B(line_list[index])}'
                     # if index >= 1 and line_list[index - 1].has('HelloWord-Lib') :
                     #     line_list[index - 1] = f'{Y(line_list[index - 1])}'
-                    flag = True
+                    if index > 0 : flag = True
             line_list.reverse().forEach(lambda line : print(line))
             Timer.printTiming('失败')
     return wrapper

@@ -189,7 +189,7 @@ class List(list) :
         from Inspect import Inspect
         return Inspect(self, **kwargs)
 
-    def diff(self, other, /) :
+    def diff(self, other) :
         from Inspect import Diff
         return Diff(self, other)
 
@@ -199,12 +199,12 @@ class List(list) :
     def isDict(self) :
         return False
 
-    def __eq__(self, other, /) :
+    def __eq__(self, other) :
         '''Return self==value.'''
         if not isinstance(other, List) or self.len() != other.len() : return False
         return self.j() == other.j()
 
-    def __ne__(self, other, /) :
+    def __ne__(self, other) :
         '''Return self!=value.'''
         return not self.__eq__(other)
 
@@ -721,7 +721,7 @@ class List(list) :
     def sum(self, key_list_or_func_name = None, /) :
         '''NOT IN PLACE'''
         if self.len() == 0 : return 0
-        return self._reduce(key_list_or_func_name, lambda result, item : result + item, 0)
+        return self._reduce(key_list_or_func_name, lambda result, item : item + result, 0)
 
     def ave(self, key_list_or_func_name = None, /, *, default = None) :
         '''NOT IN PLACE'''
@@ -840,11 +840,11 @@ class List(list) :
         '''O(N^2)???'''
         return (self - item_list).len() == 0
 
-    def __le__(self, other, /) :
+    def __le__(self, other) :
         '''Return self<=value.'''
         return self.isSubsetOf(other)
 
-    def __lt__(self, other, /) :
+    def __lt__(self, other) :
         '''Return self<value.'''
         return self.len() < other.len() and self.__le__(other)
 
@@ -853,11 +853,11 @@ class List(list) :
         '''O(N^2)???'''
         return (List(item_list) - self).len() == 0
 
-    def __ge__(self, other, /) :
+    def __ge__(self, other) :
         '''Return self>=value.'''
         return self.isSupersetOf(other)
 
-    def __gt__(self, other, /) :
+    def __gt__(self, other) :
         '''Return self>value.'''
         return self.len() > other.len() and self.__ge__(other)
 

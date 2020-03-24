@@ -119,13 +119,15 @@ class Timer() :
         return cls
 
     @classmethod
-    def printTiming(cls, msg = '', *, delta = None, indent = 0) :
+    def printTiming(cls, msg = '', *, delta = None, indent = 0, color = None) :
         cls.__initclass__()
         from util import Y, E
         from DateTime import DateTime, time
         timing_delta = time.time() - cls._global_current
         cls._global_delta_list.append(timing_delta)
         cls._global_total += timing_delta
+        if color is not None :
+            msg = color(msg)
         if delta is None :
             print(Y(f'[{DateTime():%m-%d %H:%M:%S}] {cls._global_total:5.2f}s 间隔{timing_delta:9.6f}s'), f'[ {msg} ]')
         else :

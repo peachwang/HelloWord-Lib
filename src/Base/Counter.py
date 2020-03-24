@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from util import List, Dict, Str, Object, json, Optional, Union, ensureArgsType, UserTypeError, _print, R
+from util import List, Dict, Str, Object, DateTime, json, Optional, Union, ensureArgsType, UserTypeError, _print, R
 
 class Counter(Object) :
 
@@ -24,6 +24,9 @@ class Counter(Object) :
         else :
             return Object.__getattr__(self, key)
 
+    def __format__(self, code) :
+        return f'Counter(name = {self._name}, key_to_sum = {self._key_to_sum})'
+
     def valueList(self, key, /) :
         return self._key_to_value_list[key]
 
@@ -44,12 +47,14 @@ class Counter(Object) :
             self._key_to_value_list[key] = List()
             self._key_to_sum[key]        = 0
         self._key_to_value_list[key].append(value)
-        self._key_to_sum[key] += value
+        if not isinstance(value, DateTime) :
+            self._key_to_sum[key] = value + self._key_to_sum[key]
         return self
 
     def set(self, key, value, /) :
         self._key_to_value_list[key] = List(value)
-        self._key_to_sum[key]        = value
+        if not isinstance(value, DateTime) :
+            self._key_to_sum[key] = value
         return self
 
     def num(self, key, /) : return self._key_to_value_list[key].len()

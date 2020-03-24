@@ -192,7 +192,7 @@ class Dict(dict) :
         from Inspect import Inspect
         return Inspect(self, **kwargs)
 
-    def diff(self, other, /) :
+    def diff(self, other) :
         from Inspect import Diff
         return Diff(self, other)
 
@@ -202,28 +202,28 @@ class Dict(dict) :
     def isDict(self) :
         return True
 
-    def __eq__(self, other, /) :
+    def __eq__(self, other) :
         '''Return self==value.'''
         if not isinstance(other, Dict) or self.len() != other.len() : return False
         return self.j() == other.j()
 
-    def __ne__(self, other, /) :
+    def __ne__(self, other) :
         '''Return self!=value.'''
         return not self.__eq__(other)
 
-    def __ge__(self, other, /) :
+    def __ge__(self, other) :
         '''Return self>=value.'''
         raise NotImplementedError
 
-    def __gt__(self, other, /) :
+    def __gt__(self, other) :
         '''Return self>value.'''
         raise NotImplementedError
 
-    def __le__(self, other, /) :
+    def __le__(self, other) :
         '''Return self<=value.'''
         raise NotImplementedError
 
-    def __lt__(self, other, /) :
+    def __lt__(self, other) :
         '''Return self<value.'''
         raise NotImplementedError
 
@@ -444,7 +444,7 @@ class Dict(dict) :
         '''NOT IN PLACE'''
         return self.updated(mapping)
 
-    def popKey(self, key_list, /, default = 'NONE') :
+    def popKey(self, key_list, /, default = NV) :
         '''
         D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
         If key is not found, d is returned if given, otherwise KeyError is raised
@@ -452,13 +452,13 @@ class Dict(dict) :
         '''IN PLACE'''
         self._importTypes()
         if isinstance(key_list, self._raw_types_tuple) :
-            if default == 'NONE' :
+            if default == self.NV :
                 return dict.pop(self, key_list)
             else :
                 return dict.pop(self, key_list, self._wrapValue(default))
         elif isinstance(key_list, list) :
             if self.hasNo(key_list) :
-                if default == 'NONE' :
+                if default == self.NV :
                     raise KeyError(key_list)
                 else :
                     return self._wrapValue(default)
@@ -466,25 +466,25 @@ class Dict(dict) :
                 now = self
                 for key in key_list[ : -1] :
                     now = now[key]
-                if default == 'NONE' :
+                if default == self.NV :
                     return dict.pop(now, key_list[-1])
                 else :
                     return dict.pop(now, key_list[-1], self._wrapValue(default))
         else :
             raise UserTypeError(key_list)
 
-    def poppedKey(self, key_list, /, default = 'NONE') :
+    def poppedKey(self, key_list, /, default = NV) :
         '''NOT IN PLACE'''
-        return self.copy().popKey(key_list, default = default)
+        return self.copy().popKey(key_list, default)
 
-    def dropKey(self, key_list, /, default = 'NONE') :
+    def dropKey(self, key_list, /, default = NV) :
         '''IN PLACE'''
-        self.popKey(key_list, default = None)
+        self.popKey(key_list, None)
         return self
 
-    def droppedKey(self, key_list, /, default = 'NONE') :
+    def droppedKey(self, key_list, /, default = NV) :
         '''NOT IN PLACE'''
-        self.copy().dropKey(key_list, default = default)
+        self.copy().dropKey(key_list, default)
         return self
 
     def popitem(self) :

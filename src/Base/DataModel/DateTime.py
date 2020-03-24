@@ -151,11 +151,13 @@ class TimeDelta(_base_class) :
         return TimeDelta(- self._timedelta)
 
     def __add__(self, other) :
-        if not isinstance(other, TimeDelta) : raise UserTypeError(other)
+        if isinstance(other, int) and other == 0 : return self
+        elif not isinstance(other, TimeDelta) : raise UserTypeError(other)
         return TimeDelta(self._timedelta + other.getRaw())
 
     def __sub__(self, other) :
-        if not isinstance(other, TimeDelta) : raise UserTypeError(other)
+        if isinstance(other, int) and other == 0 : return self
+        elif not isinstance(other, TimeDelta) : raise UserTypeError(other)
         return TimeDelta(self._timedelta - other.getRaw())
 
     def __mul__(self, int_or_float) :
@@ -189,17 +191,21 @@ class TimeDelta(_base_class) :
         if not isinstance(other, TimeDelta) : raise UserTypeError(other)
         return (self._timedelta // other.getRaw(), TimeDelta(self._timedelta % other.getRaw()))
 
-    def __lt__(self, other, /) :
-        if not isinstance(other, TimeDelta) : raise UserTypeError(other)
+    def __lt__(self, other) :
+        if isinstance(other, int) and other == 0 : return self < TimeDelta()
+        elif not isinstance(other, TimeDelta) : raise UserTypeError(other)
         return self._timedelta.__lt__(other.getRaw())
 
-    def __eq__(self, other, /) :
-        if not isinstance(other, TimeDelta) : raise UserTypeError(other)
+    def __eq__(self, other) :
+        if isinstance(other, int) and other == 0 : return self == TimeDelta()
+        elif not isinstance(other, TimeDelta) : raise UserTypeError(other)
         return self._timedelta.__eq__(other.getRaw())
 
     def __format__(self, pattern) :
         if pattern == '时分秒' :
             return (f'{self.days * 24 + self.hours:>2}时' if self.days > 0 or self.hours > 0 else '    ') + (f'{self.minutes:>2}分' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ') + f'{self.seconds:>2}秒'
+        elif pattern == '时分' :
+            return (f'{self.days * 24 + self.hours:>2}时' if self.days > 0 or self.hours > 0 else '    ') + (f'{self.minutes:>2}分' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ')
         elif pattern == '分秒' :
             return (f'{self.days * 1440 + self.hours * 60 + self.minutes:>2}分' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ') + f'{self.seconds:>2}秒'
         elif pattern == '秒' :
@@ -321,11 +327,11 @@ class Date(_base_class) :
     def toWeek(self) :
         return Week(year = self.year, month = self.month, day = self.day)
 
-    def __lt__(self, other, /) : 
+    def __lt__(self, other) : 
         if not isinstance(other, Date) : raise UserTypeError(other)
         return self._date.__lt__(other.getRaw())
 
-    def __eq__(self, other, /) :
+    def __eq__(self, other) :
         if not isinstance(other, Date) : raise UserTypeError(other)
         return self._date.__eq__(other.getRaw())
 
@@ -415,12 +421,14 @@ class Time(_base_class) :
     def copy_or_replace(self, **kwargs) :
         return Time(self._time.replace(**kwargs))
     
-    def __lt__(self, other, /) :
-        if not isinstance(other, Time) : raise UserTypeError(other)
+    def __lt__(self, other) :
+        if isinstance(other, int) and other == 0 : return self < Time()
+        elif not isinstance(other, Time) : raise UserTypeError(other)
         return self._time.__lt__(other.getRaw())
 
-    def __eq__(self, other, /) :
-        if not isinstance(other, Time) : raise UserTypeError(other)
+    def __eq__(self, other) :
+        if isinstance(other, int) and other == 0 : return self == Time()
+        elif not isinstance(other, Time) : raise UserTypeError(other)
         return self._time.__eq__(other.getRaw())
 
     def __format__(self, pattern) :
@@ -533,11 +541,11 @@ class DateTime(_base_class) :
     def time(self) :
         return Time(self._datetime.timetz())
 
-    def __lt__(self, other, /) :
+    def __lt__(self, other) :
         if not isinstance(other, DateTime) : raise UserTypeError(other)
         return self._datetime.__lt__(other.getRaw())
 
-    def __eq__(self, other, /) :
+    def __eq__(self, other) :
         if not isinstance(other, DateTime) : raise UserTypeError(other)
         return self._datetime.__eq__(other.getRaw())
 

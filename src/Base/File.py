@@ -27,9 +27,15 @@ class File(Object) :
     @cached_property
     def abs_path(self) : return realpath(self._path)
 
+    def __eq__(self, other) :
+        return self.abs_path == other.abs_path
+
+    def __ne__(self, other) :
+        return not self.__eq__(other)
+
     def __format__(self, code) :
         # return f'File({realpath(self._path)})'
-        return f'File({self._path} = {self.abs_path})'
+        return f'File({self.abs_path})'
 
     @_print
     def printFormat(self) :
@@ -79,30 +85,12 @@ class File(Object) :
         Remove (delete) the file path. If path is a directory, an IsADirectoryError is raised. Use rmdir() to remove directories.
         '''
         remove(self._path)
-        print(f'{R(self.abs_path + " 已删除")}')
+        Timer.printTiming(f'{self} 已删除', color = R)
         return self
-
-    def readLineList(self, *, filter_white_lines = False, replace_abnormal_char = True) :
-        if self._hasProperty('range') :
-            start = 0 if self._range.start is None else self._range.start
-            stop  = 0 if self._range.stop is None else self._range.stop
-            result = List(line.strip('\n\r') for index, line in enumerate(open(self._path)) if start <= index and index < stop)
-        else :
-            result = List(line.strip('\n\r') for line in open(self._path))
-        if filter_white_lines :
-            result.filter(lambda line : line.isNotEmpty())
-        if replace_abnormal_char :
-            (result
-                .replaceStrList(' ', ' ', re_mode = False)
-                .replaceStrList('．', '.', re_mode = False))
-        return result
 
     def __iter__(self) :
         raise NotImplementedError
         # yield
-
-    def readFieldList(self, *, index, sep = '\t') :
-        return self.readLineList(filter_white_lines = True).map(lambda line : line.split(sep)[index])
 
     def writeString(self, string, /, *, append = False) :
         open(self._path, 'a' if append else 'w').write(string)
@@ -125,6 +113,27 @@ class File(Object) :
     def writeBytes(self, bytes_content, /) :
         open(self._path, 'wb').write(bytes_content)
         return self
+
+    def readRaw(self) :
+        return Str(''.join(open(self._path).readlines()))
+
+    def readLineList(self, *, filter_white_lines = False, replace_abnormal_char = True) :
+        if self._hasProperty('range') :
+            start = 0 if self._range.start is None else self._range.start
+            stop  = 0 if self._range.stop is None else self._range.stop
+            result = List(line.strip('\n\r') for index, line in enumerate(open(self._path)) if start <= index and index < stop)
+        else :
+            result = List(line.strip('\n\r') for line in open(self._path))
+        if filter_white_lines :
+            result.filter(lambda line : line.isNotEmpty())
+        if replace_abnormal_char :
+            (result
+                .replaceStrList(' ', ' ', re_mode = False)
+                .replaceStrList('．', '.', re_mode = False))
+        return result
+
+    def readFieldList(self, *, index, sep = '\t') :
+        return self.readLineList(filter_white_lines = True).map(lambda line : line.split(sep)[index])
 
     def _loadJson(self, *, encoding = 'utf-8', raw = False) :
         # data = json.loads(''.join([line.strip('\n') for line in open(self._path).readlines()]), encoding = encoding)
