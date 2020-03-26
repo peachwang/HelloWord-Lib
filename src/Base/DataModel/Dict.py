@@ -2,7 +2,7 @@
 import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'))
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
-# from Timer import Timer
+from Timer import Timer
 
 class Dict(dict) :
 

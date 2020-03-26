@@ -431,7 +431,8 @@ class Str(str) :
         try :
             _ = re.fullmatch(pattern, self, flags)
         except KeyboardInterrupt as e :
-            print(f'fullMatch卡住: {self}')
+            from util import R
+            print(R(f'fullMatch卡住: {self}'))
             input()
             return None
         return _Match(_) if _ else None

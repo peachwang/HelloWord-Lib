@@ -3,7 +3,7 @@ import sys, os; sys.path.append(os.path.realpath(__file__ + '/../'))
 from types import BuiltinFunctionType, FunctionType, BuiltinMethodType, MethodType, LambdaType, GeneratorType
 from inspect import isgenerator
 from shared import ensureArgsType, Optional, Union, UserTypeError, _print
-# from Timer import Timer
+from Timer import Timer
 
 
 
@@ -778,6 +778,10 @@ class List(list) :
     def uniqued(self) :
         '''NOT IN PLACE'''
         return self.copy().unique()
+
+    @property
+    def duplicate_item_list(self) :
+        return self - self.uniqued()
 
     # @ensureArgsType
     def intersect(self, item_list: list, /) :

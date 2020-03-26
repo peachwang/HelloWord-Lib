@@ -17,6 +17,7 @@ from File       import File
 from Audio      import Audio
 from Folder     import Folder
 from Counter    import Counter
+from Inspect    import Inspect, Diff
 from LineStream import LineStream
 
 from operator import attrgetter, itemgetter, methodcaller
