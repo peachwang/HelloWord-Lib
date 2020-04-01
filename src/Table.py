@@ -1,7 +1,34 @@
 # -*- coding: utf-8 -*-  
-import sys, os; sys.path.extend([os.path.abspath(_[0]) for _ in os.walk(os.path.join(os.getcwd(), '../'))]);
-from util import *
+from shared import *
 from openpyxl import Workbook, load_workbook
+
+# https://www.itsupportwale.com/blog/how-to-upgrade-to-python-3-8-on-ubuntu-18-04-lts/#Step_4_Update_Python_3_for_point_to_Python_38
+
+# https://zhuanlan.zhihu.com/p/78609747
+# https://zhuanlan.zhihu.com/p/31999190
+# https://zhuanlan.zhihu.com/p/100810961
+# 
+# https://github.com/MyNameIsMeerkat/AnsRender
+# https://github.com/nicey0/ConwaysGameOfLife
+# https://github.com/antonjah/ssh-menu
+# https://github.com/Robpol86/terminaltables
+# https://github.com/nirum/tableprint
+# https://github.com/Leviathan1995/Pylsy
+# https://github.com/pri22296/beautifultable
+# https://github.com/amalfra/docker-hub
+# https://github.com/carlosplanchon/outfancy
+# https://github.com/nschloe/termtables
+# https://github.com/bernardobarreto/pable
+# https://github.com/python-tableformatter/tableformatter
+# https://github.com/orsini1138/PSQL-Python-CMD
+# https://github.com/gaccardo/pybles
+# https://github.com/daradermody/ConsoleTable
+# https://github.com/fmenabe/python-clg-table
+# https://github.com/sarcoma/terminal_table
+# https://github.com/python-tableformatter/tableformatter
+# https://github.com/jquast/wcwidth
+# https://github.com/dslackw/colored
+# https://github.com/python-tableformatter/tableformatter/blob/master/examples/color.py
 
 class Table :
 
@@ -143,4 +170,5 @@ class _TableRow :
 
     def setFields(self, namesToValues) :
         return sum([self.setField(fieldName, fieldValue) for fieldName, fieldValue in namesToValues.items()])
+
 
