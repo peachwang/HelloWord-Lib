@@ -21,7 +21,7 @@ class Counter :
 
     def __getattr__(self, key, /) : return self.__getitem__(key)
 
-    def __format__(self, code) : return f'Counter(name = {self._name}, key_to_sum = {self._key_to_sum})'
+    def __format__(self, spec) : return f"{f'Counter(name = {self._name}, key_to_sum = {self._key_to_sum})':{spec}}"
 
     def valueList(self, key, /) : return self._key_to_value_list[key]
 
@@ -48,8 +48,8 @@ class Counter :
 
     def len(self, key, /) : return self.num(key)
     
-    def ave(self, key, /) : return List(self._key_to_value_list[key]).ave()
+    def ave(self, key, /, *, default = 0) : return List(self._key_to_value_list[key]).ave(default = default)
 
-    def max(self, key, /) : return List(self._key_to_value_list[key]).max()
+    def max(self, key, /, *, default = None) : return List(self._key_to_value_list[key]).max(default = default)
     
-    def min(self, key, /) : return List(self._key_to_value_list[key]).min()
+    def min(self, key, /, *, default = None) : return List(self._key_to_value_list[key]).min(default = default)

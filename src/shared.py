@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-  
 from Color import R, Y, G, C, B, P, S, W, E
 from Timer import Timer
-import json
-from functools import wraps, cached_property, lru_cache as cached_func, total_ordering
 from inspect import isclass, isfunction, ismethod, isgenerator, signature
+from functools import wraps, cached_property as cached_prop, lru_cache as cached_func, total_ordering; prop = property
 from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, LambdaType, GeneratorType
 from typing import Optional, Union
 from operator import attrgetter, itemgetter, methodcaller
@@ -22,13 +21,121 @@ from operator import attrgetter, itemgetter, methodcaller
 # methodcaller('name', 'foo', bar = 1)(a) = a.name('foo', bar = 1).
 
 
-class UserTypeError(TypeError) :
+class CustomTypeError(TypeError) :
 
-    def __init__(self, value) :
+    def __init__(self, value, msg = '') :
         self._value = value
+        self._msg   = msg
 
-    def __str__(self) :
-        return f'非法类型{type(self._value)}: {self._value!s}'
+    def __format__(self, spec) : return f"{f'非法类型 {type(self._value)} {self._msg}: {self._value!s}':{spec}}"
+
+    def __str__(self) : return self.__format__('')
+
+def ensure_args_type(func) :
+    @wraps(func)
+    def wrapper(*args, **kwargs) :
+        import inspect
+        from typing import _GenericAlias
+        # inspect_object(func, 'func')
+        # inspect_object(func.__code__, 'func.__code__')
+        def ensureType(name, value, value_type) :
+            # print(type(value), value, type(value_type), value_type)#, type(value_type.__origin__), value_type.__origin__, type(value_type.__args__), value_type.__args__)
+            if value_type is inspect._empty                 : return
+            elif (type(value_type) is type
+                and isinstance(value, value_type))          : return
+            elif (isinstance(value_type, _GenericAlias)
+                and value_type.__origin__ is Union
+                and isinstance(value, value_type.__args__)) : return
+            raise Exception(f'预期 {value_type=}, 非法 {type(value)=} of {value=}')
+        for index, param in enumerate(signature(func).parameters.values()) :
+            if param.name == 'self' : continue
+            # inspect_object(param.annotation, 'param.annotation', False)
+            # print(param.name)
+            # print(param.annotation)
+            # print(param.kind)
+            # print(args)
+            if str(param.kind) in ('POSITIONAL_ONLY', 'POSITIONAL_OR_KEYWORD') :
+                if index >= len(args) : continue
+                value = args[index]
+            elif str(param.kind) == 'KEYWORD_ONLY'                             :
+                if param.name not in kwargs : continue
+                value = kwargs[param.name]
+            else                                                               : continue
+            # print(param.kind.description)
+            # print(value)
+            # print()
+            ensureType(param.name, value, param.annotation)
+            # input()
+        result = func(*args, **kwargs)
+        if 'return' in func.__annotations__ : ensureType('return', result, func.__annotations__['return'])
+        return result
+    return wrapper
+
+def print_func(func) :
+    @wraps(func)
+    def wrapper(self, *args, pattern = '{}', color = None, print_timing = False, **kwargs) :
+        content, print_len = func(self, *args)
+        content = pattern.format(content)
+        if color is not None : content = color(content)
+        if print_timing      : Timer.printTiming(content)
+        else                 : print(content, **kwargs)
+        if print_len         : self.printLen(color = color, **kwargs)
+        return self
+    return wrapper
+
+def log_entering(pattern: str = '') :
+    def decorator(func) :
+        @wraps(func)
+        def wrapper(cls_or_self, *args, **kwargs) :
+            # kwargs['self'] = cls_or_self
+            msg = pattern.format(*args, self = cls_or_self, **kwargs)
+            # kwargs.pop('self')
+            if '.' in str(cls_or_self.__class__) : _ = f'{id(cls_or_self)}{str(cls_or_self.__class__).split(".")[1][ : -2]:>15}.{func.__qualname__:30}'
+            else                                 : _ = f'{id(cls_or_self)}.{func.__qualname__:30}'
+            Timer.printTiming(f'{_} {Y("开始")} {msg}')
+            result = func(cls_or_self, *args, **kwargs)
+            Timer.printTiming(f'{_} {G("结束")} {msg}')
+            return result
+        return wrapper
+    return decorator
+
+class base_class :
+
+    @print_func
+    def printFormat(self) : return self.__format__(''), False
+
+    @print_func
+    def printStr(self) : return self.__str__(), False
+
+    def j(self, *, indent = True) : import Json; return Json.j(self.jsonSerialize(), indent = indent)
+
+    @print_func
+    def printJ(self) : return self.j(), False
+
+def anti_duplicate_new(func) :
+    @wraps(func)
+    def wrapper(cls, *args, **kwargs) :
+        key = func(cls, *args, **kwargs)
+        if '_instance_dict' not in dir(cls)        : cls._instance_dict = {}
+        if cls._instance_dict.get(key) is not None : return cls._instance_dict[key]
+        else                                       : instance = cls.__bases__[0].__new__(cls); cls._instance_dict[key] = instance; return instance
+    return wrapper
+
+def anti_duplicate_init(func) :
+    @wraps(func)
+    def wrapper(self, *args, **kwargs) :
+        if '_has_init' in dir(self) : return
+        func(self, *args, **kwargs)
+        object.__setattr__(self, '_has_init', True)
+    return wrapper
+
+def shell(command) :
+    import subprocess
+    p = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+    # for index, line in enumerate(p.stdout.readlines()):
+        # print index, line.strip()
+    retval = p.wait()
+    return (p.stdout, retval)
 
 def inspect_object(obj, name = '', print_source = True) :
     import builtins, inspect, re
@@ -84,113 +191,3 @@ def inspect_object(obj, name = '', print_source = True) :
             if key in ('co_consts',)   : print(P(f'{pf(__)}'))
             # elif isinstance(__, bytes) : print(P(f'{__.decode()}'))
             else                       : print(P(f'{__}'))
-
-def j(data, /, *, indent = 4, ensure_ascii = False, sort_keys = True, encoding = 'utf-8') :
-    # return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys, encoding = encoding)
-    return json.dumps(data, indent = indent, ensure_ascii = ensure_ascii, sort_keys = sort_keys)
-
-def json_serialize(data, /) :
-    if 'jsonSerialize' in dir(data)                            : return data.jsonSerialize()
-    elif isinstance(data, (type(None), str, int, float, bool)) : return data
-    elif isinstance(data, list)                                : return [ json_serialize(item) for item in data ]
-    elif isinstance(data, dict)                                : return { json_serialize(key) : json_serialize(data[key]) for key in data }
-    elif isinstance(data, tuple)                               : return '({})'.format(', '.join(str(json_serialize(item)) for item in data))
-    elif isinstance(data, set)                                 : return '{{{}}}'.format(', '.join(str(json_serialize(item)) for item in data))
-    elif isinstance(data, (range, bytes, object))              : return f'{data}'
-    elif isinstance(data, zip)                                 : return f'zip{json_serialize(list(data))}'
-    elif isinstance(data, timedelta_class)                     : return f'timedelta({data})'
-    elif isinstance(data, date_class)                          : return f'date({data})'
-    elif isinstance(data, time_class)                          : return f'time({data})'
-    elif isinstance(data, datetime_class)                      : return f'datetime({data})'
-    else                                                       : raise UserTypeError(data)
-
-def ensure_args_type(func) :
-    @wraps(func)
-    def wrapper(*args, **kwargs) :
-        import inspect
-        from typing import _GenericAlias
-        # inspect_object(func, 'func')
-        # inspect_object(func.__code__, 'func.__code__')
-        def ensureType(name, value, value_type) :
-            # print(type(value), value, type(value_type), value_type)#, type(value_type.__origin__), value_type.__origin__, type(value_type.__args__), value_type.__args__)
-            if value_type is inspect._empty                 : return
-            elif (type(value_type) is type
-                and isinstance(value, value_type))          : return
-            elif (isinstance(value_type, _GenericAlias)
-                and value_type.__origin__ is Union
-                and isinstance(value, value_type.__args__)) : return
-            raise Exception(f'预期 {value_type=}, 非法 {type(value)=} of {value=}')
-        for index, param in enumerate(signature(func).parameters.values()) :
-            if param.name == 'self' : continue
-            # inspect_object(param.annotation, 'param.annotation', False)
-            # print(param.name)
-            # print(param.annotation)
-            # print(param.kind)
-            # print(args)
-            if str(param.kind) in ('POSITIONAL_ONLY', 'POSITIONAL_OR_KEYWORD') :
-                if index >= len(args) : continue
-                value = args[index]
-            elif str(param.kind) == 'KEYWORD_ONLY'                             :
-                if param.name not in kwargs : continue
-                value = kwargs[param.name]
-            else                                                               : continue
-            # print(param.kind.description)
-            # print(value)
-            # print()
-            ensureType(param.name, value, param.annotation)
-            # input()
-        result = func(*args, **kwargs)
-        if 'return' in func.__annotations__ : ensureType('return', result, func.__annotations__['return'])
-        return result
-    return wrapper
-
-def print_func(func) :
-    @wraps(func)
-    def wrapper(self, *args, pattern = '{}', color = None, print_timing = False, **kwargs) :
-        content, print_len = func(self, *args)
-        content = pattern.format(content)
-        if color is not None : content = color(content)
-        if print_timing      : Timer.printTiming(content)
-        else                 : print(content, **kwargs)
-        if print_len         : self.printLen(color = color, **kwargs)
-        return self
-    return wrapper
-
-def log_entering(key_pattern: str = '') :
-    def decorator(func) :
-        @wraps(func)
-        def wrapper(cls_or_self, *args, **kwargs) :
-            # kwargs['self'] = cls_or_self
-            msg = key_pattern.format(*args, self = cls_or_self, **kwargs)
-            # kwargs.pop('self')
-            Timer.printTiming(f'{func.__qualname__:30} {Y("开始")} {msg}')
-            result = func(cls_or_self, *args, **kwargs)
-            Timer.printTiming(f'{func.__qualname__:30} {G("结束")} {msg}')
-            return result
-        return wrapper
-    return decorator
-
-def anti_duplicate_new(func) :
-    @wraps(func)
-    def wrapper(cls, *args, **kwargs) :
-        key = func(cls, *args, **kwargs)
-        if '_instance_dict' not in dir(cls)      : cls._instance_dict = {}
-        if cls._instance_dict.get(key) is not None : return cls._instance_dict[key]
-        else                                       : instance = cls.__bases__[0].__new__(cls); cls._instance_dict[key] = instance; return instance
-    return wrapper
-
-def anti_duplicate_init(func) :
-    @wraps(func)
-    def wrapper(self, *args, **kwargs) :
-        if '_has_init' in dir(self) : return
-        func(self, *args, **kwargs)
-        object.__setattr__(self, '_has_init', True)
-    return wrapper
-
-def shell(command) :
-    import subprocess
-    p = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-    # for index, line in enumerate(p.stdout.readlines()):
-        # print index, line.strip()
-    retval = p.wait()
-    return (p.stdout, retval)

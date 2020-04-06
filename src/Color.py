@@ -3,6 +3,7 @@
 # https://github.com/tartley/colorama
 # https://github.com/dslackw/colored
 # from bcolors import OKMSG as OK, ERRMSG as ERROR, WAITMSG as WAIT
+prop = property
 
 END            = f'\x1b[0m'
 FG_BOLD        = f'\x1b[1m'
@@ -72,19 +73,16 @@ class _Color :
             if isinstance(value, str) and value == NONE : self._evaluated = True # 纯颜色标记
             else                                        : self._evaluated = False # 非纯颜色标记
 
-    @property
+    @prop
     def value(self) : return self._value
     
-    @property
+    @prop
     def colored(self) -> bool : return self._colored
     
-    @property
+    @prop
     def now_color(self) -> str : return self._now_color
 
-    def __str__(self) : return self.__format__('')
-        # return f'{self._now_color}{self._colored=} {self._evaluated=}{END} {self._color}{self._value=}{END}'
-
-    def __format__(self, code) :
+    def __format__(self, spec) :
         # 纯颜色标记
         if isinstance(self._value, str) and self._value == NONE : return self._color
         # 非纯颜色标记
@@ -99,9 +97,12 @@ class _Color :
         len_color = len_total - len_value
         from Str import Str
         pattern = r'((?P<fill>.)?(?P<align>[<>=^]))?(?P<sign>[+\- ])?(?P<alter>#)?(?P<zero>0)?(?P<width>\d+)?(?P<group>[_,])?(\.(?P<precision>\d+))?(?P<type>[bcdeEfFgGnosxX%])?'
-        code = Str(code).fullMatch(pattern).replaceGroup('width', lambda __ : str(int(__) + len_color + len_value - len_wcs))
-        # _ += f'[{len_value}][{len_wcs}][{len_color}][{len_total}][{code}]'
-        return format(_, code)
+        spec = Str(spec).fullMatch(pattern).replaceGroup('width', lambda __ : str(int(__) + len_color + len_value - len_wcs))
+        # _ += f'[{len_value}][{len_wcs}][{len_color}][{len_total}][{spec}]'
+        return format(_, spec)
+
+    def __str__(self) : return self.__format__('')
+        # return f'{self._now_color}{self._colored=} {self._evaluated=}{END} {self._color}{self._value=}{END}'
     
     def _wrapper(func) :
         from functools import wraps
@@ -143,6 +144,7 @@ class W(_Color) : _color = FG_WHITE
 
 class E :
 
+    def __format__(self, spec) : return END
+    
     def __str__(self) : return self.__format__('')
 
-    def __format__(self, code) : return END

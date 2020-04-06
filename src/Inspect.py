@@ -3,6 +3,7 @@ from shared import *
 from Str import Str
 from List import List
 from Dict import Dict
+from Json import j
 
 # DataStructure Module
 #   def compatibleTo
@@ -21,25 +22,25 @@ class _FieldSlot :
 
     def setParentFieldSlot(self, field_slot, /) : self._parent_field_slot = field_slot; return self
 
-    @cached_property
+    @cached_prop
     def is_root(self) : return self._parent_field_slot is None
 
-    @cached_property
+    @cached_prop
     def path_str(self) -> str : return '.'.join(self._path_tuple) if len(self._path_tuple) > 0 else 'ROOT'
 
-    @cached_property
+    @cached_prop
     def name(self) -> str : return 'ROOT' if self.is_root else self._path_tuple[-1]
 
-    @cached_property
+    @cached_prop
     def child_field_slot_list(self) : return self._child_field_slot_list
 
-    @cached_property
+    @cached_prop
     def is_list(self) : return self._type_str_list.join(', ') == 'list'
 
-    @cached_property
+    @cached_prop
     def is_dict(self) : return self._type_str_list.join(', ') == 'dict'
 
-    @cached_property
+    @cached_prop
     def in_list(self) : return False if self.is_root else self._parent_field_slot.is_list
 
     def addField(self, field, /) :
@@ -51,20 +52,20 @@ class _FieldSlot :
         else               : self._value_list.append(field.value)
         return self
 
-    @cached_property
+    @cached_prop
     def field_num(self) -> int : return len(self._field_list)
 
-    @cached_property
+    @cached_prop
     def all_field_slot_list(self) :
         if self._child_field_slot_list.len() == 0 : return List(self)
         else                                      : return self._child_field_slot_list.all_field_slot_list.merged().unique().prepend(self)
 
-    # @cached_property
+    # @cached_prop
     # def existence(self) :
     #     if self.is_root : return True
     #     return self.field_num == self._parent_field_slot.field_num
 
-    def __format__(self, code) :
+    def __format__(self, spec) :
         max_len   = 3
         max_width = 25
         result    = f'{self.path_str!s:80}{self.name:>25} {P(Y(self._type_str_list.join(", ")) == "dict") == "list":<10} {"  " if self.is_root or self.in_list else (P("必") if self.field_num == self._parent_field_slot.field_num else Y("可"))}存在{self.field_num:>3} 次'
@@ -86,13 +87,13 @@ class _FieldSlot :
                 counter     = List(self._value_list).countBy()
                 counter_str = List(f'({value!s:.{max_width}}, {count}次)' for value, count in counter.items().sort(itemgetter(1), reverse = True))[:max_len].join(', ')
                 result      += f' 取值   {P(counter_str)}{", etc." if counter.len() > max_len else ""}'
-        return result
+        return f'{result:{spec}}'
 
 class _Field :
     
     def __init__(self, parent_field, name: str, value, field_slot_dict, /, **kwargs) :
         self._parent_field     = parent_field
-        if '.' in name : raise UserTypeError(name)
+        if '.' in name : raise CustomTypeError(name)
         self._name             = name
         self._value            = value
         self._child_field_list = []
@@ -122,38 +123,38 @@ class _Field :
                 self._child_field_dict[name] = child_field
         return self
 
-    @cached_property
+    @cached_prop
     def is_root(self) : return self._parent_field is None
 
-    @cached_property
+    @cached_prop
     def name(self) -> str : return self._name
 
-    @cached_property
+    @cached_prop
     def path_tuple(self) : return self._path_tuple
 
-    @cached_property
+    @cached_prop
     def path_str(self) -> str : return '.'.join(self._path_tuple) if len(self._path_tuple) > 0 else 'ROOT'
 
-    @cached_property
+    @cached_prop
     def slot_path_tuple(self) : return tuple('#' if Str(name).fullMatch(r'#\d+') else name for name in self._path_tuple)
 
-    @cached_property
+    @cached_prop
     def value(self) : return self._value
 
-    @cached_property
+    @cached_prop
     def is_leaf(self) : return not isinstance(self._value, (list, dict)) or len(self._value) == 0
 
-    @cached_property
+    @cached_prop
     def is_list(self) : return isinstance(self._value, list)
 
-    @cached_property
+    @cached_prop
     def is_dict(self) : return isinstance(self._value, dict)
 
     def len(self) :
         if self.is_list or self.is_dict : return len(self._value)
-        else                            : raise UserTypeError(self._value)
+        else                            : raise CustomTypeError(self._value)
 
-    @cached_property
+    @cached_prop
     def type_str(self) -> str :
         return ({
                 int   : 'int',
@@ -169,49 +170,49 @@ class _Field :
             .get(type(self._value), Str(str(type(self._value))).fullMatch(r'<class \'([^\'\.]+\.)?([^\']+)\'>').oneGroup(2).getRaw())
         )
 
-    @cached_property
+    @cached_prop
     def child_field_list(self) : return List(self._child_field_list)
 
-    @cached_property
+    @cached_prop
     def all_field_list(self) : return self.child_field_list.all_field_list.merged().prepend(self)
 
     def has(self, name, /) : return name in self._child_field_dict
 
     def __getitem__(self, name, /) : return self._child_field_dict[name]
 
-    @cached_property
+    @cached_prop
     def field_slot(self) : return self._field_slot
 
-    @cached_property
+    @cached_prop
     def value_inspect(self) -> str :
         result = f'{Y(P(self.type_str) == "list") == "dict":10} '
         if self.is_leaf and not self.is_list and not self.is_dict : result += f'{P(self._value)}'
         elif len(self._child_field_list) == 0                     : result += f'{G("为空")}'
         elif self.is_list                                         : result += f'含 {len(self._child_field_list)} 个元素'
         elif self.is_dict                                         : result += f'含 {len(self._child_field_list)} 个字段: {Y(self.child_field_list.name.sort().join(", "))}'
-        else                                                      : raise UserTypeError(self._value)
+        else                                                      : raise CustomTypeError(self._value)
         return result
 
     @cached_func
-    def __format__(self, code) : return f'{self.path_str!s:80}{self.name:>25} {self.value_inspect}'
+    def __format__(self, spec) : return f"{f'{self.path_str!s:80}{self.name:>25} {self.value_inspect}':{spec}}"
 
 class Inspect :
 
     def __init__(self, raw_data: Union[list, dict, List, Dict], **kwargs) :
-        if not isinstance(raw_data, (list, dict)) : raise UserTypeError(raw_data)
+        if not isinstance(raw_data, (list, dict)) : raise CustomTypeError(raw_data)
         self._raw_data        = raw_data
         self._field_slot_dict = {}
         self._root_field      = _Field(None, 'ROOT', self._raw_data, self._field_slot_dict, **kwargs)
 
-    @cached_property
+    @cached_prop
     def root_field(self) : return self._root_field
 
-    @cached_property
+    @cached_prop
     def all_field_list(self) : return self._root_field.all_field_list
 
     def printAllFieldList(self) : self.all_field_list.printFormat(); return self
 
-    @cached_property
+    @cached_prop
     def all_field_slot_list(self) : return self._root_field.field_slot.all_field_slot_list.sort('path_str')
 
     def printAllFieldSlotList(self) : self.all_field_slot_list.printFormat(); return self
@@ -256,19 +257,19 @@ class _DiffField(_Field) :
             elif self._field_1.is_leaf and self._field_2.is_leaf      :
                 if self._field_1.value == self._field_2.value : self._status = Diff.S_IDENTICAL
                 else                                          : self._status = Diff.S_DIFFVALUE
-            else                                                      : raise UserTypeError(self._field_1.value)
+            else                                                      : raise CustomTypeError(self._field_1.value)
         return self
 
-    @cached_property
+    @cached_prop
     def name(self) -> str : return self._name
 
-    @cached_property
+    @cached_prop
     def status(self) -> str : return self._status
 
-    @cached_property
+    @cached_prop
     def child_diff_field_list(self) : return List(self._child_diff_field_list)
 
-    @cached_property
+    @cached_prop
     def all_diff_field_list(self) : return self.child_diff_field_list.all_diff_field_list.merged().prepend(self)
 
     def getDifferentFieldList(self, filter_list = None) :
@@ -279,7 +280,7 @@ class _DiffField(_Field) :
             result.prepend(self)
         return result
 
-    def __format__(self, code) :
+    def __format__(self, spec) :
         result = f'{self.path_str!s:80}{self.name:>25} {S(Y(B(C(P(R(G(self._status) == Diff.S_ADDED) == Diff.S_DELETED) == Diff.S_DIFFVALUE) == Diff.S_DIFFLEN) == Diff.S_DIFFTYPE) == Diff.S_DIFFCHILD) == Diff.S_IDENTICAL:<8}'
         if self._status == Diff.S_DIFFTYPE    : result += f' {self._field_1.type_str} vs. {self._field_2.type_str}\n1: {R(j(self._field_1.value, indent = 4)[:200])}\n2: {G(j(self._field_2.value, indent = 4)[:200])}'
         elif self._status == Diff.S_DIFFLEN   : result += f' {Y(P(self._field_1.type_str) == "list") == "dict":10} {R(self._field_1.len())} vs. {G(self._field_2.len())}'
@@ -288,7 +289,7 @@ class _DiffField(_Field) :
         elif self._status == Diff.S_ADDED     : result += f' {Y(P(self._field_2.type_str) == "list") == "dict":10} 2: {G(j(self._field_2.value, indent = 4)[:200])}'
         elif self._status == Diff.S_DELETED   : result += f' {Y(P(self._field_1.type_str) == "list") == "dict":10} 1: {R(j(self._field_1.value, indent = 4)[:200])}'
         elif self._status == Diff.S_IDENTICAL : result += f' {self._field_1.value_inspect}'
-        return result
+        return f'{result:{spec}}'
 
 # ListDiff: 以 item 作为最小比较单元。降维后可用于StrDiff
 
@@ -309,7 +310,7 @@ class Diff :
         self._ins_2           = Inspect(raw_data_2)
         self._root_diff_field = _DiffField(None, self._ins_1.root_field, self._ins_2.root_field)
 
-    @cached_property
+    @cached_prop
     def all_diff_field_list(self) : return self._root_diff_field.all_diff_field_list
 
     def printAllDiffFieldList(self) : self.all_diff_field_list.printFormat(); return self

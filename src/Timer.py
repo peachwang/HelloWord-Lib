@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-  
-import time
+import sys, time
 from functools import wraps
 from typing import Optional
+from Color import Y, P, E
+prop = property
 
 class Timer :
 
@@ -27,23 +29,23 @@ class Timer :
         self._delta_list = []
         self._last_len   = 0
 
-    @property
+    @prop
     def key(self) : return self._key
     
-    @property
+    @prop
     def total(self) : return self._total
 
     def add(self, delta: float, /) : self._total += delta; self._delta_list.append(delta); return self
 
     def len(self) -> int : return len(self._delta_list)
 
-    @property
+    @prop
     def len_delta(self) -> int : result = self.len() - self._last_len; self._last_len = self.len(); return result
 
-    @property
+    @prop
     def ave(self) -> float : return self._total / self.len() if self.len() > 0 else 0
 
-    @property
+    @prop
     def total_delta(self) -> float : result = self._total - self._last_total; self._last_total = self._total; return result
 
     def timeitOnce(msg = '', /) :
@@ -85,7 +87,6 @@ class Timer :
     def printTotal(cls, key: str, /, msg = '') :
         cls.__initclass__()
         def printTimer(timer) :
-            from Color import P, E
             print(P(f'类目({timer.key:50}) 总共({timer.len():>10}次, +{timer.len_delta:>10}次, {timer.total:.6f}s, +{timer.total_delta:.6f}s) 平均{timer.ave:.6f}s [ {msg} ]'))
         if key in cls._timer_dict :
             _ = cls._timer_dict[key]
@@ -98,7 +99,6 @@ class Timer :
     @classmethod
     def printTiming(cls, msg = '', *, delta: Optional[float] = None, indent: int = 0, color = None) :
         cls.__initclass__()
-        from Color import Y, E
         from DateTime import DateTime
         timing_delta = time.time() - cls._global_current
         cls._global_delta_list.append(timing_delta)
@@ -106,7 +106,7 @@ class Timer :
         if color is not None : msg = color(msg)
         if delta is None     : print(Y(f'[{DateTime():%m-%d %H:%M:%S}] {cls._global_total:5.2f}s 间隔{timing_delta:9.6f}s'), f'[ {msg} ]')
         else                 : indent = '\t' * indent; print(Y(f'{indent}[{DateTime():%m-%d %H:%M:%S}] {cls._global_total:5.2f}s 本轮{delta:9.6f}s'), f'[ {msg} ]')
-        import sys; sys.stdout.flush()
+        sys.stdout.flush()
         cls._global_current = time.time()
         return cls
 

@@ -6,13 +6,14 @@ from Str import Str
 from List import List
 from Dict import Dict
 
-class File :
+class File(base_class) :
 
     @anti_duplicate_new
     def __new__(cls, file_path, *args, **kwargs) : return realpath(file_path)
 
     @anti_duplicate_init
     def __init__(self, file_path, folder = None, /) :
+        self._raw_path    = file_path
         self._path        = Str(file_path)
         self._folder      = folder
         _                 = self._path.split('/')
@@ -21,25 +22,28 @@ class File :
         self._ext         = self._full_name.split('.')[-1] if self._full_name.has('.') else Str('')
         self._name        = self._full_name[ : - self._ext.len() - 1]
 
-    @property
+    @prop
+    def raw_path(self) -> str : return self._raw_path
+
+    @prop
     def path(self) -> Str : return self._path
 
-    @property
+    @prop
     def abs_path(self) -> Str : return Str(realpath(self._path))
 
-    @property
+    @prop
     def folder(self) : return self._folder
 
-    @property
+    @prop
     def folder_path(self) -> Str : return self._folder_path
 
-    @property
+    @prop
     def full_name(self) -> Str : return self._full_name
 
-    @property
+    @prop
     def name(self) -> Str : return self._name
 
-    @property
+    @prop
     def ext(self) -> Str : return self._ext
 
     def extIs(self, ext, /) : return self._ext.toLower() == Str(ext).toLower()
@@ -48,14 +52,14 @@ class File :
 
     def isJson(self) : return self.extIs('json')
 
-    @property
+    @prop
     def range(self) : return self._range
 
     def exists(self) : return exists(self._path)
 
     def notExists(self) : return not self.exists()
 
-    @property
+    @prop
     def size(self) : return getsize(self._path)
 
     def rename(self, new_name) : raise NotImplementedError # 改 self._path
@@ -66,34 +70,26 @@ class File :
     # Remove (delete) the file path. If path is a directory, an IsADirectoryError is raised. Use rmdir() to remove directories.
     def delete(self) : remove(self._path); Timer.printTiming(f'{self} 已删除', color = R); return self
 
+    def jsonSerialize(self) -> str : return self._raw_path
+
     def __eq__(self, other) : return self.abs_path == other.abs_path
 
     def __ne__(self, other) : return not self.__eq__(other)
 
-    def __format__(self, code) : return f'File({self.abs_path})'
-
-    @print_func
-    def printFormat(self) : return f'{self}', False
+    # @log_entering()
+    def __format__(self, spec) : return f"{f'File({self.abs_path})':{spec}}"
 
     def __str__(self) : return self.__format__('')
-
-    @print_func
-    def printStr(self) : return f'{str(self)}', False
-
-    def jsonSerialize(self) : return f'{self}'
-
-    # 可读化
-    def j(self) : return j(self.jsonSerialize())
-
-    @print_func
-    def printJ(self) : return f'{self.j()}', False
+    
+    # @log_entering()
+    def __repr__(self) : return f'File({self._raw_path!r})'
 
     def __getitem__(self, index) :
         if isinstance(index, slice) :
-            if index.step is not None : raise UserTypeError(index)
+            if index.step is not None : raise Exception(f'{index =} 不可以有step')
             self._range = index
             return self
-        else                        : raise UserTypeError(index)
+        else                        : raise CustomTypeError(index)
 
     def readRaw(self) : return Str(''.join(open(self._path).readlines()))
 
@@ -115,8 +111,9 @@ class File :
 
     def readFieldList(self, *, index, sep = '\t') -> List : return self._readLineList(filter_white_lines = True).map(lambda line : line.split(sep)[index])
 
-    def _loadJson(self, *, encoding = 'utf-8', raw = False) -> Union[list, dict, List, Dict] :
-        data = json.load(open(self._path), encoding = encoding)
+    def _loadJson(self, *, raw = False) -> Union[list, dict, List, Dict] :
+        import Json
+        data = Json.raw_load_json_file(open(self._path))
         if isinstance(data, list)   :
             if not raw                 : data = List(data)
             if hasattr(self, '_range') : return data[self._range]
@@ -125,7 +122,7 @@ class File :
             if not raw                 : data = Dict(data)
             if hasattr(self, '_range') : raise Exception('Dict 类 File 不可以有 range')
             else                       : return data
-        else                        : raise UserTypeError(data)
+        else                        : raise CustomTypeError(data)
 
     def loadData(self, **kwargs) :
         if self.notExists() : raise Exception(f'{self} 不存在')
@@ -141,11 +138,14 @@ class File :
 
     def writeLineList(self, line_list, /, *, append = False) : return self.writeString('\n'.join(line_list), append = append)
 
-    def _dumpJson(self, json_serialized_obj, /, *, indent = True) :
-        json.dump(json_serialized_obj, open(self._path, 'w'), indent = 4 if indent else None, ensure_ascii = False, sort_keys = True)
+    def _dumpJson(self, obj, /, *, indent = True) :
+        import Json
+        Json.raw_dump_json_file(obj, open(self._path, 'w'), indent = indent) # raw_dump_json_file 内部可以处理 List, Dict 类型
         return self
 
-    def writeData(self, data: Union[list, dict, List, Dict], /, *, indent = True) : return self._dumpJson(json_serialize(data), indent = indent)
+    def writeData(self, data, /, **kwargs) :
+        if isinstance(data, (list, dict)) : return self._dumpJson(data, **kwargs)
+        else                              : raise CustomTypeError(data)
 
     # def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
     #     if not is_matrix :

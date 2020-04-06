@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from shared import *
 from Str import Str
-from List import List
 
 class _Line :
 
@@ -23,18 +22,18 @@ class _Line :
         self._content  = self._raw_line
         return self
 
-    @cached_property
+    @cached_prop
     def raw(self) :
         if hasattr(self, '_tag_format') : return (self._index, self._raw_line, self._tag_format)
         else                            : return (self._index, self._raw_line)
 
-    @cached_property
+    @cached_prop
     def tag_name(self) -> Str : return self._tag_name
 
-    @cached_property
+    @cached_prop
     def tag_type(self) -> Str : return self._content.split(' ')[0]
 
-    def __format__(self, code) : return f'index = [{self._index}] tag_name = [{self._tag_name}] content = [{self._content}]'
+    def __format__(self, spec) : return f"{f'index = [{self._index}] tag_name = [{self._tag_name}] content = [{self._content}]':{spec}}"
 
 class LineStream :
 
@@ -70,7 +69,7 @@ class LineStream :
 
     def setTagName(self, tag_name: Str, /) : self._tag_name = tag_name; return self
 
-    @cached_property
+    @cached_prop
     def tag_name(self) -> Str :
         if hasattr(self, '_tag_line') : return self._tag_line.tag_name
         else                          : return self._tag_name
@@ -111,7 +110,7 @@ class LineStream :
     
     def isNotOneLine(self) : return not self.isOneLine()
 
-    @cached_property
+    @cached_prop
     def one_line_content(self) :
         if not self.isOneLine() : raise Exception(f'多余的line({self._line_list.raw})')
         return self._tag_line.content
@@ -136,12 +135,12 @@ class LineStream :
             sub_stream.appendLine(line)
         return self
 
-    @cached_property
+    @cached_prop
     def tag_content(self) :
         if hasattr(self, '_tag_line') : return self._tag_line.content
         else                          : return self.one_line_content
 
-    @cached_property
+    @cached_prop
     def tag_type(self) : return self._tag_line.tag_type
 
     def print(self, indent = '') :
@@ -159,6 +158,6 @@ class LineStream :
         print()
         return self
 
-    def __format__(self, code) :
-        if self.isOneLine() : return self.one_line_content
-        else                 : return f'{self._raw_line_list}' # 待完善
+    def __format__(self, spec) :
+        if self.isOneLine() : return f'{self.one_line_content:{spec}}'
+        else                 : return f'{self._raw_line_list:{spec}}' # 待完善

@@ -5,7 +5,7 @@ from DateTime import timedelta_class, TimeDelta, date_class, Date, time_class, T
 from List import List
 from Dict import Dict
 
-class Object :
+class Object(base_class) :
 
     __id_list           = [ ]
     NV = P_NON_VACANCY  = 'P_NON_VACANCY'
@@ -26,6 +26,7 @@ class Object :
     
     def __init__(self) :
         object.__setattr__(self, '_data',          Dict())
+        object.__setattr__(self, '_class',         Str(self.__class__).split('.')[1][ : -2])
         object.__setattr__(self, '_property_dict', {})
 
     # def _registerEnhancedProperty(self, property_config_list, /) :
@@ -41,14 +42,14 @@ class Object :
                 pd[name]    = {}
                 if p_default != self.P_NON_VACANCY : pd[name]['default'] = self._wrapValue(p_default)
                 if p_type is not None              :
-                    if not isinstance(p_type, (type, tuple))     : raise UserTypeError(p_type)
+                    if not isinstance(p_type, (type, tuple))     : raise CustomTypeError(p_type)
                     if isinstance(p_type, tuple)                 : p_type = tuple(type(None) if item is None else item for item in p_type)
                     pd[name]['type'] = p_type
                 if p_validator is not None         :
-                    if not isinstance(p_validator, (str, tuple)) : raise UserTypeError(p_validator)
+                    if not isinstance(p_validator, (str, tuple)) : raise CustomTypeError(p_validator)
                     # pd[name]['validator'] = Str(p_validator) if isinstance(p_validator, str) else p_validator
                     pd[name]['validator'] = p_validator
-            else                           : raise UserTypeError(config)
+            else                           : raise CustomTypeError(config)
         return self
 
     def hasProperty(self, name, /) : return self._data.has(name)
@@ -103,13 +104,13 @@ class Object :
     #   已注册属性不存在时返回预设默认值
     #   保护私有属性不被外部访问和赋值
     # 访问方式：
-    # 已注册（可通过 隐式方法 或 已显式定义为含业务逻辑的 @property/@cached_property 访问）
+    # 已注册（可通过 隐式方法 或 已显式定义为含业务逻辑的 @prop/@cached_prop 访问）
     #   从外部
     #       [_name]   (1) 不允许如此访问，可通过 find 查到 (?<!self)(?<!cls)(?<!super\(\))\._(?!(_|\.|data\b|getData\b))
     #       [name]    (2) 允许，常规情况
     #   从内部
     #       [_name]   (3) 允许，常规情况
-    #       [name]    (4) 不推荐/不允许通过隐式方法访问（靠自觉），无法通过 find 查到！其余情况一定是已显式定义为含业务逻辑的 @property/@cached_property
+    #       [name]    (4) 不推荐/不允许通过隐式方法访问（靠自觉），无法通过 find 查到！其余情况一定是已显式定义为含业务逻辑的 @prop/@cached_prop
     # 未注册（仅使用 __setattr__ 赋值过）
     #   从外部
     #       [_name]   (5) 不允许，可通过 find 查到
@@ -119,9 +120,9 @@ class Object :
     #       [name]    (8) 不允许，__setattr__ 规避了其余情况
     # @Timer.timeitTotal('Object.__getattr__', group_args = True)
     def __getattr__(self, name) :
-        if name == '_data'     : return self.__getattribute__('_data')
-        if name == '__class__' : return self.__getattribute__('__class__')
-        if name in dir(self)   : return self.__getattribute__(name)
+        # if name == '_data'   : return self.__getattribute__('_data')
+        # if name == '_class'  : return self.__getattribute__('_class')
+        # if name in dir(self) : return self.__getattribute__(name)
         
         pd = self.__getattribute__('_property_dict')
         if name in pd or name[0] == '_' and name[1:] in pd : # (1) (2) (3) (4) 已注册
@@ -201,14 +202,14 @@ class Object :
                             if isinstance(pt, type)    :
                                 func = lambda item : isinstance(item, pt)
                                 if not all(list(map(func, value))) : raise Exception(f'{prefix} 属性 {name} 的列表值\n[{value}]\n中有值不匹配类型 {pt}\n{self}\n')
-                            else                       : raise UserTypeError(pt)
+                            else                       : raise CustomTypeError(pt)
                         else                       :
                             if isinstance(pt, type)    :
                                 if not isinstance(value, pt)       : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
                             elif isinstance(pt, tuple) :
                                 func = lambda t : ((t is None or t is type(None)) and value is None) or (isinstance(value, t))
                                 if not any(list(map(func, pt)))    : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
-                            else                       : raise UserTypeError(pt)
+                            else                       : raise CustomTypeError(pt)
 
                     type_tuple = (int, float, bool, bytes, range, tuple, set, list, dict, timedelta_class, date_class, time_class, datetime_class)
                     if isinstance(pv, tuple)                                   :
@@ -231,30 +232,21 @@ class Object :
     # simultaneously existing objects.  (Hint: it's the object's memory address.)
     def getId(self) : return hex(id(self))
 
-    # def getRaw(self) : return self._data.getRaw()
+    def getRaw(self) : return self._data.getRaw()
 
     def getSignature(self) : return f'<{self.__class__} at {self.getId()}>'
 
     @_antiLoop
-    def __format__(self, code) : return f'<{self.__class__} at {self.getId()}>._data={self._data}'
-
-    @print_func
-    def printFormat(self) : return f'{self}', False
+    def jsonSerialize(self) -> dict : return self._data.jsonSerialize()
 
     @_antiLoop
-    def __str__(self) : return f'<{self.__class__} at {self.getId()}>._data={str(self._data)}'
-
-    @print_func
-    def printStr(self) : return f'{str(self)}', False
+    def __format__(self, spec) : return f"{f'<{self.__class__} at {self.getId()}>._data={self._data}':{spec}}"
 
     @_antiLoop
-    def jsonSerialize(self) : result = self._data.jsonSerialize(); result['__instance__'] = self.getSignature(); return result
+    def __str__(self) : return f'<{self.__class__} at {self.getId()}>._data={self._data!s}'
 
-    # 可读化
-    def j(self) : return j(self.jsonSerialize())
-
-    @print_func
-    def printJ(self) : return f'{self.j()}', False
+    @_antiLoop
+    def __repr__(self) : raise NotImplementedError
 
     @_antiLoop
     def json(self) :

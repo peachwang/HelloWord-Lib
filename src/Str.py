@@ -13,17 +13,23 @@ class _Pattern :
 
     def getRaw(self) : return self._pattern
 
-    @cached_property
+    @cached_prop
     def string(self) : return Str(self._pattern.pattern)
+
+    def __format__(self, spec) : return f'{self._pattern.pattern:{spec}}'
+
+    def __str__(self) : return f'_Pattern({self._pattern.pattern!s})'
+
+    def __repr__(self) : return f'_Pattern({self._pattern!r})'
 
     # The regex matching flags. This is a combination of the flags given to compile(),
     # any (?...) inline flags in the pattern, and implicit flags such as UNICODE if the
     # pattern is a Unicode string.
-    @cached_property
+    @cached_prop
     def flags(self) : return self._pattern.flags
 
     # The number of capturing groups in the pattern.
-    @cached_property
+    @cached_prop
     def group_num(self) : return self._pattern.groups
     
     # A dictionary mapping any symbolic group names defined by (?P<id>) to group numbers.
@@ -41,16 +47,20 @@ class _Match :
 
     def getRaw(self) : return self._match
 
-    @cached_property
+    @cached_prop
     def pattern(self) : return self._pattern
 
     # The string passed to match() or search().
-    @cached_property
+    @cached_prop
     def string(self) : return Str(self._match.string)
 
-    def __format__(self, code) : return f'Match(pattern = [{self._pattern.string}], string = [{self.string}])'
+    def __format__(self, spec) : return f'{self.whole_match:{spec}}'
+    
+    def __str__(self) : return f'_Match(whole_match = [{self.whole_match}], named = {self.namedGroupDict()}, indexed = {self.allGroupTuple()}, span = {self.spanOfGroup(0)}, pattern = [{self._pattern}], string = [{self._match.string}])'
 
-    @cached_property
+    def __repr__(self) : return f'_Match({self._match!r})'
+
+    @cached_prop
     def whole_match(self) : return Str(self._match.group())
 
     def __getattr__(self, name) : return self._name_to_group[name]
@@ -100,7 +110,7 @@ class _Match :
 
     # Named groups can also be referred to by their index.
     # (?P<name>...)
-    def groupTuple(self, *groups) :
+    def groupTuple(self, *groups) -> tuple :
         if len(groups) == 0   : raise Exception(f'非法{groups=}')
         elif len(groups) == 1 : _ = self._match.group(groups[0]); return tuple(self._wrap(_))
         else                  : return tuple(self._wrap(_) for _ in self._match.group(*groups))
@@ -126,7 +136,7 @@ class _Match :
         if len(_) > 1    : raise Exception(f'{self} 中出现不止一个 group')
         elif len(_) == 0 :
             if default == self.NV : raise Exception(f'{self} 中不存在 group')
-            else                  : return default
+            else                  : return self._wrap(default)
         else             : return _[0]
 
     # Match.groupdict(default=None)
@@ -161,10 +171,10 @@ class _Match :
         if self.oneGroup(group) is None      : return self.string
         if isinstance(repl_str_or_func, str) : replacement = repl_str_or_func
         elif callable(repl_str_or_func)      : replacement = repl_str_or_func(self.oneGroup(group))
-        else                                 : raise UserTypeError(repl_str_or_func)
+        else                                 : raise CustomTypeError(repl_str_or_func)
         return self.string[ : self.startOfGroup(group)] + replacement + self.string[self.endOfGroup(group) : ]
 
-class Str(str) :
+class Str(str, base_class) :
 
     NV = V_NON_VACANCY = 'V_NON_VACANCY'
 
@@ -175,59 +185,56 @@ class Str(str) :
 
     def getRaw(self) -> str : return str(self)
 
+    jsonSerialize = getRaw
+
     # Implement iter(self).
     def __iter__(self) :
-        for char in str.__iter__(self) : yield Str(char)
-
-    def jsonSerialize(self) : return f'{self}'
-
-    # 可读化
-    def j(self) : return j(self.jsonSerialize())
-
-    @print_func
-    def printJ(self) : return f'{self.j()}', False
-
-    @print_func
-    def print(self) : return f'{self}', False
+        for char in super().__iter__() : yield Str(char)
 
     # S.__format__(format_spec) -> str
     # Return a formatted version of S as described by format_spec.
-    # def __format__(self) : return str.__str__(self)
+    # def __format__(self) : return super().__format__()
     
     # S.format(*args, **kwargs) -> str
     # Return a formatted version of S, using substitutions from args and kwargs.
     # The substitutions are identified by braces ('{' and '}').
     # NOT IN PLACE
-    def format(self, *args, **kwargs) : return Str(str.format(self, *args, **kwargs))
+    def format(self, *args, **kwargs) : return Str(super().format(*args, **kwargs))
 
+    # Make object readable
     # Return str(self).
-    # def __str__(self) : return 'Str\'{}\''.format(str.__str__(self))
+    # def __str__(self) : return f'Str\'{super().__str__()}\''
+    
+    # Required code that reproduces object
+    # Return repr(self).
+    def __repr__(self) : return f"Str({super().__repr__()})"
     
     # S.center(width[, fillchar]) -> str
     # Return S centered in a string of length width. Padding is
     # done using the specified fill character (default is a space)
     # NOT IN PLACE
-    def center(self, width, fillchar = ' ', /) : return Str(str.center(self, width, fillchar))
+    def center(self, width, fillchar = ' ', /) : return Str(super().center(width, fillchar))
 
     # Return self[key].
-    def __getitem__(self, index) : return Str(str.__getitem__(self, index))
+    def __getitem__(self, index) : return Str(super().__getitem__(index))
 
     # Return self+value.
     # NOT IN PLACE
-    def __add__(self, string) : return Str(str.__add__(self, string))
+    def __add__(self, string) : return Str(super().__add__(string))
 
     # Return self*value.
     # NOT IN PLACE
-    def __rmul__(self, times) : return Str(str.__rmul__(self, times))
+    def __rmul__(self, times) : return Str(super().__rmul__(times))
 
     # NOT IN PLACE
     def concat(self, string, /) : return self.__add__(string)
 
     # Return len(self).
-    def __len__(self) : return str.__len__(self)
+    def __len__(self) : return super().__len__()
 
-    def len(self) : return str.__len__(self)
+    def len(self) : return super().__len__()
 
+    @log_entering()
     def isEmpty(self) : return self.fullMatch(r'^[ \t\r\n]*$')
 
     def ensureEmpty(self) :
@@ -246,31 +253,26 @@ class Str(str) :
 
     # x.__contains__(y) <==> y in x
     # sub: Union[str, Str]
-    def __contains__(self, sub, /) : return str.__contains__(self, sub)
+    def __contains__(self, sub, /) : return super().__contains__(sub)
 
     def has(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
-        if not re_mode : return str.__contains__(self, sub_or_pattern)
+        if not re_mode : return super().__contains__(sub_or_pattern)
         else           : return self.count(sub_or_pattern, re_mode = re_mode, flags = flags) > 0
 
     def hasNo(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
         return not self.has(sub_or_pattern, re_mode = re_mode, flags = flags)
 
     def hasAnyOf(self, sub_list, /) :
-        if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
+        if not isinstance(sub_list, list) : raise CustomTypeError(sub_list)
         return any(self.has(sub) for sub in sub_list)
 
     def hasAllOf(self, sub_list, /) :
-        if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
+        if not isinstance(sub_list, list) : raise CustomTypeError(sub_list)
         return all(self.has(sub) for sub in sub_list)
 
     def hasNoneOf(self, sub_list, /) :
-        if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
+        if not isinstance(sub_list, list) : raise CustomTypeError(sub_list)
         return all(self.hasNo(sub) for sub in sub_list)
-
-    def matchListIn(self, sub_list, /) :
-        if not isinstance(sub_list, list) : raise UserTypeError(sub_list)
-        from List import List
-        return List(sub for sub in sub_list if sub in self)
 
     # S.count(sub[, start[, end]]) -> int
     # Return the number of non-overlapping occurrences of substring sub in
@@ -278,7 +280,7 @@ class Str(str) :
     # interpreted as in slice notation.
     def count(self, sub_or_pattern, /, *, start = 0, end = -1, re_mode = False, flags = 0) :
         if re_mode : return self.findAllMatchList(sub_or_pattern, flags = flags).len()
-        else       : return str.count(self, sub_or_pattern, start, end)
+        else       : return super().count(sub_or_pattern, start, end)
 
     # S.index(sub[, start[, end]]) -> int
     # Return the lowest or highest index in S where substring sub is found, 
@@ -286,8 +288,8 @@ class Str(str) :
     # arguments start and end are interpreted as in slice notation.
     # Raises ValueError when the substring is not found.
     def index(self, sub, /, *, start = 0, end = -1, reverse = False) :
-        if not reverse : return str.index(sub, start, end)
-        else           : return str.rindex(sub, start, end)
+        if not reverse : return super().index(sub, start, end)
+        else           : return super().rindex(sub, start, end)
 
     # S.find(sub[, start[, end]]) -> int
     # Return the lowest or highest index in S where substring sub is found,
@@ -295,8 +297,8 @@ class Str(str) :
     # arguments start and end are interpreted as in slice notation.
     # Return -1 on failure.
     # def find(self, sub, start = 0, end = -1, reverse = False) :
-        # if not reverse : return str.find(sub, start, end)
-        # else           : return str.find(sub, start, end)
+        # if not reverse : return super().find(sub, start, end)
+        # else           : return super().find(sub, start, end)
 
     # re.match(pattern, string, flags=0)
     # If zero or more characters at the beginning of string match the
@@ -306,6 +308,7 @@ class Str(str) :
     # Note that even in MULTILINE mode, re.match() will only match at the
     # beginning of the string and not at the beginning of each line.
     # If you want to locate a match anywhere in string, use search() instead
+    @log_entering()
     def leftMatch(self, pattern, /, *, flags = 0) -> Optional[_Match] : return _Match(re.match(pattern, self, flags)) if _ else None
 
     def ensureLeftMatch(self, pattern = None, /, *, flags = 0) :
@@ -346,13 +349,13 @@ class Str(str) :
         matches = self.findAllMatchList(pattern, flags = flags)
         if matches.len() > 1    : raise Exception(f'[{pattern}] 在 [{self}] 中出现不止一次')
         elif matches.len() == 0 :
-            if default != self.NV : return default
+            if default != self.NV : return self._wrap(default)
             else                  : raise Exception(f'[{pattern}] 在 [{self}] 中不存在')
         else                    : return matches[0]
 
     def onlyOneGroup(self, pattern, /, *, flags = 0, default = NV) :
         m = self.onlyOneMatch(pattern, flags = flags, default = default)
-        if m == default : return default
+        if m == default : return self._wrap(default)
         else            : return m.onlyOneGroup(default = default)
 
     # re.findall(pattern, string, flags=0)
@@ -415,14 +418,14 @@ class Str(str) :
             if count is None : return self._sub(sub_or_pattern, repl_str_or_func, flags = flags)
             else             : return self._sub(sub_or_pattern, repl_str_or_func, count = count, flags = flags)
         else       :
-            if count is None : return Str(str.replace(self, sub_or_pattern, repl_str_or_func))
-            else             : return Str(str.replace(self, sub_or_pattern, repl_str_or_func, count))
+            if count is None : return Str(super().replace(sub_or_pattern, repl_str_or_func))
+            else             : return Str(super().replace(sub_or_pattern, repl_str_or_func, count))
 
     # S.join(iterable) -> str
     # Return a string which is the concatenation of the strings in the
     # iterable.  The separator between elements is S.
     # NOT IN PLACE
-    def join(self, item_list: list, /) : return Str(str.join(self, [f'{_}' for _ in item_list]))
+    def join(self, item_list: list, /) : return Str(super().join([f'{_}' for _ in item_list]))
     
     # S.split(sep=None, maxsplit=-1) -> list of strings
     # re.split(pattern, string, maxsplit=0, flags=0)
@@ -462,8 +465,8 @@ class Str(str) :
             return List(re.split(sep_or_pattern, self, maxsplit, flags))
         else       :
             if maxsplit is None : maxsplit = -1
-            if not reverse      : return List(str.split(self, sep_or_pattern, maxsplit))
-            else                : return List(str.rsplit(self, sep_or_pattern, maxsplit))
+            if not reverse      : return List(super().split(sep_or_pattern, maxsplit))
+            else                : return List(super().rsplit(sep_or_pattern, maxsplit))
 
     # S.rsplit(sep=None, maxsplit=-1) -> list of strings
     # Return a list of the words in S, using sep as the
@@ -479,9 +482,9 @@ class Str(str) :
     # If chars is given and not None, remove characters in chars instead.
     # NOT IN PLACE
     def strip(self, string: str = ' \t\n', /, *, left: bool = True, right: bool = True) :
-        if (not left) and right   : return Str(str.rstrip(self, string))
-        elif (not right) and left : return Str(str.lstrip(self, string))
-        elif left and right       : return Str(str.strip(self, string))
+        if (not left) and right   : return Str(super().rstrip(string))
+        elif (not right) and left : return Str(super().lstrip(string))
+        elif left and right       : return Str(super().strip(string))
         else                      : raise Exception(f'非法 {left=} 和 {right=}')
 
     # S.lstrip([chars]) -> str
@@ -521,7 +524,7 @@ class Str(str) :
     # Decimal characters are those that can be used to form numbers in base 10,
     # e.g. U+0660, ARABIC-INDIC DIGIT ZERO. Formally a decimal character is
     # a character in the Unicode General Category “Nd”.
-    def isNumber(self) : return str.isdecimal(self)
+    def isNumber(self) : return super().isdecimal()
 
     def toDateTime(self, pattern = '%Y-%m-%d %H:%M:%S') : from DateTime import DateTime; return DateTime(self, pattern)
 
@@ -544,45 +547,45 @@ class Str(str) :
     # S.islower() -> bool
     # Return True if all cased characters in S are lowercase and there is
     # at least one cased character in S, False otherwise.
-    def isLower(self) : return str.islower(self)
+    def isLower(self) : return super().islower()
 
     # S.isupper() -> bool
     # Return True if all cased characters in S are uppercase and there is
     # at least one cased character in S, False otherwise.
-    def isUpper(self) : return str.isupper(self)
+    def isUpper(self) : return super().isupper()
 
     # S.lower() -> str
     # Return a copy of the string S converted to lowercase.
     # NOT IN PLACE
-    def toLower(self) : return Str(str.lower(self))
+    def toLower(self) : return Str(super().lower())
 
     # S.upper() -> str
     # Return a copy of S converted to uppercase.
     # NOT IN PLACE
-    def toUpper(self) : return Str(str.upper(self))
+    def toUpper(self) : return Str(super().upper())
 
     # S.title() -> str
     # Return a titlecased version of S, i.e. words start with title case
     # characters, all remaining cased characters have lower case.
     # NOT IN PLACE
-    def toTitle(self) : return Str(str.title(self))
+    def toTitle(self) : return Str(super().title())
 
     # S.capitalize() -> str
     # Return a capitalized version of S, i.e. make the first character
     # have upper case and the rest lower case.
     # NOT IN PLACE
-    def toCapitalize(self) : return Str(str.capitalize(self))
+    def toCapitalize(self) : return Str(super().capitalize())
 
     # S.swapcase() -> str
     # Return a copy of S with uppercase characters converted to lowercase
     # and vice versa.
     # NOT IN PLACE
-    def swapCase(self) : return Str(str.swapcase(self))
+    def swapCase(self) : return Str(super().swapcase())
 
     # S.casefold() -> str
     # Return a version of S suitable for caseless comparisons.
     # NOT IN PLACE
-    def foldCase(self) : return Str(str.casefold(self))
+    def foldCase(self) : return Str(super().casefold())
 
     def _splitWordList(self) :
         result = []
@@ -614,8 +617,8 @@ class Str(str) :
     # done using the specified fill character (default is a space).
     # NOT IN PLACE
     def padToWidth(self, width: int, fillchar: str = ' ', /, *, reverse = False) :
-        if reverse : return Str(str.rjust(self, width, fillchar))
-        else       : return Str(str.ljust(self, width, fillchar))
+        if reverse : return Str(super().rjust(width, fillchar))
+        else       : return Str(super().ljust(width, fillchar))
 
     # python2
     # ['__add__', '__class__', '__contains__', '__delattr__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getnewargs__', '__getslice__', '__gt__', '__hash__', '__init__', '__le__', '__len__', '__lt__', '__mod__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__rmod__', '__rmul__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '_formatter_field_name_split', '_formatter_parser', 'capitalize', 'center', 'count', 'decode', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'index', 'isalnum', 'isalpha', 'isdigit', 'islower', 'isspace', 'istitle', 'isupper', 'join', 'ljust', 'lower', 'lstrip', 'partition', 'replace', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit', 'rstrip', 'split', 'splitlines', 'startswith', 'strip', 'swapcase', 'title', 'translate', 'upper', 'zfill']
@@ -702,9 +705,6 @@ class Str(str) :
 
     # helper for pickle
     # def __reduce_ex__(self) :
-
-    # Return repr(self).
-    # def __repr__(self) :
 
     # Return value%self.
     # def __rmod__(self) :
@@ -845,4 +845,5 @@ if __name__ == '__main__':
     # print(Str('hello').isIn('hello', 'word'))
     # print(Str('hello') in 'hellword')
     # print('hello' in Str('hellword'))
-    print('@'.join([Str('hello'), Str('word')]))
+    # print('@'.join([Str('hello'), Str('word')]))
+    print(eval(repr(Str('hello'))) == Str('hello'))

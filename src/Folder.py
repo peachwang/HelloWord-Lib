@@ -3,10 +3,9 @@ from os import makedirs, rmdir, walk
 from shared import *
 from Str import Str
 from List import List
-from Dict import Dict
 from File import File, realpath, exists
 
-class Folder :
+class Folder(base_class) :
 
     def mkdir(folder_path) : makedirs(folder_path, exist_ok = True); return Folder
 
@@ -20,6 +19,7 @@ class Folder :
     @anti_duplicate_init
     def __init__(self, folder_path, /, *, auto_build = True) :
         if Folder.notExists(folder_path) : raise Exception(f'Folder({folder_path} = {realpath(folder_path)}) 不存在')
+        self._raw_path   = folder_path
         self._path       = Str(folder_path)
         self._name       = self._path.split('/')[-1]
         self._auto_build = auto_build
@@ -28,16 +28,19 @@ class Folder :
         if not auto_build : pass
         else              : self._build()
 
-    @property
+    @prop
+    def raw_path(self) -> str : return self._raw_path
+
+    @prop
     def path(self) -> Str : return self._path
 
-    @property
+    @prop
     def abs_path(self) -> Str : return Str(realpath(self._path))
 
-    @property
+    @prop
     def name(self) -> Str : return self._name
 
-    # @log_entering('{self}')
+    # @log_entering()
     def _walk(self) :
         try                   :
             for path, sub_folder_name_list, sub_file_name_list in walk(self._path) :
@@ -50,7 +53,7 @@ class Folder :
         self._has_walked = True
         return self
 
-    # @log_entering('{self}')
+    # @log_entering()
     def _build(self) :
         if not self._has_walked : self._walk()
         self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}', auto_build = self._auto_build))
@@ -58,42 +61,32 @@ class Folder :
         self._has_built = True
         return self
 
-    @property
+    @prop
     def size(self) : return self.flat_sub_file_list.size.sum()
+
+    def jsonSerialize(self) -> str : return self._raw_path
 
     def __eq__(self, other) : return self.abs_path == other.abs_path
 
     def __ne__(self, other) : return not self.__eq__(other)
 
-    def __format__(self, code) : return f'Folder({self.abs_path})'
-
-    @print_func
-    def printFormat(self) : return f'{self}', False
+    def __format__(self, spec) : return f"{f'Folder({self.abs_path})':{spec}}"
 
     def __str__(self) : return self.__format__('')
 
-    @print_func
-    def printStr(self) : return f'{str(self)}', False
+    def __repr__(self) : return f'Folder({self._raw_path!r})'
 
-    def jsonSerialize(self) : return f'{self}'
-
-    # 可读化
-    def j(self) : return j(self.jsonSerialize())
-
-    @print_func
-    def printJ(self) : return f'{self.j()}', False
-
-    @property
+    @prop
     def sub_folder_name_list(self) :
         if not self._has_walked : self._walk()
         return self._sub_folder_name_list.copy()
     
-    @property
+    @prop
     def sub_folder_list(self) :
         if not self._has_built : self._build()
         return self._sub_folder_list.copy()
 
-    @property
+    @prop
     def flat_sub_folder_list(self) :
         if hasattr(self, '_flat_sub_folder_list') : return self._flat_sub_folder_list
         if not self._has_built : self._build()
@@ -102,19 +95,19 @@ class Folder :
         for folder in self._sub_folder_list : self._flat_sub_folder_list.extend(folder.flat_sub_folder_list)
         return self._flat_sub_folder_list
     
-    @property
+    @prop
     def sub_file_name_list(self) :
         if not self._has_walked : self._walk()
         return self._sub_file_name_list.copy()
     
-    @property
+    @prop
     def sub_file_list(self) :
         if not self._has_built : self._build()
         return self._sub_file_list.copy()
 
     def getOneSubFile(self, *, name_contains) : return self.sub_file_list.filterOne(lambda file : file.name.has(name_contains))
 
-    @property
+    @prop
     def flat_sub_file_list(self) :
         if hasattr(self, '_flat_sub_file_list') : return self._flat_sub_file_list
         if not self._has_built : self._build()

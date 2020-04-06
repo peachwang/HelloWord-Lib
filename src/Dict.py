@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
 from shared import *
 
-class Dict(dict) :
+class Dict(dict, base_class) :
 
     _has_imported_types = False
     NV = V_NON_VACANCY = 'V_NON_VACANCY'
@@ -9,6 +9,7 @@ class Dict(dict) :
     @classmethod
     def _importTypes(cls) :
         if cls._has_imported_types : return
+        from ObjectId import ObjectId;        cls._ObjectId  = ObjectId
         from Str      import Str;             cls._Str       = Str
         from DateTime import timedelta_class; cls._timedelta = timedelta_class
         from DateTime import TimeDelta;       cls._TimeDelta = TimeDelta
@@ -18,44 +19,51 @@ class Dict(dict) :
         from DateTime import Time;            cls._Time      = Time
         from DateTime import datetime_class;  cls._datetime  = datetime_class
         from DateTime import DateTime;        cls._DateTime  = DateTime
+        from DateTime import DateList;        cls._DateList  = DateList
         from DateTime import DateRange;       cls._DateRange = DateRange
+        from DateTime import Year;            cls._Year      = Year
+        from DateTime import Month;           cls._Month     = Month
+        from DateTime import Week;            cls._Week      = Week
         from List     import List;            cls._List      = List
         cls._Dict                                            = Dict
         from Object   import Object;          cls._Object    = Object
         from File     import File;            cls._File      = File
         from Folder   import Folder;          cls._Folder    = Folder
-        cls._raw_types_tuple = (type(None), str, bytes, int, float, bool, tuple, range, zip, cls._timedelta, cls._date, cls._time, cls._datetime, type)
-        cls._types_tuple     = (cls._Str, cls._TimeDelta, cls._Date, cls._Time, cls._DateTime, cls._DateRange, cls._List, cls._Dict, cls._Object, cls._File, cls._Folder)
+        cls._raw_type_tuple = (type(None), str, bytes, int, float, bool, tuple, range, zip, cls._timedelta, cls._date, cls._time, cls._datetime, type)
+        cls._type_tuple     = (cls._ObjectId, cls._Str, cls._TimeDelta, cls._Date, cls._Time, cls._DateTime, cls._DateList, cls._DateRange, cls._Year, cls._Month, cls._Week, cls._List, cls._Dict, cls._Object, cls._File, cls._Folder)
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         cls._has_imported_types = True
 
     # @Timer.timeitTotal('_wrapValue')
     def _wrapValue(self, value, /) :
         self._importTypes()
-        if isinstance(value, (self._Str, self._List, self._Dict)) : return value
-        elif isinstance(value, str)                               : return self._Str(value)
-        elif isinstance(value, bytes)                             : return self._Str(value.decode())
-        elif isinstance(value, self._timedelta)                   : return self._TimeDelta(value)
-        elif isinstance(value, self._date)                        : return self._Date(value)
-        elif isinstance(value, self._time)                        : return self._Time(value)
-        elif isinstance(value, self._datetime)                    : return self._DateTime(value)
-        elif isinstance(value, list)                              : return self._List(value)
-        elif isinstance(value, dict)                              : return self._Dict(value)
-        elif isinstance(value, tuple)                             : return tuple([ self._wrapValue(_) for _ in value ])
-        elif isinstance(value, set)                               : return set([ self._wrapValue(_) for _ in value ])
-        else                                                      : return value
+        if isinstance(value, (self._ObjectId, self._Str, self._List, self._Dict)) : return value
+        elif isinstance(value, str)                                               : return self._Str(value)
+        elif isinstance(value, self._timedelta)                                   : return self._TimeDelta(value)
+        elif isinstance(value, self._date)                                        : return self._Date(value)
+        elif isinstance(value, self._time)                                        : return self._Time(value)
+        elif isinstance(value, self._datetime)                                    : return self._DateTime(value)
+        elif isinstance(value, list)                                              : return self._List(value)
+        elif isinstance(value, dict)                                              : return self._Dict(value)
+        elif isinstance(value, tuple)                                             : return tuple([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, set)                                               : return set([ self._wrapValue(_) for _ in value ])
+        else                                                                      : return value
+
+    def _wrapStr(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
+    
+    def _wrapStrOrType(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
 
     # Initialize self.  See help(type(self)) for accurate signature.
     def __init__(self, *args, **kwargs) :
-        if len(args) == 0   : dict.__init__(self, {})
+        if len(args) == 0   : super().__init__({})
         elif len(args) == 1 :
-            if isinstance(args[0], Dict)                   : dict.__init__(self, args[0]._getData())
+            if isinstance(args[0], Dict)                   : super().__init__(args[0]._getData())
             elif isinstance(args[0], dict)                 :
-                for key in args[0] : dict.__setitem__(self, key, self._wrapValue(args[0][key]))
+                for key in args[0] : super().__setitem__(eval(key) if isinstance(key, str) and key[ : 2] == "b'" else key, self._wrapValue(args[0][key]))
             elif isinstance(args[0], (zip, GeneratorType)) : self.__init__(dict(args[0]))
-            else                                           : raise UserTypeError(args)
-        else                : raise UserTypeError(args)
-        if len(kwargs) > 0  : dict.update(self, Dict(kwargs))
+            else                                           : raise CustomTypeError(args)
+        else                : raise CustomTypeError(args)
+        if len(kwargs) > 0  : super().update(Dict(kwargs))
 
     # Returns a new dict with keys from iterable and values equal to value.
     # IN PLACE
@@ -78,55 +86,33 @@ class Dict(dict) :
 
     # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     # NOT IN PLACE
-    # else 可能是 int, float, bool, tuple, set, range, zip, object，不可能是 list. dict, str, bytes, timedelta, date, time, datetime
-    def getRaw(self) -> dict : self._importTypes(); return { key : self[key].getRaw() if isinstance(self[key], self._types_tuple) else self[key] for key in self }
+    def getRaw(self) -> dict : self._importTypes(); return { key : self[key].getRaw() if 'getRaw' in dir(self[key]) else self[key] for key in self }
+
+    jsonSerialize = _getData
 
     @print_func
     def printLen(self) : return f'{self.len()}个键值', False
 
     @print_func
-    def printLine(self) : return self.keys().mapped(lambda key, index : f'{index + 1} {key}: {self[key]}').join('\n'), True
+    def printLine(self) : return self.keys().mapped(lambda key, index : f'{index + 1} {self._wrapStr(key, format)}: {self._wrapStr(self[key], format)}').join('\n'), True
 
     # default object formatter
-    def __format__(self, code) :
-        return "{{{}}}".format(
-            self.keys()
-                .map(lambda key : '{} : {}'.format(
-                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else '{}'.format(key),
-                        '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else '{}'.format(self[key])
-                    )
-                ).join(', ')
-        )
+    def __format__(self, spec) : return "{{ {} }}".format(self.keys().map(lambda key : '{} : {}'.format(self._wrapStr(key, format), self._wrapStr(self[key], format))).join(', '), spec)
 
     @print_func
-    def printFormat(self) : return self.keys().mapped(lambda key : f'{key}: {self[key]}').join('\n'), True
+    def printFormat(self) : return self.keys().mapped(lambda key : f'{self._wrapStr(key, format)}: {self._wrapStr(self[key], format)}').join('\n'), True
 
     # Return str(self).
-    def __str__(self) :
-        return 'Dict{{{}}}'.format(
-            self.keys()
-                .map(lambda key : '{} : {}'.format(
-                        '"{}"'.format(key) if isinstance(key, (str, bytes)) else str(key),
-                        '"{}"'.format(self[key]) if isinstance(self[key], (str, bytes)) else str(self[key])
-                    )
-                ).join(', ')
-        )
+    def __str__(self) : return 'Dict{{ {} }}'.format(self.keys().map(lambda key : '{} : {}'.format(self._wrapStr(key, str), self._wrapStr(self[key], str))).join(', '))
 
     @print_func
-    def printStr(self) : return self.keys().mapped(lambda key : f'{str(key)}: {str(self[key])}').join('\n'), True
+    def printStr(self) : return self.keys().mapped(lambda key : f'{self._wrapStr(key, str)}: {self._wrapStr(self[key], str)}').join('\n'), True
 
-    # NOT IN PLACE
-    # else 可能是 int, float, bool, tuple, set, range, zip, object，不可能是 list. dict, str, bytes, timedelta, date, time, datetime
-    def jsonSerialize(self) :
-        self._importTypes()
-        return { json_serialize(key) : (self[key].jsonSerialize() if isinstance(self[key], self._types_tuple) else json_serialize(self[key])) for key in self }
-
-    # 可读化
-    # NOT IN PLACE
-    def j(self, *, indent = True) : return j(self.jsonSerialize(), indent = 4 if indent else None)
+    # Return repr(self).
+    def __repr__(self) : return 'Dict({{ {} }})'.format(self.keys().map(lambda key : '{} : {}'.format(self._wrapStrOrType(key, repr), self._wrapStrOrType(self[key], repr))).join(', '))
 
     @print_func
-    def printJ(self) : return f'{self.j()}', True
+    def printJ(self) : return self.j(), True
 
     # 带有业务逻辑，与 j 不同
     # NOT IN PLACE
@@ -165,20 +151,20 @@ class Dict(dict) :
     def __lt__(self, other) : raise NotImplementedError
 
     # Return len(self).
-    def __len__(self) : return dict.__len__(self)
+    def __len__(self) : return super().__len__()
 
-    def len(self) : return dict.__len__(self)
+    def len(self) : return super().__len__()
 
     def isEmpty(self) : return self.len() == 0
 
     def isNotEmpty(self) : return not self.isEmpty()
 
     # D.__contains__(k) -> True if D has a key k, else False.
-    def __contains__(self, key, /) : return dict.__contains__(self, key)
+    def __contains__(self, key, /) : return super().__contains__(key)
 
     def has(self, key_list, /) :
         self._importTypes()
-        if isinstance(key_list, self._raw_types_tuple) : return dict.__contains__(self, key_list)
+        if isinstance(key_list, self._raw_type_tuple)  : return super().__contains__(key_list)
         elif isinstance(key_list, list)                :
             if len(key_list) == 0 : raise Exception(f'非法{key_list=}')
             now = self
@@ -186,7 +172,7 @@ class Dict(dict) :
                 if not dict.__contains__(now, key) : return False
                 now = now[key]
             return True
-        else                                           : raise UserTypeError(key_list)
+        else                                           : raise CustomTypeError(key_list)
 
     def hasNo(self, key_list, /) : return not self.has(key_list)
 
@@ -197,13 +183,13 @@ class Dict(dict) :
     def hasNoneOf(self, key_list_list, /) : return all(self.hasNo(key_list) for key_list in key_list_list)
 
     # D.keys() -> a set-like object providing a view on D's keys
-    def keys(self) : self._importTypes(); return self._List(list(dict.keys(self)))
+    def keys(self) : self._importTypes(); return self._List(list(super().keys()))
     
     # D.values() -> an object providing a view on D's values
-    def values(self) : self._importTypes(); return self._List(list(dict.values(self)))
+    def values(self) : self._importTypes(); return self._List(list(super().values()))
 
     # D.items() -> a set-like object providing a view on D's items
-    def items(self) : self._importTypes(); return self._List(list(dict.items(self)))
+    def items(self) : self._importTypes(); return self._List(list(super().items()))
 
     # Implement iter(self).
     # iter(iterable) -> iterator
@@ -218,14 +204,14 @@ class Dict(dict) :
     # Return getattr(self, name).
     # def __getattribute__(self, key) :
         # if key in ('List', 'Dict', 'Str', 'Object') : print(f'__getattribute__ {key=}')
-        # return dict.__getattribute__(self, key)
+        # return super().__getattribute__(key)
 
     # D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.
     def get(self, key_list, /, default = None) :
         self._importTypes()
-        if isinstance(key_list, self._raw_types_tuple) :
-            if default == self.NV and not dict.__contains__(self, key_list) : raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
-            return dict.get(self, key_list, self._wrapValue(default))
+        if isinstance(key_list, self._raw_type_tuple)  :
+            if default == self.NV and not super().__contains__(key_list) : raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
+            return super().get(key_list, self._wrapValue(default))
         elif isinstance(key_list, list)                :
             if self.hasNo(key_list) :
                 if default == self.NV : raise Exception(f'键 {key_list} 不能为空\n{self=}')
@@ -234,7 +220,7 @@ class Dict(dict) :
                 now = self
                 for key in key_list : now = now[key]
                 return now
-        else                                           : raise UserTypeError(key_list)
+        else                                           : raise CustomTypeError(key_list)
 
     # x.__getitem__(y) <==> x[y]
     def __getitem__(self, key) : return self.get(key, self.NV)
@@ -263,12 +249,12 @@ class Dict(dict) :
                     else                : result[deUnderscoure(key[0])] = key[1]
             elif isinstance(key, str) :
                 result[deUnderscoure(key)] = self[key]
-            else                      : raise UserTypeError(key_list)
+            else                      : raise CustomTypeError(key_list)
         return result
 
     # Set self[key] to value.
     # IN PLACE
-    def __setitem__(self, key, value) : dict.__setitem__(self, key, self._wrapValue(value)); return value
+    def __setitem__(self, key, value) : super().__setitem__(key, self._wrapValue(value)); return value
 
     # Implement setattr(self, name, value).
     # Sets the named attribute on the given object to the specified value.
@@ -282,7 +268,7 @@ class Dict(dict) :
     # IN PLACE
     def set(self, key_list, value, /) :
         self._importTypes()
-        if isinstance(key_list, self._raw_types_tuple) : self[key_list] = value
+        if isinstance(key_list, self._raw_type_tuple)  : self[key_list] = value
         elif isinstance(key_list, list)                :
             if len(key_list) == 0 : raise Exception(f'非法{key_list=}')
             now = self
@@ -291,7 +277,7 @@ class Dict(dict) :
                 else          :
                     if index < len(key_list) - 1 : now[key] = Dict(); now = now[key]
                     else                         : now[key] = value
-        else                                           : raise UserTypeError(key_list)
+        else                                           : raise CustomTypeError(key_list)
         return self
 
     # NOT IN PLACE
@@ -303,10 +289,10 @@ class Dict(dict) :
     # In either case, this is followed by: for k in F:  D[k] = F[k]
     # IN PLACE
     def update(self, mapping: dict, /, **kwargs) :
-        if isinstance(mapping, dict)   : dict.update(self, Dict(mapping))
-        elif isinstance(mapping, Dict) : dict.update(self, mapping)
-        else                           : raise UserTypeError(mapping)
-        if len(kwargs) > 0             : dict.update(self, Dict(kwargs))
+        if isinstance(mapping, dict)   : super().update(Dict(mapping))
+        elif isinstance(mapping, Dict) : super().update(mapping)
+        else                           : raise CustomTypeError(mapping)
+        if len(kwargs) > 0             : super().update(Dict(kwargs))
         return self
 
     # NOT IN PLACE
@@ -320,7 +306,7 @@ class Dict(dict) :
 
     # Delete self[key].
     # IN PLACE
-    def __delitem__(self, key) : dict.__delitem__(self, key); return self
+    def __delitem__(self, key) : super().__delitem__(key); return self
 
     # Implement delattr(self, name).
     # Deletes the named attribute from the given object.
@@ -333,9 +319,9 @@ class Dict(dict) :
     # IN PLACE
     def popKey(self, key_list, /, default = NV) :
         self._importTypes()
-        if isinstance(key_list, self._raw_types_tuple) :
-            if default == self.NV : return dict.pop(self, key_list)
-            else                  : return dict.pop(self, key_list, self._wrapValue(default))
+        if isinstance(key_list, self._raw_type_tuple)  :
+            if default == self.NV : return super().pop(key_list)
+            else                  : return super().pop(key_list, self._wrapValue(default))
         elif isinstance(key_list, list)                :
             if self.hasNo(key_list) :
                 if default == self.NV : raise KeyError(key_list)
@@ -345,7 +331,7 @@ class Dict(dict) :
                 for key in key_list[ : -1] : now = now[key]
                 if default == self.NV : return dict.pop(now, key_list[-1])
                 else                  : return dict.pop(now, key_list[-1], self._wrapValue(default))
-        else                                           : raise UserTypeError(key_list)
+        else                                           : raise CustomTypeError(key_list)
 
     # NOT IN PLACE
     def poppedKey(self, key_list, /, default = NV) : return self.copy().popKey(key_list, default)
@@ -359,18 +345,18 @@ class Dict(dict) :
     # D.popitem() -> (k, v), remove and return some (key, value) pair as a
     # 2-tuple; but raise KeyError if D is empty.
     # IN PLACE
-    def popitem(self) : return dict.popitem(self)
+    # def popItem(self) : return super().popitem()
 
     def _stripValue(self, value, string, /) :
         self._importTypes()
-        if isinstance(value, (self._List, self._Dict, self._Str)) : return value.strip(string) # can't be list, dict, str
+        if isinstance(value, (self._Str, self._List, self._Dict)) : return value.strip(string) # can't be list, dict, str
         elif isinstance(value, tuple)                             : return (self._stripValue(_, string) for _ in value)
         elif isinstance(value, set)                               : return set([self._stripValue(_, string) for _ in value])
         elif isinstance(value, object)                            :
             if 'strip' in dir(value) : value.strip(string)
             return value
-        elif isinstance(value, self._raw_types_tuple)             : return value
-        else                                                      : raise UserTypeError(value)
+        elif isinstance(value, self._raw_type_tuple)              : return value
+        else                                                      : raise CustomTypeError(value)
 
     # IN PLACE
     def strip(self, string = ' \t\n', /) :
@@ -387,7 +373,7 @@ class Dict(dict) :
 
     # D.clear() -> None.  Remove all items from D.
     # IN PLACE
-    def clear(self) : dict.clear(self); return self
+    def clear(self) : super().clear(); return self
 
     def writeToFile(self, file, /, *, indent = True) : file.writeData(self, indent = indent); return self
 
@@ -430,9 +416,6 @@ class Dict(dict) :
 
     # helper for pickle
     # def __reduce_ex__(self) :
-
-    # Return repr(self).
-    # def __repr__(self) :
 
     # D.__sizeof__() -> size of D in memory, in bytes
     # def __sizeof__(self) :

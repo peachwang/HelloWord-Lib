@@ -2,15 +2,17 @@
 import sys, requests
 from sys        import exit
 from shared     import R, Y, G, C, B, P, S, W, E, Timer
-from shared     import json, isgenerator, wraps, cached_property, cached_func, total_ordering, Optional, Union
-from shared     import UserTypeError, inspect_object, j, ensure_args_type, print_func, log_entering, anti_duplicate_new, anti_duplicate_init
+from shared     import isgenerator, wraps, prop, cached_prop, cached_func, total_ordering, Optional, Union, attrgetter, itemgetter, methodcaller
+from shared     import CustomTypeError, ensure_args_type, print_func, log_entering, anti_duplicate_new, anti_duplicate_init, inspect_object
 
+from ObjectId   import ObjectId
 from Str        import Str
-from DateTime   import TimeDelta, Date, Time, DateTime, DateRange, Year, Month, Week, timedelta_class, date_class, time_class, datetime_class
+from DateTime   import TimeDelta, Date, Time, DateTime, DateList, DateRange, Year, Month, Week, timedelta_class, date_class, time_class, datetime_class
 from List       import List
 from Dict       import Dict
 from Inspect    import Inspect, Diff
 from Object     import Object
+from Json       import j
 
 from File       import File
 from Folder     import Folder
@@ -18,7 +20,7 @@ from Counter    import Counter
 from LineStream import LineStream
 from Table      import Table
 # from Audio      import Audio
-# from Base import Base
+# from Base       import Base
 
 class SysArgv :
 
@@ -73,3 +75,68 @@ def main_func(kwarg_to_type = Dict(), /) :
                 Timer.printTiming('失败', color = R)
         return wrapper
     return decorator
+
+
+if __name__ == '__main__':
+    a = ({
+        'hello'           : DateTime(1500000000),
+        (1,2,3)           : DateList([Date('2020-03-20'), Date('2020-04-20')]),
+        4                 : DateRange(Date('2019-03-20'), Date('2019-04-20')),
+        True              : Year(2013),
+        None              : Month(2020, 12),
+        5                 : Week(2019, 12, 29),
+        ObjectId().binary : ObjectId(),
+        range(1,3,2)      : File('.'),
+        int               : Folder('.'),
+        6                 : {5,6,7},
+        7                 : (1,2,3),
+        8                 : False,
+        9                 : None,
+        10                : ObjectId().binary,
+        11                : range(1,3,2),
+        12                : float,
+        13                : 5,
+        14                : 6.7,
+        15                : 'word',
+    })
+    import Json, datetime
+    print(Dict(a).j())
+    print('1', a)
+    print()
+    a = Dict(a)
+    print('2', a)
+    print()
+    c = Json.raw_dump_json_str(a)
+    # print(c)
+    b = Json.raw_load_json_str(c)
+    print('3', f'{a}')
+    print()
+    # print(f'{b!a}')
+    print('4', str(b))
+    b = Dict(b)
+    # print()
+    print('5', f'{b}')
+
+    # print(a)
+    print()
+    # print(b)
+
+    # print()
+    # print(f'{a!r}')
+    # print()
+    # print(f'{b!r}')
+    
+    # print(eval(repr(a)).j())
+    # print(b.j())
+    
+    # print()
+    print('6', b)
+    # print(list(map(type, b.keys())))
+    print()
+    print('7', repr(b))
+    print()
+    print('8', eval(repr(b)))
+    print()
+    print(a == b)
+    print(eval(repr(b)) == b)
+    print(eval(repr(a)) == a)
