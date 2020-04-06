@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-  
-from Color import R, Y, G, C, B, P, S, W, E
-from Timer import Timer
-from inspect import isclass, isfunction, ismethod, isgenerator, signature
+from .Color    import R, Y, G, C, B, P, S, W, E
+from .Timer    import Timer
+from inspect   import isclass, isfunction, ismethod, isgenerator, signature
 from functools import wraps, cached_property as cached_prop, lru_cache as cached_func, total_ordering; prop = property
-from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, LambdaType, GeneratorType
-from typing import Optional, Union
-from operator import attrgetter, itemgetter, methodcaller
+from types     import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, LambdaType, GeneratorType
+from typing    import Optional, Union
+from operator  import attrgetter, itemgetter, methodcaller
 # operator.attrgetter(*attrs)
 # Return a callable object that fetches attr from its operand. If more than one attribute is requested, returns a tuple of attributes. The attribute names can also contain dots. For example:
 # attrgetter('name.first', 'name.last')(a) = (a.name.first, a.name.last).
@@ -107,7 +107,7 @@ class base_class :
     @print_func
     def printStr(self) : return self.__str__(), False
 
-    def j(self, *, indent = True) : import Json; return Json.j(self.jsonSerialize(), indent = indent)
+    def j(self, *, indent = True) : from ..app.Json import j; return j(self.jsonSerialize(), indent = indent)
 
     @print_func
     def printJ(self) : return self.j(), False

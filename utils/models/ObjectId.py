@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import bson
-from shared import *
+from ..shared import *
 
 # https://api.mongodb.com/python/current/api/bson/objectid.html
 class ObjectId(bson.objectid.ObjectId) :
@@ -26,7 +26,7 @@ class ObjectId(bson.objectid.ObjectId) :
     # A datetime.datetime instance representing the time of generation for this ObjectId.
     # The datetime.datetime is timezone aware, and represents the generation time in UTC. It is precise to the second.
     @cached_prop
-    def datetime(self) : from DateTime import DateTime; return DateTime(super().generation_time)
+    def datetime(self) : from .DateTime import DateTime; return DateTime(super().generation_time)
 
     # 12-byte binary representation of this ObjectId.
     @cached_prop

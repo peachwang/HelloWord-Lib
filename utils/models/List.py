@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from shared import *
+from ..shared import *
 
 # ListDiff: 以 item 作为最小比较单元。降维后可用于StrDiff
 
@@ -10,26 +10,26 @@ class List(list, base_class) :
     @classmethod
     def _importTypes(cls) :
         if cls._has_imported_types : return
-        from ObjectId import ObjectId;        cls._ObjectId  = ObjectId
-        from Str      import Str;             cls._Str       = Str
-        from DateTime import timedelta_class; cls._timedelta = timedelta_class
-        from DateTime import TimeDelta;       cls._TimeDelta = TimeDelta
-        from DateTime import date_class;      cls._date      = date_class
-        from DateTime import Date;            cls._Date      = Date
-        from DateTime import time_class;      cls._time      = time_class
-        from DateTime import Time;            cls._Time      = Time
-        from DateTime import datetime_class;  cls._datetime  = datetime_class
-        from DateTime import DateTime;        cls._DateTime  = DateTime
-        from DateTime import DateList;        cls._DateList  = DateList
-        from DateTime import DateRange;       cls._DateRange = DateRange
-        from DateTime import Year;            cls._Year      = Year
-        from DateTime import Month;           cls._Month     = Month
-        from DateTime import Week;            cls._Week      = Week
+        from .ObjectId import ObjectId;        cls._ObjectId  = ObjectId
+        from .Str      import Str;             cls._Str       = Str
+        from .DateTime import timedelta_class; cls._timedelta = timedelta_class
+        from .DateTime import TimeDelta;       cls._TimeDelta = TimeDelta
+        from .DateTime import date_class;      cls._date      = date_class
+        from .DateTime import Date;            cls._Date      = Date
+        from .DateTime import time_class;      cls._time      = time_class
+        from .DateTime import Time;            cls._Time      = Time
+        from .DateTime import datetime_class;  cls._datetime  = datetime_class
+        from .DateTime import DateTime;        cls._DateTime  = DateTime
+        from .DateTime import DateList;        cls._DateList  = DateList
+        from .DateTime import DateRange;       cls._DateRange = DateRange
+        from .DateTime import Year;            cls._Year      = Year
+        from .DateTime import Month;           cls._Month     = Month
+        from .DateTime import Week;            cls._Week      = Week
         cls._List                                            = List
-        from Dict     import Dict;            cls._Dict      = Dict
-        from Object   import Object;          cls._Object    = Object
-        from File     import File;            cls._File      = File
-        from Folder   import Folder;          cls._Folder    = Folder
+        from .Dict     import Dict;            cls._Dict      = Dict
+        from .Object   import Object;          cls._Object    = Object
+        from .File     import File;            cls._File      = File
+        from .Folder   import Folder;          cls._Folder    = Folder
         cls._raw_type_tuple = (type(None), str, bytes, int, float, bool, tuple, range, zip, cls._timedelta, cls._date, cls._time, cls._datetime, type)
         cls._type_tuple     = (cls._ObjectId, cls._Str, cls._TimeDelta, cls._Date, cls._Time, cls._DateTime, cls._DateList, cls._DateRange, cls._Year, cls._Month, cls._Week, cls._List, cls._Dict, cls._Object, cls._File, cls._Folder)
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
@@ -130,10 +130,10 @@ class List(list, base_class) :
     @print_func
     def printJson(self) : return f'{self.json().j()}', False
 
-    def inspect(self, **kwargs) : from Inspect import Inspect; return Inspect(self, **kwargs)
+    def inspect(self, **kwargs) : from ..app.Inspect import Inspect; return Inspect(self, **kwargs)
 
     # other: Union[list, List]
-    def diff(self, other) : from Inspect import Diff; return Diff(self, other)
+    def diff(self, other) : from ..app.Inspect import Diff; return Diff(self, other)
 
     def isList(self) : return True
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-  
-from shared import *
+from ..shared import *
 from openpyxl import Workbook, load_workbook
 
 # https://www.itsupportwale.com/blog/how-to-upgrade-to-python-3-8-on-ubuntu-18-04-lts/#Step_4_Update_Python_3_for_point_to_Python_38

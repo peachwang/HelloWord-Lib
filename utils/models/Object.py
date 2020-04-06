@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-  
-from shared import *
-from Str import Str
-from DateTime import timedelta_class, TimeDelta, date_class, Date, time_class, Time, datetime_class, DateTime
-from List import List
-from Dict import Dict
+from ..shared  import *
+from .Str      import Str
+from .DateTime import timedelta_class, TimeDelta, date_class, Date, time_class, Time, datetime_class, DateTime
+from .List     import List
+from .Dict     import Dict
 
 class Object(base_class) :
 

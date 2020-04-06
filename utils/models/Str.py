@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-  
 import re
-from shared import *
+from ..shared import *
 # ListDiff: 以 item 作为最小比较单元。降维后可用于StrDiff
 
 # https://docs.python.org/3/library/re.html
@@ -144,7 +144,7 @@ class _Match :
     # keyed by the subgroup name. The default argument is used for groups that
     # did not participate in the match; it defaults to None.
     def namedGroupDict(self, *, default = None, ignore_missing = True) :
-        from Dict import Dict
+        from .Dict import Dict
         return Dict((key, value) for key, value in self._match.groupdict(default).items() if not ignore_missing or value != default)
 
     # Match.start([group])
@@ -343,7 +343,7 @@ class Str(str, base_class) :
     # matches for the RE pattern in string. The string is scanned left-to-right,
     # and matches are returned in the order found. Empty matches are included
     # in the result.
-    def findAllMatchList(self, pattern, /, *, flags = 0) : from List import List; return List(_Match(match) for match in re.finditer(pattern, self, flags))
+    def findAllMatchList(self, pattern, /, *, flags = 0) : from .List import List; return List(_Match(match) for match in re.finditer(pattern, self, flags))
     
     def onlyOneMatch(self, pattern, /, *, flags = 0, default = NV) -> _Match :
         matches = self.findAllMatchList(pattern, flags = flags)
@@ -457,7 +457,7 @@ class Str(str, base_class) :
     # ['', '...', '', '', 'w', '', 'o', '', 'r', '', 'd', '', 's', '...', '', '', '']
     # NOT IN PLACE
     def split(self, sep_or_pattern, /, *, maxsplit: int = None, reverse = False, re_mode = False, flags = 0) :
-        from List import List
+        from .List import List
         if re_mode :
             if maxsplit is None                               : maxsplit = 0
             if reverse                                        : raise Exception(f'无法通过正则[{sep_or_pattern}]反向切割字符串[{self}]')
@@ -501,7 +501,7 @@ class Str(str, base_class) :
 
     # NOT IN PLACE
     def range(self) :
-        from List import List
+        from .List import List
         return self.split(r' *, *', re_mode = True).map(
             lambda part : 
                 List(range(int(part.split('-')[0]), int(part.split('-')[1]) + 1))
@@ -526,7 +526,7 @@ class Str(str, base_class) :
     # a character in the Unicode General Category “Nd”.
     def isNumber(self) : return super().isdecimal()
 
-    def toDateTime(self, pattern = '%Y-%m-%d %H:%M:%S') : from DateTime import DateTime; return DateTime(self, pattern)
+    def toDateTime(self, pattern = '%Y-%m-%d %H:%M:%S') : from .DateTime import DateTime; return DateTime(self, pattern)
 
     def isInt(self) : return self.isNumber() and self.hasNo('.')
 

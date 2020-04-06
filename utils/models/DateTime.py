@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
 import time
 from datetime import timedelta as timedelta_class, datetime as datetime_class, date as date_class, time as time_class, tzinfo as timezone_class
-from shared import *
+from ..shared import *
 
 # https://docs.python.org/zh-cn/3/library/datetime.html
     # %a  当地工作日的缩写。Sun, Mon, ..., Sat (en_US)
@@ -493,7 +493,7 @@ class DateTime(base_class) :
 class DateList(base_class) :
 
     def __init__(self, date_list, /) :
-        from List import List
+        from .List import List
         if not isinstance(date_list, list) : raise CustomTypeError(date_list)
         self._date_list = List(date_list)
     
@@ -531,7 +531,7 @@ class DateList(base_class) :
 class DateRange(DateList) :
 
     def __init__(self, start: Union[date_class, Date, str], end: Union[date_class, Date, str], pattern = '%Y-%m-%d', /) :
-        from List import List
+        from .List import List
         start_date = Date(start, pattern)
         end_date   = Date(end, pattern)
         if start_date == end_date : super().__init__(List()); return

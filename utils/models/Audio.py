@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
 from pydub import AudioSegment
-from shared import *
-from File import File
+from ..shared import *
+from .File import File
 
 class Audio(File) :
 

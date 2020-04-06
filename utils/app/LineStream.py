@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from shared import *
-from Str import Str
+from ..shared     import *
+from ..models.Str import Str
 
 class _Line :
 

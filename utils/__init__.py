@@ -1,26 +1,9 @@
 # -*- coding: utf-8 -*-  
 import sys, requests
-from sys        import exit
-from shared     import R, Y, G, C, B, P, S, W, E, Timer
-from shared     import isgenerator, wraps, prop, cached_prop, cached_func, total_ordering, Optional, Union, attrgetter, itemgetter, methodcaller
-from shared     import CustomTypeError, ensure_args_type, print_func, log_entering, anti_duplicate_new, anti_duplicate_init, inspect_object
-
-from ObjectId   import ObjectId
-from Str        import Str
-from DateTime   import TimeDelta, Date, Time, DateTime, DateList, DateRange, Year, Month, Week, timedelta_class, date_class, time_class, datetime_class
-from List       import List
-from Dict       import Dict
-from Inspect    import Inspect, Diff
-from Object     import Object
-from Json       import j
-
-from File       import File
-from Folder     import Folder
-from Counter    import Counter
-from LineStream import LineStream
-from Table      import Table
-# from Audio      import Audio
-# from Base       import Base
+from sys    import exit
+from .shared import *
+from .models import *
+from .app    import *
 
 class SysArgv :
 
@@ -99,7 +82,8 @@ if __name__ == '__main__':
         14                : 6.7,
         15                : 'word',
     })
-    import Json, datetime
+    from ..app import Json
+    import datetime
     print(Dict(a).j())
     print('1', a)
     print()

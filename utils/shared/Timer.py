@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-  
 import sys, time
 from functools import wraps
-from typing import Optional
-from Color import Y, P, E
+from typing    import Optional
+from .Color    import Y, P, E
 prop = property
 
 class Timer :
@@ -99,7 +99,7 @@ class Timer :
     @classmethod
     def printTiming(cls, msg = '', *, delta: Optional[float] = None, indent: int = 0, color = None) :
         cls.__initclass__()
-        from DateTime import DateTime
+        from ..models.DateTime import DateTime
         timing_delta = time.time() - cls._global_current
         cls._global_delta_list.append(timing_delta)
         cls._global_total += timing_delta

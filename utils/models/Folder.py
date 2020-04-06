@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-  
-from os import makedirs, rmdir, walk
-from shared import *
-from Str import Str
-from List import List
-from File import File, realpath, exists
+from os       import makedirs, rmdir, walk
+from ..shared import *
+from .Str     import Str
+from .List    import List
+from .File    import File, realpath, exists
 
 class Folder(base_class) :
 

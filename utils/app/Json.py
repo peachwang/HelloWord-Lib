@@ -1,14 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
-from shared import *
-from ObjectId import ObjectId
-from Str      import Str
-from DateTime import TimeDelta, Date, Time, DateTime, DateList, DateRange, Year, Month, Week, timedelta_class, date_class, time_class, datetime_class
-from List     import List
-from Dict     import Dict
-from Object   import Object
-from File     import File
-from Folder   import Folder
+from ..shared import *
+from ..models import *
 
 class CustomDecoder(json.JSONDecoder) :
 
@@ -46,11 +39,11 @@ class CustomDecoder(json.JSONDecoder) :
             print(f'无法解析 json 中第 {C(e.lineno)} 行，第 {C(e.colno)} 列，第 {C(e.pos)} 个字符的位置 {C(msg)} :\n{e.doc[start : e.pos]}{C(e.doc[e.pos])}{e.doc[e.pos + 1 : end]}')
             raise e
 
-def raw_load_json_file(fp) -> object :
-    return json.load(fp, cls = CustomDecoder, object_hook = CustomDecoder.object_hook)
+def raw_load_json_file(fp) -> object : return json.load(fp, cls = CustomDecoder, object_hook = CustomDecoder.object_hook)
 
-def raw_load_json_str(string) -> object :
-    return json.loads(string, cls = CustomDecoder, object_hook = CustomDecoder.object_hook)
+def raw_load_json_str(string) -> object : return json.loads(string, cls = CustomDecoder, object_hook = CustomDecoder.object_hook)
+
+def raw_load_json_stdin() -> object : import sys; return raw_load_json_file(sys.stdin)
 
 class CustomEncoder(json.JSONEncoder) :
 

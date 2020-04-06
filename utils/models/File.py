@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-  
-from os import remove, rename
-from os.path import realpath, exists, getsize
-from shared import *
-from Str import Str
-from List import List
-from Dict import Dict
+from os       import remove, rename
+from os.path  import realpath, exists, getsize
+from ..shared import *
+from .Str     import Str
+from .List    import List
+from .Dict    import Dict
 
 class File(base_class) :
 
@@ -112,8 +112,8 @@ class File(base_class) :
     def readFieldList(self, *, index, sep = '\t') -> List : return self._readLineList(filter_white_lines = True).map(lambda line : line.split(sep)[index])
 
     def _loadJson(self, *, raw = False) -> Union[list, dict, List, Dict] :
-        import Json
-        data = Json.raw_load_json_file(open(self._path))
+        from ..app.Json import raw_load_json_file
+        data = raw_load_json_file(open(self._path))
         if isinstance(data, list)   :
             if not raw                 : data = List(data)
             if hasattr(self, '_range') : return data[self._range]
@@ -139,8 +139,8 @@ class File(base_class) :
     def writeLineList(self, line_list, /, *, append = False) : return self.writeString('\n'.join(line_list), append = append)
 
     def _dumpJson(self, obj, /, *, indent = True) :
-        import Json
-        Json.raw_dump_json_file(obj, open(self._path, 'w'), indent = indent) # raw_dump_json_file 内部可以处理 List, Dict 类型
+        from ..app.Json import raw_dump_json_file
+        raw_dump_json_file(obj, open(self._path, 'w'), indent = indent) # raw_dump_json_file 内部可以处理 List, Dict 类型
         return self
 
     def writeData(self, data, /, **kwargs) :
