@@ -25,13 +25,13 @@ class Counter :
 
     def valueList(self, key, /) : return self._key_to_value_list[key]
 
-    def keys(self) : return List(self._key_to_value_list.keys())
+    def keys(self) : return List(list(self._key_to_value_list.keys()))
     
     def __iter__(self) : return self.keys().iter()
     
     def iter(self) : return self.__iter__()
     
-    def items(self) : return List((key, self[key]) for key in self)
+    def items(self) : return List(list(self._key_to_sum.items()))
 
     def add(self, key, value, /) :
         if key not in self._key_to_value_list : self._init(key)
