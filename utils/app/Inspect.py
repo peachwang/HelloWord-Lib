@@ -20,7 +20,7 @@ class _FieldSlot :
         self._list_len_list         = []
         self._child_field_slot_list = List()
 
-    def setParentFieldSlot(self, field_slot, /) : self._parent_field_slot = field_slot; return self
+    def set_parent_field_slot(self, field_slot, /) : self._parent_field_slot = field_slot; return self
 
     @cached_prop
     def is_root(self) : return self._parent_field_slot is None
@@ -43,9 +43,9 @@ class _FieldSlot :
     @cached_prop
     def in_list(self) : return False if self.is_root else self._parent_field_slot.is_list
 
-    def addField(self, field, /) :
+    def add_field(self, field, /) :
         self._field_list.append(field)
-        self._type_str_list.uniqueAppend(field.type_str)
+        self._type_str_list.unique_append(field.type_str)
 
         if field.is_list   : self._list_len_list.append(len(field.value))
         elif field.is_dict : pass
@@ -74,7 +74,7 @@ class _FieldSlot :
                 if len(self._list_len_list) == 0         : result += f' {G("为空")}'
                 elif len(self._list_len_list) <= max_len : result += f' 含     {List(self._list_len_list).sort(reverse = True).join(", ")} 个元素'
                 else                                     :
-                    counter     = List(self._list_len_list).countBy()
+                    counter     = List(self._list_len_list).count_by()
                     counter_str = List(f'({length}, {count}次)' for length, count in counter.items().sort(itemgetter(1), reverse = True))[:max_len].join(', ')
                     result      += f' 含     {counter_str}{", etc." if counter.len() > max_len else ""} 个元素'
             elif self.is_dict :
@@ -84,7 +84,7 @@ class _FieldSlot :
             if len(self._value_list) == 0         : result += f'{R(" 无取值")}'
             elif len(self._value_list) <= max_len : result += f' 取值   {P(List(self._value_list).sort(lambda _ : f"{_}").format(f"{{!s:.{max_width}}}").join(", "))}'
             else                                  :
-                counter     = List(self._value_list).countBy()
+                counter     = List(self._value_list).count_by()
                 counter_str = List(f'({value!s:.{max_width}}, {count}次)' for value, count in counter.items().sort(itemgetter(1), reverse = True))[:max_len].join(', ')
                 result      += f' 取值   {P(counter_str)}{", etc." if counter.len() > max_len else ""}'
         return f'{result:{spec}}'
@@ -100,12 +100,12 @@ class _Field :
         self._build(field_slot_dict, **kwargs)
         
         if self.slot_path_tuple not in field_slot_dict : field_slot_dict[self.slot_path_tuple] = _FieldSlot(self.slot_path_tuple)
-        self._field_slot = field_slot_dict[self.slot_path_tuple].addField(self)
+        self._field_slot = field_slot_dict[self.slot_path_tuple].add_field(self)
         if not self.is_leaf                            :
             for child_field in self._child_field_list : # 建立双向映射
-                self._field_slot.child_field_slot_list.uniqueAppend(child_field.field_slot)
-                child_field.field_slot.setParentFieldSlot(self._field_slot)
-        if self.is_root                                : self._field_slot.setParentFieldSlot(None)
+                self._field_slot.child_field_slot_list.unique_append(child_field.field_slot)
+                child_field.field_slot.set_parent_field_slot(self._field_slot)
+        if self.is_root                                : self._field_slot.set_parent_field_slot(None)
 
     def _build(self, field_slot_dict, /) :
         if self.is_root : self._path_tuple = tuple()
@@ -136,7 +136,7 @@ class _Field :
     def path_str(self) -> str : return '.'.join(self._path_tuple) if len(self._path_tuple) > 0 else 'ROOT'
 
     @cached_prop
-    def slot_path_tuple(self) : return tuple('#' if Str(name).fullMatch(r'#\d+') else name for name in self._path_tuple)
+    def slot_path_tuple(self) : return tuple('#' if Str(name).full_match(r'#\d+') else name for name in self._path_tuple)
 
     @cached_prop
     def value(self) : return self._value
@@ -167,7 +167,7 @@ class _Field :
                 Dict  : 'dict',
                 dict  : 'dict',
             }
-            .get(type(self._value), Str(str(type(self._value))).fullMatch(r'<class \'([^\'\.]+\.)?([^\']+)\'>').oneGroup(2).getRaw())
+            .get(type(self._value), Str(str(type(self._value))).full_match(r'<class \'([^\'\.]+\.)?([^\']+)\'>').one_group(2).get_raw())
         )
 
     @cached_prop
@@ -210,14 +210,14 @@ class Inspect :
     @cached_prop
     def all_field_list(self) : return self._root_field.all_field_list
 
-    def printAllFieldList(self) : self.all_field_list.printFormat(); return self
+    def print_all_field_list(self) : self.all_field_list.print_format(); return self
 
     @cached_prop
     def all_field_slot_list(self) : return self._root_field.field_slot.all_field_slot_list.sort('path_str')
 
-    def printAllFieldSlotList(self) : self.all_field_slot_list.printFormat(); return self
+    def print_all_field_slot_list(self) : self.all_field_slot_list.print_format(); return self
 
-    def print(self) : self.printAllFieldList(); print('-' * 80); self.printAllFieldSlotList(); return self
+    def print(self) : self.print_all_field_list(); print('-' * 80); self.print_all_field_slot_list(); return self
 
 class _DiffField(_Field) :
 
@@ -272,11 +272,11 @@ class _DiffField(_Field) :
     @cached_prop
     def all_diff_field_list(self) : return self.child_diff_field_list.all_diff_field_list.merged().prepend(self)
 
-    def getDifferentFieldList(self, filter_list = None) :
+    def get_different_field_list(self, filter_list = None) :
         if isinstance(filter_list, list) and (self.path_str, self._status) in filter_list : return List()
-        result = List(_.getDifferentFieldList(filter_list = filter_list) for _ in self._child_diff_field_list).merged()
+        result = List(_.get_different_field_list(filter_list = filter_list) for _ in self._child_diff_field_list).merged()
         if (self._status in (Diff.S_DIFFTYPE, Diff.S_DIFFVALUE, Diff.S_ADDED, Diff.S_DELETED)
-            or self._status in (Diff.S_DIFFLEN, Diff.S_DIFFCHILD) and result.isNotEmpty()) :
+            or self._status in (Diff.S_DIFFLEN, Diff.S_DIFFCHILD) and result.is_not_empty()) :
             result.prepend(self)
         return result
 
@@ -313,10 +313,10 @@ class Diff :
     @cached_prop
     def all_diff_field_list(self) : return self._root_diff_field.all_diff_field_list
 
-    def printAllDiffFieldList(self) : self.all_diff_field_list.printFormat(); return self
+    def print_all_diff_field_list(self) : self.all_diff_field_list.print_format(); return self
 
-    def getDifferentFieldList(self, **kwargs) : return self._root_diff_field.getDifferentFieldList(**kwargs)
+    def get_different_field_list(self, **kwargs) : return self._root_diff_field.get_different_field_list(**kwargs)
 
-    def printDifferentFieldList(self, **kwargs) : self.getDifferentFieldList(**kwargs).printFormat(); return self
+    def print_different_field_list(self, **kwargs) : self.get_different_field_list(**kwargs).print_format(); return self
 
-    def print(self, **kwargs) : return self.printDifferentFieldList(**kwargs)
+    def print(self, **kwargs) : return self.print_different_field_list(**kwargs)

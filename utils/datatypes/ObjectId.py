@@ -7,7 +7,7 @@ class ObjectId(bson.objectid.ObjectId) :
 
     # Checks if a oid string is valid or not.
     @classmethod
-    def isValid(cls, string) -> bool : super().is_valid(cls, string)
+    def is_valid(cls, string) -> bool : super().is_valid(cls, string)
 
     def __init__(self, string = None) : super().__init__(string)
 
@@ -21,7 +21,7 @@ class ObjectId(bson.objectid.ObjectId) :
     @log_entering()
     def __repr__(self) : return f'ObjectId("{super().__str__()}")'
 
-    def jsonSerialize(self) -> dict : return { '$id' : super().__str__() }
+    def json_serialize(self) -> dict : return { '$id' : super().__str__() }
 
     # A datetime.datetime instance representing the time of generation for this ObjectId.
     # The datetime.datetime is timezone aware, and represents the generation time in UTC. It is precise to the second.

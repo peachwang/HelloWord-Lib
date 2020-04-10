@@ -11,9 +11,9 @@ class FileManager :
     def __init__(self) :
         super().__init__()
         self._file = File(f'{self.file_path}')
-        if self._file.notExists() : self._file.writeData(self.initial_data)
+        if self._file.not_exists() : self._file.write_data(self.initial_data)
 
     def save(self, indent = True) :
-        self._file.writeData(self._file_data, indent = indent);
-        Timer.printTiming(f'{self._class} 已保存', color = G)
+        self._file.write_data(self._file_data, indent = indent);
+        Timer.print_timing(f'{self._class} 已保存', color = G)
         return self

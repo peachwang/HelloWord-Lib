@@ -53,7 +53,7 @@ class TimeDelta(base_class) :
     def __init__(self, timedelta = None, **kwargs) :
         if timedelta is None                        : self._timedelta = timedelta_class(**kwargs)
         elif isinstance(timedelta, timedelta_class) : self._timedelta = timedelta
-        elif isinstance(timedelta, TimeDelta)       : self._timedelta = timedelta.getRaw()
+        elif isinstance(timedelta, TimeDelta)       : self._timedelta = timedelta.get_raw()
         else                                        : raise CustomTypeError(timedelta)
 
     # READ-ONLY PROPERTIES
@@ -94,11 +94,11 @@ class TimeDelta(base_class) :
     @cached_prop
     def tuple(self) -> tuple : return (self._timedelta.days, self._timedelta.seconds, self._timedelta.microseconds)
 
-    def getRaw(self) -> timedelta_class : return self._timedelta
+    def get_raw(self) -> timedelta_class : return self._timedelta
 
-    def jsonSerialize(self) -> dict : return { 'days' : self._timedelta.days, 'seconds' : self._timedelta.seconds, 'microseconds' : self._timedelta.microseconds }
+    def json_serialize(self) -> dict : return { 'days' : self._timedelta.days, 'seconds' : self._timedelta.seconds, 'microseconds' : self._timedelta.microseconds }
 
-    def copy(self) : return TimeDelta(self.getRaw())
+    def copy(self) : return TimeDelta(self.get_raw())
 
     # OPERATIONS
     # t1 = t2 + t3                 t2 和 t3 的和。 运算后 t1-t2 == t3 and t1-t3 == t2 必为真值。 结果正确，但可能会溢出。
@@ -127,12 +127,12 @@ class TimeDelta(base_class) :
     def __add__(self, other) :
         if isinstance(other, int) and other == 0  : return self
         elif not isinstance(other, TimeDelta)     : raise CustomTypeError(other)
-        return TimeDelta(self._timedelta + other.getRaw())
+        return TimeDelta(self._timedelta + other.get_raw())
 
     def __sub__(self, other) :
         if isinstance(other, int) and other == 0 : return self
         elif not isinstance(other, TimeDelta)    : raise CustomTypeError(other)
-        return TimeDelta(self._timedelta - other.getRaw())
+        return TimeDelta(self._timedelta - other.get_raw())
 
     def __mul__(self, int_or_float) :
         if not isinstance(int_or_float, (int, float)) : raise CustomTypeError(int_or_float)
@@ -141,32 +141,32 @@ class TimeDelta(base_class) :
     def __rmul__(self, int_or_float) : return self.__mul__(int_or_float)
 
     def __truediv__(self, other_or_int_or_float) :
-        if isinstance(other_or_int_or_float, TimeDelta)      : return self._timedelta / other_or_int_or_float.getRaw()
+        if isinstance(other_or_int_or_float, TimeDelta)      : return self._timedelta / other_or_int_or_float.get_raw()
         elif isinstance(other_or_int_or_float, (int, float)) : return TimeDelta(self._timedelta / other_or_int_or_float)
         else                                                 : raise CustomTypeError(other_or_int_or_float)
 
     def __floordiv__(self, other_or_int_or_float) :
-        if isinstance(other_or_int_or_float, TimeDelta)      : return self._timedelta // other_or_int_or_float.getRaw()
+        if isinstance(other_or_int_or_float, TimeDelta)      : return self._timedelta // other_or_int_or_float.get_raw()
         elif isinstance(other_or_int_or_float, (int, float)) : return TimeDelta(self._timedelta // other_or_int_or_float)
         else                                                 : raise CustomTypeError(other_or_int_or_float)
 
     def __mod__(self, other) :
         if not isinstance(other, TimeDelta) : raise CustomTypeError(other)
-        return TimeDelta(self._timedelta % other.getRaw())
+        return TimeDelta(self._timedelta % other.get_raw())
 
     def __divmod__(self, other) :
         if not isinstance(other, TimeDelta) : raise CustomTypeError(other)
-        return (self._timedelta // other.getRaw(), TimeDelta(self._timedelta % other.getRaw()))
+        return (self._timedelta // other.get_raw(), TimeDelta(self._timedelta % other.get_raw()))
 
     def __lt__(self, other) :
         if isinstance(other, int) and other == 0 : return self < TimeDelta()
         elif not isinstance(other, TimeDelta)    : raise CustomTypeError(other)
-        return self._timedelta.__lt__(other.getRaw())
+        return self._timedelta.__lt__(other.get_raw())
 
     def __eq__(self, other) :
         if isinstance(other, int) and other == 0 : return self == TimeDelta()
         elif not isinstance(other, TimeDelta)    : raise CustomTypeError(other)
-        return self._timedelta.__eq__(other.getRaw())
+        return self._timedelta.__eq__(other.get_raw())
 
     def __format__(self, spec) :
         if spec == '时'       : return (f'{self.days * 24 + self.hours + self.minutes / 60:>2.1f}小时' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ')
@@ -191,10 +191,10 @@ class Date(base_class) :
     def today() : return Date(date_class.fromtimestamp(time.time()))
 
     # 返回对应于预期格列高利历序号的日期，其中公元 1 年 1 月 1 日的序号为 1。
-    def fromOrdinalNum(ordinal_num, /) : return Date(date_class.fromordinal(ordinal_num))
+    def from_ordinal_num(ordinal_num, /) : return Date(date_class.fromordinal(ordinal_num))
 
     # 返回指定 year, week 和 day 所对应 ISO 历法日期的 date。 这是函数 date.isocalendar() 的逆操作。
-    def fromISOYearWeekDay(yaer, week, day, /) : return Date(date_class.fromisocalendar(year, week, day))
+    def from_iso_year_week_day(yaer, week, day, /) : return Date(date_class.fromisocalendar(year, week, day))
 
     #class datetime.date(year, month, day)
     def __init__(self, timestamp_or_date_or_string = None, /, pattern = '%Y-%m-%d', **kwargs) :
@@ -202,7 +202,7 @@ class Date(base_class) :
             if len(kwargs) > 0 : self._date = date_class(**kwargs)
             else               : self._date = date_class.fromtimestamp(time.time())
         elif isinstance(timestamp_or_date_or_string, date_class)   : self._date = timestamp_or_date_or_string
-        elif isinstance(timestamp_or_date_or_string, Date)         : self._date = timestamp_or_date_or_string.getRaw()
+        elif isinstance(timestamp_or_date_or_string, Date)         : self._date = timestamp_or_date_or_string.get_raw()
         elif isinstance(timestamp_or_date_or_string, (int, float)) :
             if timestamp_or_date_or_string < 10000 or timestamp_or_date_or_string > 2000000000 : raise CustomTypeError(timestamp_or_date_or_string)
             self._date = date_class.fromtimestamp(timestamp_or_datetime_or_string)
@@ -246,9 +246,9 @@ class Date(base_class) :
     @cached_prop
     def tuple(self) -> tuple : return (self.year, self.month, self.day)
 
-    def getRaw(self) -> date_class : return self._date
+    def get_raw(self) -> date_class : return self._date
 
-    def jsonSerialize(self) -> str : return self.__format__('')
+    def json_serialize(self) -> str : return self.__format__('')
     
     # date.replace(year=self.year, month=self.month, day=self.day)
     def replace(self, **kwargs) : return Date(self._date.replace(**kwargs))
@@ -265,31 +265,31 @@ class Date(base_class) :
     @cached_prop
     def ordinal_num(self) -> int : return self._date.toordinal()
 
-    def toYear(self) : return Year(year = self.year)
+    def to_year(self) : return Year(year = self.year)
 
-    def toMonth(self) : return Month(year = self.year, month = self.month)
+    def to_month(self) : return Month(year = self.year, month = self.month)
 
-    def toWeek(self) : return Week(year = self.year, month = self.month, day = self.day)
+    def to_week(self) : return Week(year = self.year, month = self.month, day = self.day)
 
     def __lt__(self, other) : 
         if not isinstance(other, Date) : raise CustomTypeError(other)
-        return self._date.__lt__(other.getRaw())
+        return self._date.__lt__(other.get_raw())
 
     def __eq__(self, other) :
         if not isinstance(other, Date) : raise CustomTypeError(other)
-        return self._date.__eq__(other.getRaw())
+        return self._date.__eq__(other.get_raw())
 
     def __add__(self, timedelta_or_days, /) :
-        if isinstance(timedelta_or_days, TimeDelta) : return Date(self.getRaw() + timedelta_or_days.getRaw())
-        elif isinstance(timedelta_or_days, int)     : return Date(self.getRaw() + TimeDelta(days = timedelta_or_days).getRaw())
+        if isinstance(timedelta_or_days, TimeDelta) : return Date(self.get_raw() + timedelta_or_days.get_raw())
+        elif isinstance(timedelta_or_days, int)     : return Date(self.get_raw() + TimeDelta(days = timedelta_or_days).get_raw())
         else                                        : raise CustomTypeError(timedelta)
 
     # date2 = date1 - timedelta 计算 date2 的值使得 date2 + timedelta == date1。 timedelta.seconds 和 timedelta.microseconds 会被忽略。
     # timedelta = date1 - date2 此值完全精确且不会溢出。 操作完成后 timedelta.seconds 和 timedelta.microseconds 均为 0，并且 date2 + timedelta == date1。
     def __sub__(self, timedelta_or_date_or_days, /) :
-        if isinstance(timedelta_or_date_or_days, TimeDelta) : return Date(self.getRaw() - timedelta_or_date_or_days.getRaw())
-        elif isinstance(timedelta_or_date_or_days, Date)    : return TimeDelta(self.getRaw() - timedelta_or_date_or_days.getRaw())
-        elif isinstance(timedelta_or_date_or_days, int)     : return Date(self.getRaw() - TimeDelta(days = timedelta_or_date_or_days).getRaw())
+        if isinstance(timedelta_or_date_or_days, TimeDelta) : return Date(self.get_raw() - timedelta_or_date_or_days.get_raw())
+        elif isinstance(timedelta_or_date_or_days, Date)    : return TimeDelta(self.get_raw() - timedelta_or_date_or_days.get_raw())
+        elif isinstance(timedelta_or_date_or_days, int)     : return Date(self.get_raw() - TimeDelta(days = timedelta_or_date_or_days).get_raw())
         else                                                : raise CustomTypeError(timedelta_or_date_or_days)
 
     def __format__(self, spec) : return f'{self._date:{spec}}'
@@ -318,7 +318,7 @@ class Time(base_class) :
             if len(kwargs) > 0 : self._time = time_class(**kwargs)
             else               : self._time = datetime_class.fromtimestamp(time.time()).time()
         elif isinstance(time_or_string, time_class) : self._time = time_or_string
-        elif isinstance(time_or_string, Time)       : self._time = time_or_string.getRaw()
+        elif isinstance(time_or_string, Time)       : self._time = time_or_string.get_raw()
         elif isinstance(time_or_string, str)        : self._time = datetime_class.strptime(time_or_string, pattern).time()
         else                                        : raise CustomTypeError(time_or_string)
 
@@ -341,9 +341,9 @@ class Time(base_class) :
     @cached_prop
     def tuple(self) -> tuple : return (self._time.hour, self._time.minute, self._time.second, self._time.microsecond)
 
-    def getRaw(self) -> time_class : return self._time
+    def get_raw(self) -> time_class : return self._time
 
-    def jsonSerialize(self) -> str : return f'{self:%H:%M:%S.%f}'
+    def json_serialize(self) -> str : return f'{self:%H:%M:%S.%f}'
 
     # time.replace(hour=self.hour, minute=self.minute, second=self.second, microsecond=self.microsecond, tzinfo=self.tzinfo, * fold=0)
     def replace(self, **kwargs) : return Time(self._time.replace(**kwargs))
@@ -353,12 +353,12 @@ class Time(base_class) :
     def __lt__(self, other) :
         if isinstance(other, int) and other == 0 : return self < Time()
         elif not isinstance(other, Time)         : raise CustomTypeError(other)
-        return self._time.__lt__(other.getRaw())
+        return self._time.__lt__(other.get_raw())
 
     def __eq__(self, other) :
         if isinstance(other, int) and other == 0 : return self == Time()
         elif not isinstance(other, Time)         : raise CustomTypeError(other)
-        return self._time.__eq__(other.getRaw())
+        return self._time.__eq__(other.get_raw())
 
     def __format__(self, spec) : return f'{self._time:{spec}}'
 
@@ -379,7 +379,7 @@ class DateTime(base_class) :
 
     def combine(date: Date, time: Time) :
         if not isinstance(date, Date) or not isinstance(time, Time) : raise CustomTypeError((date, time))
-        return DateTime(datetime_class.combine(date.getRaw(), time.getRaw()))
+        return DateTime(datetime_class.combine(date.get_raw(), time.get_raw()))
 
     # class datetime.datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
     def __init__(self, timestamp_or_datetime_or_string = None, /, pattern = '%Y-%m-%d %H:%M:%S', **kwargs) :
@@ -387,7 +387,7 @@ class DateTime(base_class) :
             if len(kwargs) > 0 : self._datetime = datetime_class(**kwargs)
             else               : self._datetime = datetime_class.fromtimestamp(time.time())
         elif isinstance(timestamp_or_datetime_or_string, datetime_class) : self._datetime = timestamp_or_datetime_or_string
-        elif isinstance(timestamp_or_datetime_or_string, DateTime)       : self._datetime = timestamp_or_datetime_or_string.getRaw()
+        elif isinstance(timestamp_or_datetime_or_string, DateTime)       : self._datetime = timestamp_or_datetime_or_string.get_raw()
         elif isinstance(timestamp_or_datetime_or_string, (int, float))   :
             if timestamp_or_datetime_or_string < 10000 or timestamp_or_datetime_or_string > 2000000000 : raise CustomTypeError(timestamp_or_datetime_or_string)
             self._datetime = datetime_class.fromtimestamp(timestamp_or_datetime_or_string)
@@ -433,10 +433,10 @@ class DateTime(base_class) :
     @cached_prop
     def tuple(self) -> tuple : return (self.year, self.month, self.day, self.hour, self.minute, self.second, self.microsecond)
 
-    def getRaw(self) : return self._datetime
+    def get_raw(self) : return self._datetime
 
-    # def jsonSerialize(self) -> list : return list(self.tuple)
-    def jsonSerialize(self) -> list : return { 'sec' : int(self.timestamp), 'usec' : self.microsecond }
+    # def json_serialize(self) -> list : return list(self.tuple)
+    def json_serialize(self) -> list : return { 'sec' : int(self.timestamp), 'usec' : self.microsecond }
 
     # datetime.replace(year=self.year, month=self.month, day=self.day, hour=self.hour, minute=self.minute, second=self.second, microsecond=self.microsecond, tzinfo=self.tzinfo, * fold=0)
     def replace(self, **kwargs) : return DateTime(self._datetime.replace(**kwargs))
@@ -444,7 +444,7 @@ class DateTime(base_class) :
     def copy(self) : return DateTime(self._datetime)
 
     # datetime.astimezone(tz=None)
-    def toTimeZone(self, timezone = None) : return DateTime(self._datetime.astimezone(timezone))
+    def to_timezone(self, timezone = None) : return DateTime(self._datetime.astimezone(timezone))
 
     @cached_prop
     def timestamp(self) -> float : return self._datetime.timestamp()
@@ -457,15 +457,15 @@ class DateTime(base_class) :
 
     def __lt__(self, other) :
         if not isinstance(other, DateTime) : raise CustomTypeError(other)
-        return self._datetime.__lt__(other.getRaw())
+        return self._datetime.__lt__(other.get_raw())
 
     def __eq__(self, other) :
         if not isinstance(other, DateTime) : raise CustomTypeError(other)
-        return self._datetime.__eq__(other.getRaw())
+        return self._datetime.__eq__(other.get_raw())
 
     def __add__(self, timedelta, /) :
         if not isinstance(timedelta, TimeDelta) : raise CustomTypeError(timedelta)
-        return DateTime(self._datetime + timedelta.getRaw())
+        return DateTime(self._datetime + timedelta.get_raw())
 
     def __sub__(self, timedelta_or_datetime, /) :
         '''
@@ -473,8 +473,8 @@ class DateTime(base_class) :
         如果两个操作数都是简单型，或都是感知型并且具有相同的 tzinfo 属性，则 tzinfo 属性会被忽略，并且结果会是一个使得 datetime2 + t == datetime1 的 timedelta 对象 t。 在此情况下不会进行时区调整。
         如果两个操作数都是感知型且具有不同的 tzinfo 属性，a-b 操作的效果就如同 a 和 b 首先被转换为简单型 UTC 日期时间。 结果将是 (a.replace(tzinfo=None) - a.utcoffset()) - (b.replace(tzinfo=None) - b.utcoffset())，除非具体实现绝对不溢出。
         '''
-        if isinstance(timedelta_or_datetime, TimeDelta)  : return DateTime(self._datetime - timedelta_or_datetime.getRaw())
-        elif isinstance(timedelta_or_datetime, DateTime) : return TimeDelta(self._datetime - timedelta_or_datetime.getRaw())
+        if isinstance(timedelta_or_datetime, TimeDelta)  : return DateTime(self._datetime - timedelta_or_datetime.get_raw())
+        elif isinstance(timedelta_or_datetime, DateTime) : return TimeDelta(self._datetime - timedelta_or_datetime.get_raw())
         else                                             : raise CustomTypeError(timedelta_or_datetime)
 
     def __format__(self, spec) :
@@ -500,9 +500,9 @@ class DateList(base_class) :
     @cached_prop
     def date_list(self) : return self._date_list
 
-    def getRaw(self) -> list : return self._date_list.getRaw()
+    def get_raw(self) -> list : return self._date_list.get_raw()
 
-    def jsonSerialize(self) -> list : return self._date_list.jsonSerialize()
+    def json_serialize(self) -> list : return self._date_list.json_serialize()
     
     def len(self) -> int : return self._date_list.len()
 
@@ -516,7 +516,7 @@ class DateList(base_class) :
     @cached_prop
     def weekend_list(self) : return DateList(self._date_list.filter(lambda date : date.is_weekend))
 
-    def getWeekdayList(self, weekday: int, /) :
+    def get_weekday_list(self, weekday: int, /) :
         if weekday not in range(1, 8) : raise CustomTypeError(weekday)
         return DateList(self._date_list.filter(lambda date : date.weekday == weekday))
 
@@ -546,7 +546,7 @@ class DateRange(DateList) :
     @cached_prop
     def last_date(self) -> Date : return self[-1]
 
-    def jsonSerialize(self) -> list :
+    def json_serialize(self) -> list :
         if not isinstance(self, (Year, Month, Week)) : return [ self.first_date, self.last_date + 1 ]
         else                                         : return list(self.tuple)
     

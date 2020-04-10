@@ -38,7 +38,7 @@ def ensure_args_type(func) :
         from typing import _GenericAlias
         # inspect_object(func, 'func')
         # inspect_object(func.__code__, 'func.__code__')
-        def ensureType(name, value, value_type) :
+        def ensure_type(name, value, value_type) :
             # print(type(value), value, type(value_type), value_type)#, type(value_type.__origin__), value_type.__origin__, type(value_type.__args__), value_type.__args__)
             if value_type is inspect._empty                 : return
             elif (type(value_type) is type
@@ -64,10 +64,10 @@ def ensure_args_type(func) :
             # print(param.kind.description)
             # print(value)
             # print()
-            ensureType(param.name, value, param.annotation)
+            ensure_type(param.name, value, param.annotation)
             # input()
         result = func(*args, **kwargs)
-        if 'return' in func.__annotations__ : ensureType('return', result, func.__annotations__['return'])
+        if 'return' in func.__annotations__ : ensure_type('return', result, func.__annotations__['return'])
         return result
     return wrapper
 
@@ -77,9 +77,9 @@ def print_func(func) :
         content, print_len = func(self, *args)
         content = pattern.format(content)
         if color is not None : content = color(content)
-        if print_timing      : Timer.printTiming(content)
+        if print_timing      : Timer.print_timing(content)
         else                 : print(content, **kwargs)
-        if print_len         : self.printLen(color = color, **kwargs)
+        if print_len         : self.print_len(color = color, **kwargs)
         return self
     return wrapper
 
@@ -92,9 +92,9 @@ def log_entering(pattern: str = '') :
             # kwargs.pop('self')
             if '.' in str(cls_or_self.__class__) : _ = f'{id(cls_or_self)}{str(cls_or_self.__class__).split(".")[-1][ : -2]:>15}.{func.__qualname__:30}'
             else                                 : _ = f'{id(cls_or_self)}.{func.__qualname__:30}'
-            Timer.printTiming(f'{_} {Y("开始")} {msg}')
+            Timer.print_timing(f'{_} {Y("开始")} {msg}')
             result = func(cls_or_self, *args, **kwargs)
-            Timer.printTiming(f'{_} {G("结束")} {msg}')
+            Timer.print_timing(f'{_} {G("结束")} {msg}')
             return result
         return wrapper
     return decorator
@@ -102,15 +102,15 @@ def log_entering(pattern: str = '') :
 class base_class :
 
     @print_func
-    def printFormat(self) : return self.__format__(''), False
+    def print_format(self) : return self.__format__(''), False
 
     @print_func
-    def printStr(self) : return self.__str__(), False
+    def print_str(self) : return self.__str__(), False
 
-    def j(self, *, indent = True) : from ..app.Json import j; return j(self.jsonSerialize(), indent = indent)
+    def j(self, *, indent = True) : from ..app.Json import j; return j(self.json_serialize(), indent = indent)
 
     @print_func
-    def printJ(self) : return self.j(), False
+    def print_j(self) : return self.j(), False
 
     # This method is called when a class is subclassed.
     # The default implementation does nothing. It may be
@@ -168,13 +168,13 @@ def inspect_object(obj, name = '', print_source = True) :
     if ((type_str := (str(obj)[8:-2])) in dir(builtins)) and type_str != 'type' : print(B('obj is built-in.')); return
     if ((type_str := (str(obj.__class__)[8:-2])) in dir(builtins)) and type_str != 'type' : print(B('obj.__class__ is built-in.')); return
     if str(obj) == "<class 'type'>" : print(B('obj is type.')); return
-    def printSource(obj) :
+    def print_source(obj) :
         for line in inspect.getsourcelines(obj)[0] :
             if re.match(r' *def ', line) or re.match(r' *class ', line) : print(Y(f'{line}'), end = '')
             else                                                        : print(f'{line}', end = '')
     if print_source :
-        if isclass(obj) or ismethod(obj) or isfunction(obj) or type_str == 'code' : printSource(obj)
-        else                                                                      : printSource(type(obj))
+        if isclass(obj) or ismethod(obj) or isfunction(obj) or type_str == 'code' : print_source(obj)
+        else                                                                      : print_source(type(obj))
     # print(f'{dir(obj) = }')
     print(Y(f'{name} = {obj = }'))
     # print(f'{inspect.getcomments(obj)=}') # def前的注释

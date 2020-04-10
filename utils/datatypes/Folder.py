@@ -11,14 +11,14 @@ class Folder(base_class) :
 
     def exists(folder_path) : return exists(folder_path)
 
-    def notExists(folder_path) : return not Folder.exists(folder_path)
+    def not_exists(folder_path) : return not Folder.exists(folder_path)
 
     @anti_duplicate_new
     def __new__(cls, folder_path, *args, **kwargs) : return realpath(folder_path)
 
     @anti_duplicate_init
     def __init__(self, folder_path, /, *, auto_build = True) :
-        if Folder.notExists(folder_path) : raise Exception(f'Folder({folder_path} = {realpath(folder_path)}) 不存在')
+        if Folder.not_exists(folder_path) : raise Exception(f'Folder({folder_path} = {realpath(folder_path)}) 不存在')
         self._raw_path   = folder_path
         self._path       = Str(folder_path)
         self._name       = self._path.split('/')[-1]
@@ -57,14 +57,14 @@ class Folder(base_class) :
     def _build(self) :
         if not self._has_walked : self._walk()
         self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}', auto_build = self._auto_build))
-        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(f'{self._path}/{file_name}', self))#.printFormat(pattern = f'{index + 1} {{}}', print_timing = True))
+        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(f'{self._path}/{file_name}', self))#.print_format(pattern = f'{index + 1} {{}}', print_timing = True))
         self._has_built = True
         return self
 
     @prop
     def size(self) : return self.flat_sub_file_list.size.sum()
 
-    def jsonSerialize(self) -> str : return self._raw_path
+    def json_serialize(self) -> str : return self._raw_path
 
     def __eq__(self, other) : return self.abs_path == other.abs_path
 
@@ -105,7 +105,7 @@ class Folder(base_class) :
         if not self._has_built : self._build()
         return self._sub_file_list.copy()
 
-    def getOneSubFile(self, *, name_contains) : return self.sub_file_list.filterOne(lambda file : file.name.has(name_contains))
+    def get_one_sub_file(self, *, name_contains) : return self.sub_file_list.filter_one(lambda file : file.name.has(name_contains))
 
     @prop
     def flat_sub_file_list(self) :
@@ -116,29 +116,29 @@ class Folder(base_class) :
         for folder in self._sub_folder_list : self._flat_sub_file_list.extend(folder.flat_sub_file_list)
         return self._flat_sub_file_list
 
-    def getOneFlatSubFile(self, *, name_contains) : return self.flat_sub_file_list.filterOne(lambda file : file.name.has(name_contains))
+    def get_one_flat_sub_file(self, *, name_contains) : return self.flat_sub_file_list.filter_one(lambda file : file.name.has(name_contains))
 
     # 空目录，无子孙文件
-    def hasNoFlatSubFile(self) :
-        if self.sub_file_list.isNotEmpty()   : return False
-        if self.sub_folder_list.isNotEmpty() : return all(self.sub_folder_list.valueList('hasNoFlatSubFile'))
+    def has_no_flat_sub_file(self) :
+        if self.sub_file_list.is_not_empty()   : return False
+        if self.sub_folder_list.is_not_empty() : return all(self.sub_folder_list.value_list('has_no_flat_sub_file'))
         return True
 
-    def printFlatSubFilePathList(self) : self.flat_sub_file_list.path.printLine(); return self
+    def print_flat_sub_file_path_list(self) : self.flat_sub_file_list.path.print_line(); return self
 
     # os.rmdir(path, *, dir_fd=None)
     # Remove (delete) the directory path. If the directory does not exist or is not empty,
     # an FileNotFoundError or an OSError is raised respectively.
     # In order to remove whole directory trees, shutil.rmtree() can be used.
     def delete(self) :
-        if self.hasNoFlatSubFile() :
+        if self.has_no_flat_sub_file() :
             for folder in self.flat_sub_folder_list.reversed() :
                 if Folder.exists(folder.path) :
                     rmdir(folder.path)
-                    Timer.printTiming(f'{folder} 已删除', color = R)
+                    Timer.print_timing(f'{folder} 已删除', color = R)
             if Folder.exists(self._path) :
                 rmdir(self._path)
-                Timer.printTiming(f'{self} 已删除', color = R)
+                Timer.print_timing(f'{self} 已删除', color = R)
         else                       : raise Exception(f'无法删除 {self}，其下有未删除的文件')
         return self
 

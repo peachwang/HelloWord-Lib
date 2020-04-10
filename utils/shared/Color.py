@@ -97,7 +97,7 @@ class _Color :
         len_color = len_total - len_value
         from ..datatypes.Str import Str
         pattern = r'((?P<fill>.)?(?P<align>[<>=^]))?(?P<sign>[+\- ])?(?P<alter>#)?(?P<zero>0)?(?P<width>\d+)?(?P<group>[_,])?(\.(?P<precision>\d+))?(?P<type>[bcdeEfFgGnosxX%])?'
-        spec = Str(spec).fullMatch(pattern).replaceGroup('width', lambda __ : str(int(__) + len_color + len_value - len_wcs))
+        spec = Str(spec).full_match(pattern).replace_group('width', lambda __ : str(int(__) + len_color + len_value - len_wcs))
         # _ += f'[{len_value}][{len_wcs}][{len_color}][{len_total}][{spec}]'
         return format(_, spec)
 

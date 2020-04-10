@@ -8,7 +8,7 @@ class List(list, base_class) :
     _has_imported_types = False
 
     @classmethod
-    def _importTypes(cls) :
+    def _import_types(cls) :
         if cls._has_imported_types : return
         from .ObjectId import ObjectId;        cls._ObjectId  = ObjectId
         from .Str      import Str;             cls._Str       = Str
@@ -35,35 +35,35 @@ class List(list, base_class) :
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         cls._has_imported_types = True
 
-    # @Timer.timeitTotal('_wrapItem')
-    def _wrapItem(self, item, /) :
+    # @Timer.timeit_total('_wrap_item')
+    def _wrap_item(self, item, /) :
         if isinstance(item, (self._ObjectId, self._Str, self._List, self._Dict)) : return item
         elif isinstance(item, str)                                               : return self._Str(item)
         elif isinstance(item, dict)                                              : return self._Dict(item)
         elif isinstance(item, list)                                              : return self._List(item)
-        elif isinstance(item, tuple)                                             : return tuple([ self._wrapItem(_) for _ in item ])
+        elif isinstance(item, tuple)                                             : return tuple([ self._wrap_item(_) for _ in item ])
         elif isinstance(item, self._timedelta)                                   : return self._TimeDelta(item)
         elif isinstance(item, self._date)                                        : return self._Date(item)
         elif isinstance(item, self._time)                                        : return self._Time(item)
         elif isinstance(item, self._datetime)                                    : return self._DateTime(item)
-        elif isinstance(item, set)                                               : return set([ self._wrapItem(_) for _ in item ])
+        elif isinstance(item, set)                                               : return set([ self._wrap_item(_) for _ in item ])
         else                                                                     : return item
 
-    def _wrapStr(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
+    def _wrap_str(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
     
-    def _wrapStrOrType(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
+    def _wrap_str_or_type(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
 
     # Initialize self.  See help(type(self)) for accurate signature.
     # list() -> new empty list
     # list(iterable) -> new list initialized from iterable's items
     # def __class__(self) :
     def __init__(self, *args) :
-        self._importTypes()
+        self._import_types()
         if len(args) == 0   : super().__init__([])
         elif len(args) == 1 :
-            if isinstance(args[0], List)       : super().__init__(args[0]._getData())
+            if isinstance(args[0], List)       : super().__init__(args[0]._get_data())
             elif isinstance(args[0], list)     :
-                for item in args[0] : super().append(self._wrapItem(item))
+                for item in args[0] : super().append(self._wrap_item(item))
             elif (isinstance(args[0], (range, GeneratorType))
                 or isgenerator(args[0])
                 or '__next__' in dir(args[0])) : self.__init__(list(args[0]))
@@ -76,7 +76,7 @@ class List(list, base_class) :
     # id(object) -> integer
     # Return the identity of an object.  This is guaranteed to be unique among
     # simultaneously existing objects.  (Hint: it's the object's memory address.)
-    def getId(self) -> int : return hex(id(self))
+    def get_id(self) -> int : return hex(id(self))
 
     # Implement iter(self).
     # iter(iterable) -> iterator
@@ -87,60 +87,60 @@ class List(list, base_class) :
     def iter(self) : return super().__iter__()
     
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
-    def _getData(self) -> list : return [ item for item in self ]
+    def _get_data(self) -> list : return [ item for item in self ]
 
     # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     # NOT IN PLACE
-    def getRaw(self) -> list : return [ item.getRaw() if 'getRaw' in dir(item) else item for item in self ]
+    def get_raw(self) -> list : return [ item.get_raw() if 'get_raw' in dir(item) else item for item in self ]
 
-    jsonSerialize = _getData
-
-    @print_func
-    def printLen(self, msg = None) : return f"{'' if msg is None else f'{msg}: '}{self.len()}个元素", False
+    json_serialize = _get_data
 
     @print_func
-    def printLine(self, pattern = None, /) :
-        if pattern is None : return self.mapped(lambda item, index : f'{index + 1} {self._wrapStr(item, format)}').join('\n'), True
-        else               : return self.mapped(lambda item, index : pattern.format(self._wrapStr(item, format), index)).join('\n'), True
+    def print_len(self, msg = None) : return f"{'' if msg is None else f'{msg}: '}{self.len()}个元素", False
+
+    @print_func
+    def print_line(self, pattern = None, /) :
+        if pattern is None : return self.mapped(lambda item, index : f'{index + 1} {self._wrap_str(item, format)}').join('\n'), True
+        else               : return self.mapped(lambda item, index : pattern.format(self._wrap_str(item, format), index)).join('\n'), True
 
     # default object formatter
     # @log_entering()
-    def __format__(self, spec) : return '[ {} ]'.format(self.mapped(lambda item : self._wrapStr(item, format)).join(', '), spec)
+    def __format__(self, spec) : return '[ {} ]'.format(self.mapped(lambda item : self._wrap_str(item, format)).join(', '), spec)
 
     @print_func
-    def printFormat(self, pattern = None, /) :
-        if pattern is None : return self.mapped(lambda item : self._wrapStr(item, format)).join('\n'), True
-        else               : return self.mapped(lambda item, index : pattern.format(self._wrapStr(item, format), index)).join('\n'), True
+    def print_format(self, pattern = None, /) :
+        if pattern is None : return self.mapped(lambda item : self._wrap_str(item, format)).join('\n'), True
+        else               : return self.mapped(lambda item, index : pattern.format(self._wrap_str(item, format), index)).join('\n'), True
 
     # Return str(self).
     # @log_entering()
-    def __str__(self) : return 'List[ {} ]'.format(self.mapped(lambda item : self._wrapStr(item, str)).join(', '))
+    def __str__(self) : return 'List[ {} ]'.format(self.mapped(lambda item : self._wrap_str(item, str)).join(', '))
 
     @print_func
-    def printStr(self) : return self.mapped(lambda item : self._wrapStr(item, str)).join('\n'), True
+    def print_str(self) : return self.mapped(lambda item : self._wrap_str(item, str)).join('\n'), True
 
     # Return repr(self).
     # @log_entering()
-    def __repr__(self) : return 'List( {} )'.format(self.mapped(lambda item : self._wrapStrOrType(item, repr)).join(', '))
+    def __repr__(self) : return 'List( {} )'.format(self.mapped(lambda item : self._wrap_str_or_type(item, repr)).join(', '))
 
     @print_func
-    def printJ(self) : return self.j(), True
+    def print_j(self) : return self.j(), True
 
     # 带有业务逻辑，与 j 不同
     # NOT IN PLACE
     def json(self) : return List(item.json() if 'json' in dir(item) else item for item in self)
 
     @print_func
-    def printJson(self) : return f'{self.json().j()}', False
+    def print_json(self) : return f'{self.json().j()}', False
 
     def inspect(self, **kwargs) : from ..app.Inspect import Inspect; return Inspect(self, **kwargs)
 
     # other: Union[list, List]
     def diff(self, other) : from ..app.Inspect import Diff; return Diff(self, other)
 
-    def isList(self) : return True
+    def is_list(self) : return True
 
-    def isDict(self) : return False
+    def is_dict(self) : return False
 
     # Return self==value.
     def __eq__(self, other) :
@@ -155,41 +155,41 @@ class List(list, base_class) :
 
     def len(self) : return super().__len__()
 
-    def isEmpty(self) : return self.len() == 0
+    def is_empty(self) : return self.len() == 0
 
-    def isNotEmpty(self) : return not self.isEmpty()
+    def is_not_empty(self) : return not self.is_empty()
 
     # x.__contains__(y) <==> y in x
     def __contains__(self, item, /) : return super().__contains__(item)
 
     def has(self, item, /) : return super().__contains__(item)
 
-    def hasNo(self, item, /) : return not self.has(item)
+    def has_no(self, item, /) : return not self.has(item)
 
-    def hasAnyOf(self, item_list, /) : return any(self.has(item) for item in item_list)
+    def has_any_of(self, item_list, /) : return any(self.has(item) for item in item_list)
 
-    def hasAllOf(self, item_list, /) : return all(self.has(item) for item in item_list)
+    def has_all_of(self, item_list, /) : return all(self.has(item) for item in item_list)
 
-    def hasNoneOf(self, item_list, /) : return all(self.hasNo(item) for item in item_list)
+    def has_none_of(self, item_list, /) : return all(self.has_no(item) for item in item_list)
 
     # L.count(value) -> integer -- return number of occurrences of value
     def count(self, item, /) -> int : return super().count(item)
 
     # L.index(value, [start, [stop]]) -> integer -- return first index of value.
     # Raises ValueError if the value is not present.
-    def leftIndex(self, item, /, *, start = 0) -> Optional[int] :
+    def left_index(self, item, /, *, start = 0) -> Optional[int] :
         try               : index = super().index(item, start)
         except ValueError : return None
         else              : return index
 
     # L.index(value, [start, [stop]]) -> integer -- return first index of value.
     # Raises ValueError if the value is not present.
-    def rightIndex(self, item, /) -> Optional[int] :
-        try               : index = self.reversed().leftIndex(item)
+    def right_index(self, item, /) -> Optional[int] :
+        try               : index = self.reversed().left_index(item)
         except ValueError : return None
         else              : return self.len() - index - 1
 
-    def uniqueIndex(self, item, /) -> int :
+    def unique_index(self, item, /) -> int :
         if self.count(item) == 0  : raise Exception(f'{self=}\n中值：\n{item=}\n不存在')
         elif self.count(item) > 1 : raise Exception(f'{self=}\n中值：\n{item=}\n不唯一')
         return super().index(item)
@@ -202,7 +202,7 @@ class List(list, base_class) :
     # When a default argument is given, it is returned when the attribute doesn't
     # exist; without it, an exception is raised in that case.
     '''NOT IN PLACE'''
-    def __getattr__(self, key_or_func_name) : return self.valueList(key_or_func_name)
+    def __getattr__(self, key_or_func_name) : return self.value_list(key_or_func_name)
         # if self.len() == 0 :
         #     raise Exception('不能对空列表进行 __getattr__ 操作，请检查是否是希望对Dict进行操作！')
 
@@ -231,11 +231,11 @@ class List(list, base_class) :
                 if index.start is not None and start is None : raise Exception(f'\n{self=}\n中不存在 [{index.start=}]')
                 if index.stop is not None and end is None    : raise Exception(f'\n{self=}\n中不存在 [{index.stop=}]')
                 return self[start : end]
-        # Str.toRangeTuple() -> ((None, e1), idx2, (s3, e3), (s4, None))
+        # Str.to_range_tuple() -> ((None, e1), idx2, (s3, e3), (s4, None))
         elif isinstance(index, tuple) : raise NotImplementedError
         else                          : raise CustomTypeError(index)
 
-    def getUniqueItem(self, item, /) : return self[self.uniqueIndex(item)] # 通常针对重载了 __eq__ 的情况
+    def get_unique_item(self, item, /) : return self[self.unique_index(item)] # 通常针对重载了 __eq__ 的情况
 
     # Implement setattr(self, name, value).
     # Sets the named attribute on the given object to the specified value.
@@ -244,7 +244,7 @@ class List(list, base_class) :
 
     # Set self[index] to value.
     # IN PLACE
-    def __setitem__(self, index, item) : super().__setitem__(index, self._wrapItem(item)); return item
+    def __setitem__(self, index, item) : super().__setitem__(index, self._wrap_item(item)); return item
 
     # IN PLACE
     def set(self, index, item, /) : self.__setitem__(index, item); return self
@@ -254,16 +254,16 @@ class List(list, base_class) :
 
     # L.append(object) -> None -- append object to end
     # IN PLACE
-    def append(self, item, /) : super().append(self._wrapItem(item)); return self
+    def append(self, item, /) : super().append(self._wrap_item(item)); return self
 
     # NOT IN PLACE
     def appended(self, item, /) : return self.copy().append(item)
 
     # IN PLACE
-    def uniqueAppend(self, item, /) : return self if self.has(item) else self.append(item)
+    def unique_append(self, item, /) : return self if self.has(item) else self.append(item)
 
     # NOT IN PLACE
-    def uniqueAppended(self, item, /) : return self.copy().uniqueAppend(item)
+    def unique_appended(self, item, /) : return self.copy().unique_append(item)
 
     # L.prepend(object) -> None -- append object to start
     # IN PLACE
@@ -273,14 +273,14 @@ class List(list, base_class) :
     def prepended(self, item, /) : return self.copy().prepend(item)
 
     # IN PLACE
-    def uniquePrepend(self, item, /) : return self if self.has(item) else self.prepend(item)
+    def unique_prepend(self, item, /) : return self if self.has(item) else self.prepend(item)
 
     # NOT IN PLACE
-    def uniquePrepended(self, item, /) : return self.copy().uniquePrepend()
+    def unique_prepended(self, item, /) : return self.copy().unique_prepend()
 
     # L.insert(index, object) -> None -- insert object before index
     # IN PLACE
-    def insert(self, index, item, /) : super().insert(index, self._wrapItem(item)); return self
+    def insert(self, index, item, /) : super().insert(index, self._wrap_item(item)); return self
 
     # NOT IN PLACE
     def inserted(self, index, item, /) : return self.copy().insert(index, item)
@@ -330,18 +330,18 @@ class List(list, base_class) :
     # L.pop([index]) -> item -- remove and return item at index (default last).
     # Raises IndexError if list is empty or index is out of range.
     # IN PLACE
-    def popIndex(self, index, /) : return super().pop(index)
+    def pop_index(self, index, /) : return super().pop(index)
 
     # NOT IN PLACE
-    def poppedIndex(self, index, /) : return self.copy().popIndex(index)
+    def popped_index(self, index, /) : return self.copy().pop_index(index)
 
     # L.remove(value) -> None -- remove first occurrence of value.
     # Raises ValueError if the value is not present.
     # IN PLACE
-    def dropItem(self, item, /) : super().remove(item); return self
+    def drop_item(self, item, /) : super().remove(item); return self
 
     # NOT IN PLACE
-    def droppedItem(self, item, /) : return self.copy().dropItem()
+    def dropped_item(self, item, /) : return self.copy().drop_item()
     
     # L.__reversed__() -- return a reverse iterator over the list
     def __reversed__(self) : return super().__reversed__()
@@ -377,23 +377,23 @@ class List(list, base_class) :
     def enum(self) : return enumerate(self)
 
     # pos为index在func的参数表里的下标，即本函数在func的参数表的下标
-    def _leftPadIndexToArgs(self, func, args, index, pos, /) :
+    def _left_pad_index_to_args(self, func, args, index, pos, /) :
         if isclass(func)                                           : func = func.__init__; pos += 1
         func_args = list(signature(func).parameters.values())
         if len(func_args) > pos and func_args[pos].name == 'index' : return [ index ] + list(args)
         else                                                       : return args
 
     # NOT IN PLACE
-    def forEach(self, func, /, *args, **kwargs) :
+    def for_each(self, func, /, *args, **kwargs) :
         for index, item in self.enum() :
-            func(item, *(self._leftPadIndexToArgs(func, args, index, 1)), **kwargs)
+            func(item, *(self._left_pad_index_to_args(func, args, index, 1)), **kwargs)
         return self
 
     # IN PLACE
     def batch(self, func_name_or_attr_name: str, /, *args, **kwargs) :
         for index, item in self.enum() :
             attribute = self[index].__getattribute__(func_name_or_attr_name)
-            if callable(attribute) : self[index] = attribute(*(self._leftPadIndexToArgs(attribute, args, index, 0)), **kwargs)
+            if callable(attribute) : self[index] = attribute(*(self._left_pad_index_to_args(attribute, args, index, 0)), **kwargs)
             else                   : self[index] = attribute
         return self
 
@@ -403,22 +403,22 @@ class List(list, base_class) :
     # IN PLACE
     def map(self, func, /, *args, **kwargs) :
         for index, item in self.enum() :
-            self[index] = func(item, *(self._leftPadIndexToArgs(func, args, index, 1)), **kwargs)
+            self[index] = func(item, *(self._left_pad_index_to_args(func, args, index, 1)), **kwargs)
         return self
 
     # NOT IN PLACE
     def mapped(self, func, /, *args, **kwargs) : return self.copy().map(func, *args, **kwargs)
 
-    # @Timer.timeitTotal('valueList')
+    # @Timer.timeit_total('value_list')
     # NOT IN PLACE
     # 可以允许字段不存在
-    def valueList(self, key_list_or_func_name: Union[list, str], /, *, default = None) :
+    def value_list(self, key_list_or_func_name: Union[list, str], /, *, default = None) :
         if self.len() == 0                          : return self.copy()
         if isinstance(key_list_or_func_name, list)  :
             if isinstance(self[0], self._Object) : return self.batched('_get', key_list_or_func_name)
             else                                 : return self.batched('get', key_list_or_func_name)
         elif isinstance(key_list_or_func_name, str) :
-            def getValue(item) :
+            def get_value(item) :
                 try                        :
                     if key_list_or_func_name in dir(item) and callable(attribute := item.__getattribute__(key_list_or_func_name)) :
                         return attribute()
@@ -427,7 +427,7 @@ class List(list, base_class) :
                 if isinstance(item, self._Dict)     : attribute = item.__getattr__(key_list_or_func_name) # 可以允许字段不存在
                 elif isinstance(item, self._Object) :
                     try : attribute = item.__getattr__(key_list_or_func_name)
-                    except Exception as e : attribute = self._wrapItem(default) # 可以允许字段不存在
+                    except Exception as e : attribute = self._wrap_item(default) # 可以允许字段不存在
                 else                                :
                     try                   : attribute = item.__getattribute__(key_list_or_func_name)
                     except AttributeError :
@@ -435,35 +435,11 @@ class List(list, base_class) :
                     except Exception as e :
                         raise e
                 return attribute
-            return self.mapped(getValue)
+            return self.mapped(get_value)
         else                                        : raise CustomTypeError(key_list_or_func_name)
 
     # NOT IN PLACE
     def format(self, pattern, /) : return self.mapped(lambda _ : pattern.format(_))
-
-    def _stripItem(self, item, string, /) :
-        # can't be list, dict, str
-        if isinstance(item, (self._Str, self._List, self._Dict)) : return item.strip(string)
-        elif isinstance(item, tuple)                             : return (self._stripItem(_, string) for _ in item)
-        elif isinstance(item, set)                               : return set([self._stripItem(_, string) for _ in item])
-        elif isinstance(item, object)                            :
-            if 'strip' in dir(item) : item.strip(string)
-            return item
-        elif isinstance(item, self._raw_type_tuple)              : return item
-        else                                                     : raise CustomTypeError(item)
-
-    # IN PLACE
-    def strip(self, string = ' \t\n', /) : return self.map(self._stripItem, string)
-
-    # NOT IN PLACE
-    def stripped(self, string = ' \t\n', /) : return self.copy().strip(string)
-
-    # IN PLACE
-    # Str.replace(self, sub_or_pattern, repl_str_or_func, /, *, re_mode: bool, count = None, flags = 0) :
-    def replaceAsStrList(self, *args, **kwargs) : return self.map(self._Str.replace, *args, **kwargs)
-
-    # NOT IN PLACE
-    def replacedAsStrList(self, *args, **kwargs) : return self.copy().replaceAsStrList(*args, **kwargs)
 
     # IN PLACE
     def filter(self, func_or_func_name, /, *args, **kwargs) :
@@ -471,45 +447,45 @@ class List(list, base_class) :
         while index < self.len() :
             if isinstance(func_or_func_name, str) :
                 if self[index].__getattribute__(func_or_func_name)(*args, **kwargs) : index += 1
-                else                                                                : self.popIndex(index)
+                else                                                                : self.pop_index(index)
             elif callable(func_or_func_name)      :
                 if func_or_func_name(self[index], *args, **kwargs) : index += 1
-                else                                               : self.popIndex(index)
+                else                                               : self.pop_index(index)
             else                                  : raise CustomTypeError(func_or_func_name)
         return self
 
     # NOT IN PLACE
     def filtered(self, func_or_func_name, /, *args, **kwargs) : return self.copy().filter(func_or_func_name, *args, **kwargs)
 
-    def filterOne(self, func_or_func_name, /, *args, **kwargs) :
+    def filter_one(self, func_or_func_name, /, *args, **kwargs) :
         result = self.filtered(func_or_func_name, *args, **kwargs)
         if result.len() != 1 : raise CustomTypeError(result)
         else                 : return result[0]
 
     # IN PLACE
-    def filterByValue(self, key_list_or_func_name: Optional[Union[list, str]], value_or_list, /) :
+    def filter_by_value(self, key_list_or_func_name: Optional[Union[list, str]], value_or_list, /) :
         if not isinstance(value_or_list, list)       : value_or_list = [ value_or_list ]
         if key_list_or_func_name is None             : return self.filter(lambda item : item in value_or_list)
         elif isinstance(key_list_or_func_name, list) :
             if isinstance(self[0], self._Object) : return self.filter(lambda item : item._data.get(key_list_or_func_name) in value_or_list)
             else                                 : return self.filter(lambda item : item.get(key_list_or_func_name) in value_or_list)
         elif isinstance(key_list_or_func_name, str)  :
-            def getValue(item) :
+            def get_value(item) :
                 if isinstance(item, self._Object) : attribute = item.__getattr__(key_list_or_func_name)
                 else                              : attribute = item.__getattribute__(key_list_or_func_name)
                 if callable(attribute)            : return attribute()
                 else                              : return attribute
-            return self.filter(lambda item : getValue(item) in value_or_list)
+            return self.filter(lambda item : get_value(item) in value_or_list)
         else                                         : raise CustomTypeError(key_list_or_func_name)
 
     # NOT IN PLACE
-    def filteredByValue(self, key_list_or_func_name, value_or_list, /) : return self.copy().filterByValue(key_list_or_func_name, value_or_list)
+    def filtered_by_value(self, key_list_or_func_name, value_or_list, /) : return self.copy().filter_by_value(key_list_or_func_name, value_or_list)
 
     # NOT IN PLACE
     def reduce(self, func, initial_value, /, *args, **kwargs) :
         result = initial_value
         for index, item in self.enum() :
-            result = func(result, item, *(self._leftPadIndexToArgs(func, args, index, 2)), **kwargs)
+            result = func(result, item, *(self._left_pad_index_to_args(func, args, index, 2)), **kwargs)
         return result
 
     # itertools.def accumulate(iterable, func=operator.add, *, initial=None):
@@ -521,7 +497,7 @@ class List(list, base_class) :
     # NOT IN PLACE
     def merged(self) : return self.copy().merge()
 
-    def groupBy(self, key_func = None, /, *, value_func = None) :
+    def group_by(self, key_func = None, /, *, value_func = None) :
         from itertools import groupby
         result = self._Dict()
         for k, g in groupby(self.sorted((lambda _ : f'{_}' if _ is not None else '') if key_func is None else key_func), key = key_func) :
@@ -529,12 +505,12 @@ class List(list, base_class) :
             else                  : result[k] = List(value_func(item) for item in g)
         return result
     
-    def countBy(self, key_func = None, /) : return self._Dict((k, g.len()) for k, g in self.groupBy(key_func).items())
+    def count_by(self, key_func = None, /) : return self._Dict((k, g.len()) for k, g in self.group_by(key_func).items())
 
     # NOT IN PLACE
     def _reduce(self, key_list_or_func_name: Optional[Union[list, str]], func, initial_value, /) :
         if key_list_or_func_name is None                    : return self.reduce(func, initial_value)
-        elif isinstance(key_list_or_func_name, (list, str)) : return self.valueList(key_list_or_func_name).reduce(func, initial_value)
+        elif isinstance(key_list_or_func_name, (list, str)) : return self.value_list(key_list_or_func_name).reduce(func, initial_value)
         else                                                : raise CustomTypeError(key_list_or_func_name)
 
     # NOT IN PLACE
@@ -548,7 +524,7 @@ class List(list, base_class) :
         return 1.0 * self.sum(key_list_or_func_name) / self.len()
 
     # NOT IN PLACE
-    def _initialValue(self, key_list_or_func_name: Optional[Union[list, str]], /) :
+    def _initial_value(self, key_list_or_func_name: Optional[Union[list, str]], /) :
         if key_list_or_func_name is None             : return self[0]
         elif isinstance(key_list_or_func_name, list) :
             if isinstance(self[0], self._Object) : return self[0]._data.get(key_list_or_func_name)
@@ -566,7 +542,7 @@ class List(list, base_class) :
         return self._reduce(
             key_list_or_func_name,
             lambda result, item : item if item > result else result,
-            self._initialValue(key_list_or_func_name)
+            self._initial_value(key_list_or_func_name)
         )
 
     # NOT IN PLACE
@@ -575,7 +551,7 @@ class List(list, base_class) :
         return self._reduce(
             key_list_or_func_name,
             lambda result, item : item if item < result else result,
-            self._initialValue(key_list_or_func_name)
+            self._initial_value(key_list_or_func_name)
         )
 
     # NOT IN PLACE
@@ -635,37 +611,37 @@ class List(list, base_class) :
 
     # Return True if two lists have a null intersection.
     # O(N^2)???
-    def isDisjointFrom(self, item_list, /) : return (self & item_list).len() == 0
+    def is_disjoint_from(self, item_list, /) : return (self & item_list).len() == 0
 
     # Report whether another set contains this set.
     # O(N^2)???
-    def isSubsetOf(self, item_list, /) : return (self - item_list).len() == 0
+    def is_subset_of(self, item_list, /) : return (self - item_list).len() == 0
 
     # Return self<=value.
-    def __le__(self, other) : return self.isSubsetOf(other)
+    def __le__(self, other) : return self.is_subset_of(other)
 
     # Return self<value.
     def __lt__(self, other) : return self.len() < other.len() and self.__le__(other)
 
     # Report whether this set contains another set.
     # O(N^2)???
-    def isSupersetOf(self, item_list, /) : return (List(item_list) - self).len() == 0
+    def is_superset_of(self, item_list, /) : return (List(item_list) - self).len() == 0
 
     # Return self>=value.
-    def __ge__(self, other) : return self.isSupersetOf(other)
+    def __ge__(self, other) : return self.is_superset_of(other)
 
     # Return self>value.
     def __gt__(self, other) : return self.len() > other.len() and self.__ge__(other)
 
-    def isSameSetOf(self, item_list, /) : return self <= item_list and self >= item_list
+    def is_same_set_of(self, item_list, /) : return self <= item_list and self >= item_list
 
     # L.clear() -> None -- remove all items from L
     # IN PLACE
     def clear(self) : super().clear(); return self
     
-    def writeToFile(self, file, /, *, indent = True) : file.writeData(self, indent = indent); return self
+    def write_to_file(self, file, /, *, indent = True) : file.write_data(self, indent = indent); return self
 
-    def writeLineListToFile(self, file, /) : file.writeLineList(self); return self
+    def write_line_list_to_file(self, file, /) : file.write_line_list(self); return self
 
     # list(map(lambda x : print(f'\n{x}\n{list.__getattribute__([], x).__doc__}\n'), dir(list)))
 

@@ -19,7 +19,7 @@ class Timer :
         cls._has_inited        = True
 
     @classmethod
-    def getTimerDict(cls) : return cls._timer_dict
+    def get_timer_dict(cls) : return cls._timer_dict
 
     def __init__(self, key: str, /) :
         self.__initclass__()
@@ -48,21 +48,21 @@ class Timer :
     @prop
     def total_delta(self) -> float : result = self._total - self._last_total; self._last_total = self._total; return result
 
-    def timeitOnce(msg = '', /) :
+    def timeit_once(msg = '', /) :
         def decorator(func) :
             Timer.__initclass__()
             @wraps(func)
             def wrapper(*args, **kwargs) :
-                Timer.printTiming(f'{func.__qualname__}{msg} 开始')
+                Timer.print_timing(f'{func.__qualname__}{msg} 开始')
                 current = time.time()
                 result = func(*args, **kwargs)
                 delta   = time.time() - current
-                Timer.printTiming(f'{func.__qualname__}{msg} 结束', delta = delta)
+                Timer.print_timing(f'{func.__qualname__}{msg} 结束', delta = delta)
                 return result
             return wrapper
         return decorator
 
-    def timeitTotal(key, *, group_args = False) :
+    def timeit_total(key, *, group_args = False) :
         def decorator(func) :
             Timer.__initclass__()
             @wraps(func)
@@ -70,12 +70,12 @@ class Timer :
                 # key = func.__qualname__
                 if group_args :
                     key_args = f'{args}{kwargs if len(kwargs) > 0 else ""}'
-                    if key not in Timer.getTimerDict()       : Timer.getTimerDict()[key] = {}
-                    if key_args in Timer.getTimerDict()[key] : timer = Timer.getTimerDict()[key][key_args]
-                    else                                     : Timer.getTimerDict()[key][key_args] = timer = Timer(f'{key}{key_args}')
+                    if key not in Timer.get_timer_dict()       : Timer.get_timer_dict()[key] = {}
+                    if key_args in Timer.get_timer_dict()[key] : timer = Timer.get_timer_dict()[key][key_args]
+                    else                                     : Timer.get_timer_dict()[key][key_args] = timer = Timer(f'{key}{key_args}')
                 else          :
-                    if key in Timer.getTimerDict() : timer = Timer.getTimerDict()[key]
-                    else                           : Timer.getTimerDict()[key] = timer = Timer(key)
+                    if key in Timer.get_timer_dict() : timer = Timer.get_timer_dict()[key]
+                    else                           : Timer.get_timer_dict()[key] = timer = Timer(key)
                 current = time.time()
                 result = func(*args, **kwargs)
                 timer.add(time.time() - current)
@@ -84,20 +84,20 @@ class Timer :
         return decorator
 
     @classmethod
-    def printTotal(cls, key: str, /, msg = '') :
+    def print_total(cls, key: str, /, msg = '') :
         cls.__initclass__()
-        def printTimer(timer) :
+        def print_timer(timer) :
             print(P(f'类目({timer.key:50}) 总共({timer.len():>10}次, +{timer.len_delta:>10}次, {timer.total:.6f}s, +{timer.total_delta:.6f}s) 平均{timer.ave:.6f}s [ {msg} ]'))
         if key in cls._timer_dict :
             _ = cls._timer_dict[key]
             if isinstance(_, dict) :
-                for key_args in _ : printTimer(_[key_args])
-            else                   : printTimer(_)
+                for key_args in _ : print_timer(_[key_args])
+            else                   : print_timer(_)
         else                      : raise Exception(f'Timer of {key=} 未找到')
         return cls
 
     @classmethod
-    def printTiming(cls, msg = '', *, delta: Optional[float] = None, indent: int = 0, color = None) :
+    def print_timing(cls, msg = '', *, delta: Optional[float] = None, indent: int = 0, color = None) :
         cls.__initclass__()
         from ..datatypes.DateTime import DateTime
         timing_delta = time.time() - cls._global_current
@@ -111,4 +111,4 @@ class Timer :
         return cls
 
 if __name__ == '__main__':
-    Timer.printTiming()
+    Timer.print_timing()

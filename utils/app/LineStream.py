@@ -4,20 +4,20 @@ from ..datatypes.Str import Str
 
 class _Line :
 
-    # @Timer.timeitTotal('_Line.__init__')
+    # @Timer.timeit_total('_Line.__init__')
     def __init__(self, index, raw_line, /) :
         self._index, self._raw_line = index, Str(raw_line)
 
-    def tagByFormatList(self, tag_format_list, /) :
+    def tag_by_format_list(self, tag_format_list, /) :
         for tag_format in tag_format_list :
-            if (   tag_format == '[]'  and (m := self._raw_line.fullMatch(r'^\[(?P<tag_name>[^\[\]]+)\](?P<content>.*)$'))
-                or tag_format == '#'   and (m := self._raw_line.fullMatch(r'^#(?P<tag_name>[^ ]+) *(?P<content>.*)$'))
-                or tag_format == '【】' and (m := self._raw_line.fullMatch(r'^【(?P<tag_name>[^【】]+)】(?P<content>.*)$'))) :
+            if (   tag_format == '[]'  and (m := self._raw_line.full_match(r'^\[(?P<tag_name>[^\[\]]+)\](?P<content>.*)$'))
+                or tag_format == '#'   and (m := self._raw_line.full_match(r'^#(?P<tag_name>[^ ]+) *(?P<content>.*)$'))
+                or tag_format == '【】' and (m := self._raw_line.full_match(r'^【(?P<tag_name>[^【】]+)】(?P<content>.*)$'))) :
                 self._tag_name, self._content, self._tag_format = m.tag_name, m.content, tag_format
                 return self
         raise Exception(f'{self._index + 1}.[{self._raw_line}]不匹配{tag_format_list=}')
 
-    def tagByContext(self, *, tag_func, raw_line_list) :
+    def tag_by_context(self, *, tag_func, raw_line_list) :
         self._tag_name = tag_func(raw_line_list = raw_line_list, index = self._index - 1)
         self._content  = self._raw_line
         return self
@@ -37,44 +37,44 @@ class _Line :
 
 class LineStream :
 
-    # @Timer.timeitTotal('LineStream.__init__')
+    # @Timer.timeit_total('LineStream.__init__')
     def __init__(self, raw_line_list = [], /) :
         self._raw_line_list            = raw_line_list
         self._tag_name_to_line_content = {}
         self._tag_name_to_sub_stream   = {}
         self._sub_stream_list          = []
 
-    def tagByFormatList(self, tag_format_list = None, /) :
+    def tag_by_format_list(self, tag_format_list = None, /) :
         self._line_list = [
-            _Line(index + 1, raw_line).tagByFormatList(tag_format_list)
+            _Line(index + 1, raw_line).tag_by_format_list(tag_format_list)
             for index, raw_line in enumerate(self._raw_line_list)
-            if Str(raw_line).isNotEmpty()
+            if Str(raw_line).is_not_empty()
         ]
         return self
     
-    def tagByContext(self, *, tag_func) :
+    def tag_by_context(self, *, tag_func) :
         self._line_list = [
-            _Line(index + 1, raw_line).tagByContext(tag_func = tag_func, raw_line_list = self._raw_line_list)
+            _Line(index + 1, raw_line).tag_by_context(tag_func = tag_func, raw_line_list = self._raw_line_list)
             for index, raw_line in enumerate(self._raw_line_list)
         ]
         return self
 
-    def setTagLine(self, tag_line, /) :
+    def set_tag_line(self, tag_line, /) :
         self._tag_line                                    = tag_line
         self._tag_name_to_line_content[tag_line.tag_name] = tag_line.content
         self._line_list                                   = []
         return self
 
-    def appendLine(self, line, /) : self._line_list.append(line); return self
+    def append_line(self, line, /) : self._line_list.append(line); return self
 
-    def setTagName(self, tag_name: Str, /) : self._tag_name = tag_name; return self
+    def set_tag_name(self, tag_name: Str, /) : self._tag_name = tag_name; return self
 
     @cached_prop
     def tag_name(self) -> Str :
         if hasattr(self, '_tag_line') : return self._tag_line.tag_name
         else                          : return self._tag_name
 
-    def _appendSubStream(self, sub_stream, /, *, is_list: bool) :
+    def _append_sub_stream(self, sub_stream, /, *, is_list: bool) :
         if is_list :
             if sub_stream.tag_name not in self._tag_name_to_sub_stream : self._tag_name_to_sub_stream[sub_stream.tag_name] = []
             self._tag_name_to_sub_stream[sub_stream.tag_name].append(sub_stream)
@@ -83,42 +83,42 @@ class LineStream :
         self._sub_stream_list.append(sub_stream)
         return self
 
-    def hasSubStream(self, tag_name, /) : return tag_name in self._tag_name_to_sub_stream
+    def has_sub_stream(self, tag_name, /) : return tag_name in self._tag_name_to_sub_stream
 
-    def hasNoSubStream(self, tag_name, /) : return not self.hasSubStream(tag_name)
+    def has_no_sub_stream(self, tag_name, /) : return not self.has_sub_stream(tag_name)
 
     # 可预先枚举tag_name的情况，用此方法
     # tag_list = [(<tag_name>, <is_list>), ...]
-    def groupSubStreamByTagList(self, tag_list, /, *, is_ordered = True) :
+    def group_sub_stream_by_tag_list(self, tag_list, /, *, is_ordered = True) :
         for index, line in enumerate(self._line_list) :
             # print(f'{index + 1}.[{line}]')
-            tag_0 = (line.tag_name.getRaw(), 0)
-            tag_1 = (line.tag_name.getRaw(), 1)
+            tag_0 = (line.tag_name.get_raw(), 0)
+            tag_1 = (line.tag_name.get_raw(), 1)
             # print(f'{tag_list=} {tag_0=} {tag_1=}')
             if tag_0 in tag_list : # 一次性出现的一级tag
-                self._appendSubStream(LineStream().setTagLine(line), is_list = False)
+                self._append_sub_stream(LineStream().set_tag_line(line), is_list = False)
                 if is_ordered : tag_list = tag_list[tag_list.index(tag_0) + 1 : ]
             elif tag_list.has(tag_1) : # 会多次出现的一级tag
-                self._appendSubStream(LineStream().setTagLine(line), is_list = True)
+                self._append_sub_stream(LineStream().set_tag_line(line), is_list = True)
                 if is_ordered : tag_list = tag_list[tag_list.index(tag_1) : ]
             else : # 二级及以下的tag
                 if len(self._sub_stream_list) == 0 : raise Exception(f'位置错误的 line\n{line.raw}\n{line.tag_name=}, {tag_list=}')
-                self._sub_stream_list[-1].appendLine(line)
+                self._sub_stream_list[-1].append_line(line)
         return self
 
-    def isOneLine(self) : return len(self._line_list) == 0
+    def is_one_line(self) : return len(self._line_list) == 0
     
-    def isNotOneLine(self) : return not self.isOneLine()
+    def is_not_one_line(self) : return not self.is_one_line()
 
     @cached_prop
     def one_line_content(self) :
-        if not self.isOneLine() : raise Exception(f'多余的line({self._line_list.raw})')
+        if not self.is_one_line() : raise Exception(f'多余的line({self._line_list.raw})')
         return self._tag_line.content
 
     # def __getattr__(self, tag_name) :
     #     if tag_name in self._tag_name_to_sub_stream     :
     #         sub_stream = self._tag_name_to_sub_stream[tag_name]
-    #         if sub_stream.isOneLine() : return sub_stream.one_line_content
+    #         if sub_stream.is_one_line() : return sub_stream.one_line_content
     #         else                       : return sub_stream
     #     elif tag_name in self._tag_name_to_line_content : return self._tag_name_to_line_content[tag_name]
     #     else : raise Exception(f'找不到 {tag_name=}')
@@ -126,13 +126,13 @@ class LineStream :
     # def __getitem__(self, tag_name) : return self.__getattr__(tag_name)
 
     # 无法预先枚举tag_name的情况，用此方法
-    def groupSubStreamByLineTagName(self) :
+    def group_sub_stream_by_line_tag_name(self) :
         for index, line in enumerate(self._line_list) :
-            Timer.printTiming(f'groupSubStreamByLineTagName.{index + 1}')
+            Timer.print_timing(f'group_sub_stream_by_line_tag_name.{index + 1}')
             tag_name = line.tag_name
-            if tag_name not in self._tag_name_to_sub_stream : self._appendSubStream(sub_stream := LineStream().setTagName(tag_name), is_list = False)
+            if tag_name not in self._tag_name_to_sub_stream : self._append_sub_stream(sub_stream := LineStream().set_tag_name(tag_name), is_list = False)
             else                                            : sub_stream = self._tag_name_to_sub_stream[tag_name]
-            sub_stream.appendLine(line)
+            sub_stream.append_line(line)
         return self
 
     @cached_prop
@@ -145,7 +145,7 @@ class LineStream :
 
     def print(self, indent = '') :
         print(f'{indent}{self!a}')
-        if hasattr(self, '_tag_line') and self.isNotOneLine() : print(f'\n{indent}tag_line = {self._tag_line}')
+        if hasattr(self, '_tag_line') and self.is_not_one_line() : print(f'\n{indent}tag_line = {self._tag_line}')
         if hasattr(self, '_sub_stream_list')                   :
             print()
             for index, sub_stream in enumerate(self._sub_stream_list) :
@@ -159,5 +159,5 @@ class LineStream :
         return self
 
     def __format__(self, spec) :
-        if self.isOneLine() : return f'{self.one_line_content:{spec}}'
+        if self.is_one_line() : return f'{self.one_line_content:{spec}}'
         else                 : return f'{self._raw_line_list:{spec}}' # 待完善

@@ -10,7 +10,7 @@ class Object(base_class) :
     __id_list           = [ ]
     NV = P_NON_VACANCY  = 'P_NON_VACANCY'
 
-    def _wrapValue(self, value, /) :
+    def _wrap_value(self, value, /) :
         if isinstance(value, (Str, List, Dict))   : return value
         elif isinstance(value, str)               : return Str(value)
         elif isinstance(value, dict)              : return Dict(value)
@@ -20,8 +20,8 @@ class Object(base_class) :
         elif isinstance(value, date_class)        : return Date(value)
         elif isinstance(value, time_class)        : return Time(value)
         elif isinstance(value, datetime_class)    : return DateTime(value)
-        elif isinstance(value, tuple)             : return tuple([ self._wrapValue(_) for _ in value ])
-        elif isinstance(value, set)               : return set([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, tuple)             : return tuple([ self._wrap_value(_) for _ in value ])
+        elif isinstance(value, set)               : return set([ self._wrap_value(_) for _ in value ])
         else                                      : return value
     
     def __init__(self) :
@@ -29,8 +29,8 @@ class Object(base_class) :
         object.__setattr__(self, '_class',         Str(self.__class__).split('.')[-1][ : -2])
         object.__setattr__(self, '_property_dict', {})
 
-    # def _registerEnhancedProperty(self, property_config_list, /) :
-    def _registerProperty(self, property_config_list, /) :
+    # def _register_enhanced_property(self, property_config_list, /) :
+    def _register_property(self, property_config_list, /) :
         pd = self.__getattribute__('_property_dict')
         for config in property_config_list :
             if isinstance(config, str)     : pd[config] = {}
@@ -40,7 +40,7 @@ class Object(base_class) :
                 p_type      = config[2] if len(config) > 2 else None
                 p_validator = config[3] if len(config) > 3 else None
                 pd[name]    = {}
-                if p_default != self.P_NON_VACANCY : pd[name]['default'] = self._wrapValue(p_default)
+                if p_default != self.P_NON_VACANCY : pd[name]['default'] = self._wrap_value(p_default)
                 if p_type is not None              :
                     if not isinstance(p_type, (type, tuple))     : raise CustomTypeError(p_type)
                     if isinstance(p_type, tuple)                 : p_type = tuple(type(None) if item is None else item for item in p_type)
@@ -52,49 +52,49 @@ class Object(base_class) :
             else                           : raise CustomTypeError(config)
         return self
 
-    def hasProperty(self, name, /) : return self._data.has(name)
+    def has_property(self, name, /) : return self._data.has(name)
 
-    def hasNoProperty(self, name, /) : return not self.hasProperty(name)
+    def _has_no_property(self, name, /) : return not self.has_property(name)
 
-    def ensureHasProperty(self, name, /) :
-        if self.hasNoProperty(name) : raise Exception(f'{self} 必须拥有属性 {name}')
+    def ensure_has_property(self, name, /) :
+        if self._has_no_property(name) : raise Exception(f'{self} 必须拥有属性 {name}')
         return self
 
-    def getProperty(self, name, /, default = None) : return self._data.get(name, self._wrapValue(default))
+    def get_property(self, name, /, default = None) : return self._data.get(name, self._wrap_value(default))
     
-    def setProperty(self, name, value, /) : self._data[name] = self._wrapValue(value); return self
+    def set_property(self, name, value, /) : self._data[name] = self._wrap_value(value); return self
 
     def __setattr__(self, name, value) :
         if name[0] != '_' : raise Exception(f'{name =} 应包含下划线前缀')
-        self._data[name[1:]] = self._wrapValue(value)
+        self._data[name[1:]] = self._wrap_value(value)
         return value
 
-    def appendProperty(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
-        def appendValue(value) :
+    def append_property(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
+        def append_value(value) :
             if filter_none and value == None : return
-            if self._data.hasNo(name) : self._data[name] = List()
+            if self._data.has_no(name) : self._data[name] = List()
             self._data[name].append(value)
         if (isgenerator(value_or_generator_or_iterator)
             or '__next__' in dir(value_or_generator_or_iterator)) :
-            for value in value_or_generator_or_iterator : appendValue(value)
-        else                                                      : appendValue(value_or_generator_or_iterator)
+            for value in value_or_generator_or_iterator : append_value(value)
+        else                                                      : append_value(value_or_generator_or_iterator)
         return self
 
-    def uniqueAppendProperty(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
-        def uniqueAppendValue(value) :
+    def unique_append_property(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
+        def unique_append_value(value) :
             if filter_none and value == None : return
-            if self._data.hasNo(name) : self._data[name] = List()
-            self._data[name].uniqueAppend(value)
+            if self._data.has_no(name) : self._data[name] = List()
+            self._data[name].unique_append(value)
         if (isgenerator(value_or_generator_or_iterator)
             or '__next__' in dir(value_or_generator_or_iterator)) :
-            for value in value_or_generator_or_iterator : uniqueAppendValue(value)
-        else                                                      : uniqueAppendValue(value_or_generator_or_iterator)
+            for value in value_or_generator_or_iterator : unique_append_value(value)
+        else                                                      : unique_append_value(value_or_generator_or_iterator)
         return self
 
-    def updateProperty(self, mapping, /) :
+    def update_property(self, mapping, /) :
         pd = self.__getattribute__('_property_dict')
         for name, value in mapping.items() :
-            if name in pd : self.setProperty(name, value)
+            if name in pd : self.set_property(name, value)
             else          : raise Exception(f'{name} 非注册属性')
         return self
 
@@ -118,7 +118,7 @@ class Object(base_class) :
     #   从内部
     #       [_name]   (7) 允许，常规情况，私有属性
     #       [name]    (8) 不允许，__setattr__ 规避了其余情况
-    # @Timer.timeitTotal('Object.__getattr__', group_args = True)
+    # @Timer.timeit_total('Object.__getattr__', group_args = True)
     def __getattr__(self, name) :
         # if name == '_data'   : return self.__getattribute__('_data')
         # if name == '_class'  : return self.__getattribute__('_class')
@@ -138,39 +138,39 @@ class Object(base_class) :
             else                      : return self._data[name] # 已赋值
 
         from functools import partial
-        for prefix in ( 'has', 'hasNo', 'ensureHas', 'get', 'set', 'append', 'uniqueAppend' ) :
+        for prefix in ( 'has', 'has_no', 'ensure_has', 'get', 'set', 'append', 'unique_append' ) :
             l = len(prefix)
-            suffix_1 = '_list' if prefix in ('append', 'uniqueAppend') else ''
-            suffix_2 = 'List' if prefix in ('append', 'uniqueAppend') else ''
+            suffix_1 = '_list' if prefix in ('append', 'unique_append') else ''
+            suffix_2 = 'List' if prefix in ('append', 'unique_append') else ''
             if name[:l] == prefix and (name[l].isupper() or name[l] == '_') :
-                if ((existence_1 := (name_1 := Str(name[l:]).toSnakeCase() + suffix_1) in pd)
-                or ((existence_2 := (name_2 := Str(name[l:]).toPascalCase() + suffix_2) in pd))) :
+                if ((existence_1 := (name_1 := Str(name[l:]).to_snake_case() + suffix_1) in pd)
+                or ((existence_2 := (name_2 := Str(name[l:]).to_pascal_case() + suffix_2) in pd))) :
                     if existence_1   : name_0 = str(name_1)
                     elif existence_2 : name_0 = str(name_2)
                     if prefix in pd[name_0] : return pd[name_0][prefix] # 获取已缓存的方法
-                    else                    : pd[name_0][prefix] = partial(self.__getattribute__(f'{prefix}Property'), name_0); return pd[name_0][prefix]
+                    else                    : pd[name_0][prefix] = partial(self.__getattribute__(f'{prefix}_property'), name_0); return pd[name_0][prefix]
 
         raise Exception(f"Object {P(type(self))} 中无 {P(name)} 属性或方法, 只有这些属性: {P((self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object))))}\n{pd=}")
 
-    # def getPropertyDict(self, name_list, /) : return self._data.getMulti(name_list, de_underscore = True) # 字段可以不存在
+    # def get_property_dict(self, name_list, /) : return self._data.get_multi(name_list, de_underscore = True) # 字段可以不存在
 
     # 防止自嵌套死循环
-    def _antiLoop(func) :
+    def _anti_loop(func) :
         @wraps(func)
         def wrapper(self, *args, **kwargs) :
-            if self.getId() in Object.__id_list : result = object.__str__(self)
+            if self.get_id() in Object.__id_list : result = object.__str__(self)
             else                                :
-                Object.__id_list.append(self.getId())
+                Object.__id_list.append(self.get_id())
                 result = func(self, *args, **kwargs)
-                Object.__id_list.remove(self.getId())
+                Object.__id_list.remove(self.get_id())
             return result
         return wrapper
 
-    @_antiLoop
-    def validateProperty(self, index = None) :
+    @_anti_loop
+    def validate_property(self, index = None) :
         # if index is not None and index >= 100 and index % 1 == 0 :
-        if index is not None and index >= 100 and index % 100 == 0 : Timer.printTiming(f'validateProperty.{index}.{self!r}')
-        prefix = self.getSignature()
+        if index is not None and index >= 100 and index % 100 == 0 : Timer.print_timing(f'validate_property.{index}.{self!r}')
+        prefix = self.get_signature()
         try                      :
             pd = self.__getattribute__('_property_dict')
             for name in pd :
@@ -181,8 +181,8 @@ class Object(base_class) :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不是列表\n{self}\n')
                     elif name[-4:] not in ('list', 'List') and isinstance(value, list)                      :
                         raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是List/list\n{self}\n')
-                    elif isinstance(value, list) and len(value) > 0 and 'validateProperty' in dir(value[0]) :
-                        for idx, item in value.enum() : item.validateProperty(idx + 1)
+                    elif isinstance(value, list) and len(value) > 0 and 'validate_property' in dir(value[0]) :
+                        for idx, item in value.enum() : item.validate_property(idx + 1)
                     
                     if name[-4:] in ('dict', 'Dict') and not isinstance(value, dict)                        :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不是字典\n{self}\n')
@@ -190,9 +190,9 @@ class Object(base_class) :
                         raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是Dict/dict\n{self}\n')
                     elif isinstance(value, dict)                                                            :
                         for v in value.values() :
-                            if 'validateProperty' in dir(v) : v.validateProperty()
+                            if 'validate_property' in dir(v) : v.validate_property()
 
-                    if isinstance(value, Object)                                                            : value.validateProperty()
+                    if isinstance(value, Object)                                                            : value.validate_property()
 
                     pt = pd[name]['type'] if 'type' in pd[name] else None
                     pv = pd[name]['validator'] if 'validator' in pd[name] else None
@@ -217,38 +217,38 @@ class Object(base_class) :
                     elif isinstance(pv, str) and isinstance(value, type_tuple) :
                         if eval(Str(pv).replace('#', 'value', re_mode = False)) is not True : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不合法: [{pv}]\n{self}\n')
                     elif isinstance(pv, str) and isinstance(value, str)        :
-                        if not value.fullMatch(pv)                                          : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不匹配: \n[{pv}]\n[{self}]\n')
+                        if not value.full_match(pv)                                          : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不匹配: \n[{pv}]\n[{self}]\n')
         except Exception as e    :
             # print(self.j())
             print(e)
             # raise e
         except KeyboardInterrupt :
-            if index is not None : Timer.printTiming(f'{index}.{self}.{self._data}')
+            if index is not None : Timer.print_timing(f'{index}.{self}.{self._data}')
             raise
         return self
 
     # id(object) -> integer
     # Return the identity of an object.  This is guaranteed to be unique among
     # simultaneously existing objects.  (Hint: it's the object's memory address.)
-    def getId(self) : return hex(id(self))
+    def get_id(self) : return hex(id(self))
 
-    def getRaw(self) : return self._data.getRaw()
+    def get_raw(self) : return self._data.get_raw()
 
-    def getSignature(self) : return f'<{self._class} at {self.getId()}>'
+    def get_signature(self) : return f'<{self._class} at {self.get_id()}>'
 
-    @_antiLoop
-    def jsonSerialize(self) -> dict : return self._data.jsonSerialize()
+    @_anti_loop
+    def json_serialize(self) -> dict : return self._data.json_serialize()
 
-    @_antiLoop
-    def __format__(self, spec) : return f"{f'<{self._class} at {self.getId()}>._data={self._data}':{spec}}"
+    @_anti_loop
+    def __format__(self, spec) : return f"{f'<{self._class} at {self.get_id()}>._data={self._data}':{spec}}"
 
-    @_antiLoop
-    def __str__(self) : return f'<{self._class} at {self.getId()}>._data={self._data!s}'
+    @_anti_loop
+    def __str__(self) : return f'<{self._class} at {self.get_id()}>._data={self._data!s}'
 
-    @_antiLoop
+    @_anti_loop
     def __repr__(self) : raise NotImplementedError
 
-    @_antiLoop
+    @_anti_loop
     def json(self) :
         return Dict(
             (name, value.json() if 'json' in dir(value := self.__getattr__(f'_{name}')) else value)
@@ -257,13 +257,13 @@ class Object(base_class) :
         )
 
     @print_func
-    def printJson(self) : return f'{_ if isinstance(_ := self.json(), str) else _.j()}', False
+    def print_json(self) : return f'{_ if isinstance(_ := self.json(), str) else _.j()}', False
 
 if __name__ == '__main__':
-    o = Object()._registerProperty(['a'])
+    o = Object()._register_property(['a'])
     data = Dict({'b' : [1,2,3]})
     data2 = Dict(data)
-    o.setA(data['b'])
+    o.set_a(data['b'])
     print(o)
     data['b'].append(4)
     print(data, id(data))
@@ -280,5 +280,5 @@ if __name__ == '__main__':
 
 
     # print('\n'.join(dir(o)))
-    # print(o.ensureHasProperty('a'))
+    # print(o.ensure_has_property('a'))
     # print(dir(o))

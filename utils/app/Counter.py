@@ -23,7 +23,7 @@ class Counter :
 
     def __format__(self, spec) : return f"{f'Counter(name = {self._name}, key_to_sum = {self._key_to_sum})':{spec}}"
 
-    def valueList(self, key, /) : return self._key_to_value_list[key]
+    def value_list(self, key, /) : return self._key_to_value_list[key]
 
     def keys(self) : return List(list(self._key_to_value_list.keys()))
     

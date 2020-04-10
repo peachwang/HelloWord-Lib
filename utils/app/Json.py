@@ -51,19 +51,19 @@ class CustomEncoder(json.JSONEncoder) :
         type_to_str = lambda _type : str(_type).split('.')[1][ : -2] if '.' in str(_type) else str(_type)[8 : -2]
         wrap_dct    = lambda _obj, _data : { '__type__' : type_to_str(type(_obj)), '__data__' : _data }
         if isinstance(obj, Str)                                      : return str(obj)
-        if isinstance(obj, (List, Dict))                             : return obj.jsonSerialize()
-        if isinstance(obj, Object)                                   : return wrap_dct(obj, obj.jsonSerialize())
+        if isinstance(obj, (List, Dict))                             : return obj.json_serialize()
+        if isinstance(obj, Object)                                   : return wrap_dct(obj, obj.json_serialize())
         if isinstance(obj, (type(None), str, int, float, bool))      : return obj
-        if isinstance(obj, (ObjectId, DateTime))                     : return obj.jsonSerialize()
+        if isinstance(obj, (ObjectId, DateTime))                     : return obj.json_serialize()
         if isinstance(obj, (tuple, set))                             : return wrap_dct(obj, list(obj))
         if isinstance(obj, bytes)                                    : return wrap_dct(obj, str(obj)[2 : -1])
-        if isinstance(obj, datetime_class)                           : return DateTime(obj).jsonSerialize()
-        if isinstance(obj, (TimeDelta, Date, Time, File, Folder))    : return wrap_dct(obj, obj.jsonSerialize())
-        if isinstance(obj, timedelta_class)                          : return wrap_dct(obj, TimeDelta(obj).jsonSerialize())
-        if isinstance(obj, date_class)                               : return wrap_dct(obj, Date(obj).jsonSerialize())
-        if isinstance(obj, time_class)                               : return wrap_dct(obj, Time(obj).jsonSerialize())
-        if isinstance(obj, (DateList, DateRange, Year, Month, Week)) : return wrap_dct(obj, obj.jsonSerialize())
-        if 'jsonSerialize' in dir(obj)                               : return wrap_dct(obj, obj.jsonSerialize())
+        if isinstance(obj, datetime_class)                           : return DateTime(obj).json_serialize()
+        if isinstance(obj, (TimeDelta, Date, Time, File, Folder))    : return wrap_dct(obj, obj.json_serialize())
+        if isinstance(obj, timedelta_class)                          : return wrap_dct(obj, TimeDelta(obj).json_serialize())
+        if isinstance(obj, date_class)                               : return wrap_dct(obj, Date(obj).json_serialize())
+        if isinstance(obj, time_class)                               : return wrap_dct(obj, Time(obj).json_serialize())
+        if isinstance(obj, (DateList, DateRange, Year, Month, Week)) : return wrap_dct(obj, obj.json_serialize())
+        if 'json_serialize' in dir(obj)                              : return wrap_dct(obj, obj.json_serialize())
         if isinstance(obj, range)                                    : return wrap_dct(obj, [obj.start, obj.stop, obj.step])
         if isinstance(obj, type)                                     : return wrap_dct(obj, type_to_str(obj))
         if isinstance(obj, (zip, slice))                             : raise TypeError('无法序列化 zip, slice')
@@ -132,12 +132,12 @@ if __name__ == '__main__':
     ]
 ]
 '''
-    # List(raw_load_json_str(string)).printStr()
+    # List(raw_load_json_str(string)).print_str()
     # print(dir(ObjectId('5e452a91e154a7275a8b46a0')))
     o = ObjectId('5e452a91e154a7275a8b46a0')
     # print(o)
     # print(o, o._inc, o._inc_lock, o._machine_bytes, o._type_marker, o.binary, o.datetime)
-    # List([o.binary]).printStr()
+    # List([o.binary]).print_str()
     
     # print(type(
     a = List(raw_load_json_str(j([

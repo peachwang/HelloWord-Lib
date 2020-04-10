@@ -11,7 +11,7 @@ class _Pattern :
 
     def __init__(self, pattern, /) : self._pattern = pattern
 
-    def getRaw(self) : return self._pattern
+    def get_raw(self) : return self._pattern
 
     @cached_prop
     def string(self) : return Str(self._pattern.pattern)
@@ -34,7 +34,7 @@ class _Pattern :
     
     # A dictionary mapping any symbolic group names defined by (?P<id>) to group numbers.
     # The dictionary is empty if no symbolic groups were used in the pattern.
-    def groupIndex(self, name: str, /) : return self._pattern.groupindex[name]
+    def group_index(self, name: str, /) : return self._pattern.groupindex[name]
 
 class _Match :
 
@@ -44,7 +44,7 @@ class _Match :
         self._pattern       = _Pattern(match.re)
         self._match         = match
 
-    def getRaw(self) : return self._match
+    def get_raw(self) : return self._match
 
     @cached_prop
     def pattern(self) : return self._pattern
@@ -55,14 +55,14 @@ class _Match :
 
     def __format__(self, spec) : return f'{self.whole_match:{spec}}'
     
-    def __str__(self) : return f'_Match(whole_match = [{self.whole_match}], named = {self.namedGroupDict()}, indexed = {self.allGroupTuple()}, span = {self.spanOfGroup(0)}, pattern = [{self._pattern}], string = [{self._match.string}])'
+    def __str__(self) : return f'_Match(whole_match = [{self.whole_match}], named = {self.named_group_dict()}, indexed = {self.all_group_tuple()}, span = {self.span_of_group(0)}, pattern = [{self._pattern}], string = [{self._match.string}])'
 
     def __repr__(self) : return f'_Match({self._match!r})'
 
     @cached_prop
     def whole_match(self) : return Str(self._match.group())
 
-    def __getattr__(self, name) : return self.namedGroupDict()[name]
+    def __getattr__(self, name) : return self.named_group_dict()[name]
     
     def __getitem__(self, name) : return self.__getattr__(name)
 
@@ -109,12 +109,12 @@ class _Match :
 
     # Named groups can also be referred to by their index.
     # (?P<name>...)
-    def groupTuple(self, *groups) -> tuple :
+    def group_tuple(self, *groups) -> tuple :
         if len(groups) == 0   : raise Exception(f'非法{groups=}')
         elif len(groups) == 1 : _ = self._match.group(groups[0]); return tuple(self._wrap(_))
         else                  : return tuple(self._wrap(_) for _ in self._match.group(*groups))
 
-    def oneGroup(self, group: Union[int, str], /) : _ = self._match.group(group); return self._wrap(_)
+    def one_group(self, group: Union[int, str], /) : _ = self._match.group(group); return self._wrap(_)
 
     # Match.__getitem__(g)
     # m[group] <--> m.group(group)
@@ -127,11 +127,11 @@ class _Match :
     # however many groups(indexed and named!!!) are in the pattern. The default argument is used for
     # groups that did not participate in the match; it defaults to None.
     # (?P<name>...)
-    def allGroupTuple(self, *, default = None, ignore_missing = True) -> tuple :
+    def all_group_tuple(self, *, default = None, ignore_missing = True) -> tuple :
         return tuple(self._wrap(_) for _ in self._match.groups(default) if not ignore_missing or _ != default)
 
-    def onlyOneGroup(self, *, default = NV) :
-        _ = self.allGroupTuple(ignore_missing = True)
+    def only_one_group(self, *, default = NV) :
+        _ = self.all_group_tuple(ignore_missing = True)
         if len(_) > 1    : raise Exception(f'{self} 中出现不止一个 group')
         elif len(_) == 0 :
             if default == self.NV : raise Exception(f'{self} 中不存在 group')
@@ -142,7 +142,7 @@ class _Match :
     # Return a dictionary containing all the named subgroups (not indexed!!!) of the match,
     # keyed by the subgroup name. The default argument is used for groups that
     # did not participate in the match; it defaults to None.
-    def namedGroupDict(self, *, default = None, ignore_missing = True) :
+    def named_group_dict(self, *, default = None, ignore_missing = True) :
         from .Dict import Dict
         return Dict((key, value) for key, value in self._match.groupdict(default).items() if not ignore_missing or value != default)
 
@@ -154,24 +154,24 @@ class _Match :
     # the substring matched by group g (equivalent to m.group(g)) is
     # m.string[m.start(g):m.end(g)]. Note that m.start(group) will equal
     # m.end(group) if group matched a null string.
-    def startOfGroup(self, group: Union[int, str], /) -> int : return self._match.start(group)
+    def start_of_group(self, group: Union[int, str], /) -> int : return self._match.start(group)
 
     # Match.end([group])
     # Return the indices of the end of the substring matched by group;
-    def endOfGroup(self, group: Union[int, str], /) -> int : return self._match.end(group)
+    def end_of_group(self, group: Union[int, str], /) -> int : return self._match.end(group)
 
     # Match.span([group])
     # For a match m, return the 2-tuple (m.start(group), m.end(group)).
     # Note that if group did not contribute to the match, this is (-1, -1).
     # group defaults to zero, the entire match.
-    def spanOfGroup(self, group: Union[int, str], /) -> tuple : return self._match.span(group)
+    def span_of_group(self, group: Union[int, str], /) -> tuple : return self._match.span(group)
 
-    def replaceGroup(self, group: Union[int, str], repl_str_or_func, /) :
-        if self.oneGroup(group) is None      : return self.string
+    def replace_group(self, group: Union[int, str], repl_str_or_func, /) :
+        if self.one_group(group) is None      : return self.string
         if isinstance(repl_str_or_func, str) : replacement = repl_str_or_func
-        elif callable(repl_str_or_func)      : replacement = repl_str_or_func(self.oneGroup(group))
+        elif callable(repl_str_or_func)      : replacement = repl_str_or_func(self.one_group(group))
         else                                 : raise CustomTypeError(repl_str_or_func)
-        return self.string[ : self.startOfGroup(group)] + replacement + self.string[self.endOfGroup(group) : ]
+        return self.string[ : self.start_of_group(group)] + replacement + self.string[self.end_of_group(group) : ]
 
 class Str(str, base_class) :
 
@@ -180,11 +180,11 @@ class Str(str, base_class) :
     # id(object) -> integer
     # Return the identity of an object.  This is guaranteed to be unique among
     # simultaneously existing objects.  (Hint: it's the object's memory address.)
-    def getId(self) -> int : return hex(id(self))
+    def get_id(self) -> int : return hex(id(self))
 
-    def getRaw(self) -> str : return str(self)
+    def get_raw(self) -> str : return str(self)
 
-    jsonSerialize = getRaw
+    json_serialize = get_raw
 
     # Implement iter(self).
     def __iter__(self) :
@@ -206,7 +206,7 @@ class Str(str, base_class) :
     
     # Required code that reproduces object
     # Return repr(self).
-    def __repr__(self) : return f"Str({super().__repr__()})"
+    # def __repr__(self) : return f"Str({super().__repr__()})"
     
     # S.center(width[, fillchar]) -> str
     # Return S centered in a string of length width. Padding is
@@ -234,21 +234,21 @@ class Str(str, base_class) :
     def len(self) : return super().__len__()
 
     @log_entering()
-    def isEmpty(self) : return self.fullMatch(r'^[ \t\r\n]*$')
+    def is_empty(self) : return self.full_match(r'^[ \t\r\n]*$')
 
-    def ensureEmpty(self) :
-        if self.isEmpty() : return self
+    def ensure_empty(self) :
+        if self.is_empty() : return self
         else              : raise Exception(f'{self=}应该为空串')
 
-    def isNotEmpty(self) : return not self.isEmpty()
+    def is_not_empty(self) : return not self.is_empty()
 
-    def ensureNotEmpty(self) :
-        if self.isNotEmpty() : return self
+    def ensure_not_empty(self) :
+        if self.is_not_empty() : return self
         else                 : raise Exception(f'{self=}应该不为空串')
 
-    def isIn(self, *item_list) : return self in item_list
+    def is_in(self, *item_list) : return self in item_list
 
-    def isNotIn(self, *item_list) : return not self.isIn(*item_list)
+    def is_not_in(self, *item_list) : return not self.is_in(*item_list)
 
     # x.__contains__(y) <==> y in x
     # sub: Union[str, Str]
@@ -258,27 +258,27 @@ class Str(str, base_class) :
         if not re_mode : return super().__contains__(sub_or_pattern)
         else           : return self.count(sub_or_pattern, re_mode = re_mode, flags = flags) > 0
 
-    def hasNo(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
+    def has_no(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
         return not self.has(sub_or_pattern, re_mode = re_mode, flags = flags)
 
-    def hasAnyOf(self, sub_list, /) :
+    def has_any_of(self, sub_list, /) :
         if not isinstance(sub_list, list) : raise CustomTypeError(sub_list)
         return any(self.has(sub) for sub in sub_list)
 
-    def hasAllOf(self, sub_list, /) :
+    def has_all_of(self, sub_list, /) :
         if not isinstance(sub_list, list) : raise CustomTypeError(sub_list)
         return all(self.has(sub) for sub in sub_list)
 
-    def hasNoneOf(self, sub_list, /) :
+    def has_none_of(self, sub_list, /) :
         if not isinstance(sub_list, list) : raise CustomTypeError(sub_list)
-        return all(self.hasNo(sub) for sub in sub_list)
+        return all(self.has_no(sub) for sub in sub_list)
 
     # S.count(sub[, start[, end]]) -> int
     # Return the number of non-overlapping occurrences of substring sub in
     # string S[start:end].  Optional arguments start and end are
     # interpreted as in slice notation.
     def count(self, sub_or_pattern, /, *, start = 0, end = -1, re_mode = False, flags = 0) :
-        if re_mode : return self.findAllMatchList(sub_or_pattern, flags = flags).len()
+        if re_mode : return self.find_all_match_list(sub_or_pattern, flags = flags).len()
         else       : return super().count(sub_or_pattern, start, end)
 
     # S.index(sub[, start[, end]]) -> int
@@ -308,25 +308,25 @@ class Str(str, base_class) :
     # beginning of the string and not at the beginning of each line.
     # If you want to locate a match anywhere in string, use search() instead
     @log_entering()
-    def leftMatch(self, pattern, /, *, flags = 0) -> Optional[_Match] : return _Match(re.match(pattern, self, flags)) if _ else None
+    def left_match(self, pattern, /, *, flags = 0) -> Optional[_Match] : return _Match(re.match(pattern, self, flags)) if _ else None
 
-    def ensureLeftMatch(self, pattern = None, /, *, flags = 0) :
-        if self.leftMatch(pattern, flags = flags) : return self
+    def ensure_left_match(self, pattern = None, /, *, flags = 0) :
+        if self.left_match(pattern, flags = flags) : return self
         else                                      : raise Exception(f'\n{self=}\n应该左匹配\n{pattern=}')
     
-    # @Timer.timeitTotal('fullMatch')
+    # @Timer.timeit_total('full_match')
     # re.fullmatch(pattern, string, flags=0)
     # If the whole string matches the regular expression pattern,
     # return a corresponding match object. Return None if the string
     # does not match the pattern; note that this is different from
     # a zero-length match.
-    def fullMatch(self, pattern, /, *, flags = 0) -> Optional[_Match] :
+    def full_match(self, pattern, /, *, flags = 0) -> Optional[_Match] :
         try                           : _ = re.fullmatch(pattern, self, flags)
         except KeyboardInterrupt as e : print(R(f'fullMatch卡住: {self}')); input(); return None
         return _Match(_) if _ else None
 
-    def ensureFullMatch(self, pattern = None, /, *, flags = 0) :
-        if self.fullMatch(pattern, flags = flags) : return self
+    def ensure_full_match(self, pattern = None, /, *, flags = 0) :
+        if self.full_match(pattern, flags = flags) : return self
         else                                      : raise Exception(f'\n{self=}\n应该完全匹配\n{pattern=}')
 
     # re.search(pattern, string, flags=0)
@@ -335,27 +335,27 @@ class Str(str, base_class) :
     # object. Return None if no position in the string matches the pattern;
     # note that this is different from finding a zero-length match at some
     # point in the string.
-    def searchOneMatch(self, pattern, /, *, reverse = False, flags = 0) -> Optional[_Match] : return _Match(re.search(pattern, self, flags)) if _ else None
+    def search_one_match(self, pattern, /, *, reverse = False, flags = 0) -> Optional[_Match] : return _Match(re.search(pattern, self, flags)) if _ else None
 
     # re.finditer(pattern, string, flags=0)
     # Return an iterator yielding match objects over all non-overlapping
     # matches for the RE pattern in string. The string is scanned left-to-right,
     # and matches are returned in the order found. Empty matches are included
     # in the result.
-    def findAllMatchList(self, pattern, /, *, flags = 0) : from .List import List; return List(_Match(match) for match in re.finditer(pattern, self, flags))
+    def find_all_match_list(self, pattern, /, *, flags = 0) : from .List import List; return List(_Match(match) for match in re.finditer(pattern, self, flags))
     
-    def onlyOneMatch(self, pattern, /, *, flags = 0, default = NV) -> _Match :
-        matches = self.findAllMatchList(pattern, flags = flags)
+    def only_one_match(self, pattern, /, *, flags = 0, default = NV) -> _Match :
+        matches = self.find_all_match_list(pattern, flags = flags)
         if matches.len() > 1    : raise Exception(f'[{pattern}] 在 [{self}] 中出现不止一次')
         elif matches.len() == 0 :
             if default != self.NV : return self._wrap(default)
             else                  : raise Exception(f'[{pattern}] 在 [{self}] 中不存在')
         else                    : return matches[0]
 
-    def onlyOneGroup(self, pattern, /, *, flags = 0, default = NV) :
-        m = self.onlyOneMatch(pattern, flags = flags, default = default)
+    def only_one_group(self, pattern, /, *, flags = 0, default = NV) :
+        m = self.only_one_match(pattern, flags = flags, default = default)
         if m == default : return self._wrap(default)
-        else            : return m.onlyOneGroup(default = default)
+        else            : return m.only_one_group(default = default)
 
     # re.findall(pattern, string, flags=0)
     # Return all non-overlapping matches of pattern in string,
@@ -509,7 +509,7 @@ class Str(str, base_class) :
         ).merge()
 
     # NOT IN PLACE
-    def toUrl(self) :
+    def to_url(self) :
         result = Str()
         for char in self :
             if char == ' '        : result += Str('%20')
@@ -523,99 +523,99 @@ class Str(str, base_class) :
     # Decimal characters are those that can be used to form numbers in base 10,
     # e.g. U+0660, ARABIC-INDIC DIGIT ZERO. Formally a decimal character is
     # a character in the Unicode General Category “Nd”.
-    def isNumber(self) : return super().isdecimal()
+    def is_number(self) : return super().isdecimal()
 
-    def toDateTime(self, pattern = '%Y-%m-%d %H:%M:%S') : from .DateTime import DateTime; return DateTime(self, pattern)
+    def to_datetime(self, pattern = '%Y-%m-%d %H:%M:%S') : from .DateTime import DateTime; return DateTime(self, pattern)
 
-    def isInt(self) : return self.isNumber() and self.hasNo('.')
+    def is_int(self) : return self.is_number() and self.has_no('.')
 
-    def ensureInt(self) :
-        if self.isInt() : return self
+    def ensure_int(self) :
+        if self.is_int() : return self
         else            : raise Exception(f'[{self=}]不是整数')
 
-    def toInt(self) -> int : return int(self.ensureInt())
+    def to_int(self) -> int : return int(self.ensure_int())
 
-    def isFloat(self) : return self.isNumber() and self.has('.')
+    def is_float(self) : return self.is_number() and self.has('.')
 
-    def ensureFloat(self) :
-        if self.isFloat() : return self
+    def ensure_float(self) :
+        if self.is_float() : return self
         else              : raise Exception(f'[{self=}]不是浮点数')
 
-    def toFloat(self) -> float : return float(self.ensureFloat())
+    def to_float(self) -> float : return float(self.ensure_float())
 
     # S.islower() -> bool
     # Return True if all cased characters in S are lowercase and there is
     # at least one cased character in S, False otherwise.
-    def isLower(self) : return super().islower()
+    def is_lower(self) : return super().islower()
 
     # S.isupper() -> bool
     # Return True if all cased characters in S are uppercase and there is
     # at least one cased character in S, False otherwise.
-    def isUpper(self) : return super().isupper()
+    def is_upper(self) : return super().isupper()
 
     # S.lower() -> str
     # Return a copy of the string S converted to lowercase.
     # NOT IN PLACE
-    def toLower(self) : return Str(super().lower())
+    def to_lower(self) : return Str(super().lower())
 
     # S.upper() -> str
     # Return a copy of S converted to uppercase.
     # NOT IN PLACE
-    def toUpper(self) : return Str(super().upper())
+    def to_upper(self) : return Str(super().upper())
 
     # S.title() -> str
     # Return a titlecased version of S, i.e. words start with title case
     # characters, all remaining cased characters have lower case.
     # NOT IN PLACE
-    def toTitle(self) : return Str(super().title())
+    def to_title(self) : return Str(super().title())
 
     # S.capitalize() -> str
     # Return a capitalized version of S, i.e. make the first character
     # have upper case and the rest lower case.
     # NOT IN PLACE
-    def toCapitalize(self) : return Str(super().capitalize())
+    def to_capitalize(self) : return Str(super().capitalize())
 
     # S.swapcase() -> str
     # Return a copy of S with uppercase characters converted to lowercase
     # and vice versa.
     # NOT IN PLACE
-    def swapCase(self) : return Str(super().swapcase())
+    def swap_case(self) : return Str(super().swapcase())
 
     # S.casefold() -> str
     # Return a version of S suitable for caseless comparisons.
     # NOT IN PLACE
-    def foldCase(self) : return Str(super().casefold())
+    def fold_case(self) : return Str(super().casefold())
 
-    def _splitWordList(self) :
+    def _split_word_list(self) :
         result = []
         for char in self :
             if len(result) == 0 :
                 if char == '_' : continue # 过滤头部下划线
                 result.append(char)
-            elif char.isLower()  : result[-1] += char
-            elif char.isUpper()  : result.append(char)
-            elif char.isNumber() :
-                if result[-1].isNumber() : result[-1] += char
+            elif char.is_lower()  : result[-1] += char
+            elif char.is_upper()  : result.append(char)
+            elif char.is_number() :
+                if result[-1].is_number() : result[-1] += char
                 else                     : result.append(char)
             elif char == '_'     :
                 if result[-1] == '' : continue
-                else                : result.append('')
-            else                 : raise Exception(f'非法字符[{char=}] in [{self=}]')
+                else                : result.append(Str(''))
+            else                 : raise Exception(f'非法字符[{P(char)}] in [{P(self)}]')
         if len(result) == 0 : raise Exception(f'无法 splitWord [{self}]')
         return result
 
-    def toPascalCase(self) : return Str(''.join([word.toCapitalize() for word in self._splitWordList()]))
+    def to_pascal_case(self) : return Str(''.join([word.to_capitalize() for word in self._split_word_list()]))
 
-    def toCamelCase(self) : word_list = self._splitWordList(); return word_list[0].toLower() + Str(''.join([word.toCapitalize() for word in word_list[1:]]))
+    def to_camel_case(self) : word_list = self._split_word_list(); return word_list[0].to_lower() + Str(''.join([word.to_capitalize() for word in word_list[1:]]))
 
-    def toSnakeCase(self) : return Str('_'.join([word.toLower() for word in self._splitWordList()]))
+    def to_snake_case(self) : return Str('_'.join([word.to_lower() for word in self._split_word_list()]))
 
     # S.ljust(width[, fillchar]) -> str
     # S.rjust(width[, fillchar]) -> str
     # Return S left-justified or right-justified in a Unicode string of length width. Padding is
     # done using the specified fill character (default is a space).
     # NOT IN PLACE
-    def padToWidth(self, width: int, fillchar: str = ' ', /, *, reverse = False) :
+    def pad_to_width(self, width: int, fillchar: str = ' ', /, *, reverse = False) :
         if reverse : return Str(super().rjust(width, fillchar))
         else       : return Str(super().ljust(width, fillchar))
 
@@ -841,7 +841,7 @@ class Str(str, base_class) :
     # def zfill(self) :
 
 if __name__ == '__main__':
-    # print(Str('hello').isIn('hello', 'word'))
+    # print(Str('hello').is_in('hello', 'word'))
     # print(Str('hello') in 'hellword')
     # print('hello' in Str('hellword'))
     # print('@'.join([Str('hello'), Str('word')]))

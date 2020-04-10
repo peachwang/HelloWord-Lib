@@ -16,17 +16,17 @@ class SysArgv :
         for index, arg in List(sys.argv).enum() :
             if index == 0    : continue
             if arg[0] == '-' :
-                m                = arg.fullMatch(r'^-([^=]+)=(.*)$')
-                key, value       = m.oneGroup(1), m.oneGroup(2)
+                m                = arg.full_match(r'^-([^=]+)=(.*)$')
+                key, value       = m.one_group(1), m.one_group(2)
                 cls._kwargs[key] = value
             else             : cls._args.append(arg)
         cls._has_inited = True
 
     @classmethod
-    def getArgs(cls) : cls.__initclass__(); return cls._args
+    def get_args(cls) : cls.__initclass__(); return cls._args
 
     @classmethod
-    def getKwargs(cls) : cls.__initclass__(); return cls._kwargs
+    def get_kwargs(cls) : cls.__initclass__(); return cls._kwargs
 
 def main_func(kwarg_to_type = Dict(), /) :
     def decorator(func) :
@@ -35,13 +35,13 @@ def main_func(kwarg_to_type = Dict(), /) :
             try :
                 kwarg_to_type['trace']   = bool
                 kwarg_to_type['profile'] = bool
-                kwargs                   = SysArgv.getKwargs()
+                kwargs                   = SysArgv.get_kwargs()
                 for name in kwargs :
                     if name in kwarg_to_type :
                         if isinstance(kwarg_to_type[name], tuple) : kwargs[name] = kwarg_to_type[name][0](kwargs[name], *(kwarg_to_type[name][1:]))
                         elif kwarg_to_type[name] is bool          : kwargs[name] = True if kwargs[name] == '1' else False
                         else                                      : kwargs[name] = kwarg_to_type[name](kwargs[name])
-                Timer.printTiming('开始', color = Y)
+                Timer.print_timing('开始', color = Y)
                 result = None
                 if kwargs.get('trace', False) :
                     import trace
@@ -79,7 +79,7 @@ def main_func(kwarg_to_type = Dict(), /) :
                     # p.add('restats')
                 else :
                     result = func(kwargs)
-                Timer.printTiming(f'结束 {result}', color = G)
+                Timer.print_timing(f'结束 {result}', color = G)
                 return result
             except :
                 import traceback
@@ -88,12 +88,12 @@ def main_func(kwarg_to_type = Dict(), /) :
                 for index, line in line_list.enum() :
                     line_list[index] = line.strip('\n')
                     if line.has('HelloWord-Lib') or line.has('Python.framework') : flag = False
-                    elif not flag and (line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.hasNo('HelloWord-Lib') and line.hasNo('Python.framework')) :
+                    elif not flag and (line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.has_no('HelloWord-Lib') and line.has_no('Python.framework')) :
                         line_list[index] = f'{B(line_list[index])}'
                         # if index >= 1 and line_list[index - 1].has('HelloWord-Lib') : line_list[index - 1] = f'{Y(line_list[index - 1])}'
                         if index > 0 : flag = True
-                line_list.reverse().forEach(lambda line : print(line))
-                Timer.printTiming('失败', color = R)
+                line_list.reverse().for_each(lambda line : print(line))
+                Timer.print_timing('失败', color = R)
         return wrapper
     return decorator
 

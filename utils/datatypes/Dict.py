@@ -7,7 +7,7 @@ class Dict(dict, base_class) :
     NV = V_NON_VACANCY = 'V_NON_VACANCY'
 
     @classmethod
-    def _importTypes(cls) :
+    def _import_types(cls) :
         if cls._has_imported_types : return
         from .ObjectId import ObjectId;        cls._ObjectId  = ObjectId
         from .Str      import Str;             cls._Str       = Str
@@ -34,23 +34,23 @@ class Dict(dict, base_class) :
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         cls._has_imported_types = True
 
-    # @Timer.timeitTotal('_wrapValue')
-    def _wrapValue(self, value, /) :
+    # @Timer.timeit_total('_wrap_value')
+    def _wrap_value(self, value, /) :
         if isinstance(value, (self._ObjectId, self._Str, self._List, self._Dict)) : return value
         elif isinstance(value, str)                                               : return self._Str(value)
         elif isinstance(value, dict)                                              : return self._Dict(value)
         elif isinstance(value, list)                                              : return self._List(value)
-        elif isinstance(value, tuple)                                             : return tuple([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, tuple)                                             : return tuple([ self._wrap_value(_) for _ in value ])
         elif isinstance(value, self._timedelta)                                   : return self._TimeDelta(value)
         elif isinstance(value, self._date)                                        : return self._Date(value)
         elif isinstance(value, self._time)                                        : return self._Time(value)
         elif isinstance(value, self._datetime)                                    : return self._DateTime(value)
-        elif isinstance(value, set)                                               : return set([ self._wrapValue(_) for _ in value ])
+        elif isinstance(value, set)                                               : return set([ self._wrap_value(_) for _ in value ])
         else                                                                      : return value
 
-    def _wrapStr(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
+    def _wrap_str(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
     
-    def _wrapStrOrType(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
+    def _wrap_str_or_type(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
 
     # Initialize self.  See help(type(self)) for accurate signature.
     # dict() -> new empty dictionary
@@ -62,15 +62,15 @@ class Dict(dict, base_class) :
     # dict(**kwargs) -> new dictionary initialized with the name=value pairs in the keyword argument list.  For example:  dict(one=1, two=2)
     # def __class__(self) :
     def __init__(self, *args, **kwargs) :
-        self._importTypes()
+        self._import_types()
         if len(args) == 0   : super().__init__({})
         elif len(args) == 1 :
-            if isinstance(args[0], Dict)                   : super().__init__(args[0]._getData())
+            if isinstance(args[0], Dict)                   : super().__init__(args[0]._get_data())
             elif isinstance(args[0], dict)                 :
                 for key in args[0] :
                     super().__setitem__(
                         eval(key) if isinstance(key, str) and key[ : 2] == "b'" and key[-1] == "'" else key,
-                        self._wrapValue(args[0][key])
+                        self._wrap_value(args[0][key])
                     )
             elif isinstance(args[0], (zip, GeneratorType)) : self.__init__(dict(args[0]))
             else                                           : raise CustomTypeError(args)
@@ -91,56 +91,56 @@ class Dict(dict, base_class) :
     # id(object) -> integer
     # Return the identity of an object.  This is guaranteed to be unique among
     # simultaneously existing objects.  (Hint: it's the object's memory address.)
-    def getId(self) -> int : return hex(id(self))
+    def get_id(self) -> int : return hex(id(self))
 
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
-    def _getData(self) -> dict : return { key : self[key] for key in self }
+    def _get_data(self) -> dict : return { key : self[key] for key in self }
 
     # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     # NOT IN PLACE
-    def getRaw(self) -> dict : return { key : self[key].getRaw() if 'getRaw' in dir(self[key]) else self[key] for key in self }
+    def get_raw(self) -> dict : return { key : self[key].get_raw() if 'get_raw' in dir(self[key]) else self[key] for key in self }
 
-    jsonSerialize = _getData
-
-    @print_func
-    def printLen(self) : return f'{self.len()}个键值', False
+    json_serialize = _get_data
 
     @print_func
-    def printLine(self) : return self.keys().mapped(lambda key, index : f'{index + 1} {self._wrapStr(key, format)}: {self._wrapStr(self[key], format)}').join('\n'), True
+    def print_len(self) : return f'{self.len()}个键值', False
+
+    @print_func
+    def print_line(self) : return self.keys().mapped(lambda key, index : f'{index + 1} {self._wrap_str(key, format)}: {self._wrap_str(self[key], format)}').join('\n'), True
 
     # default object formatter
-    def __format__(self, spec) : return "{{ {} }}".format(self.keys().map(lambda key : '{} : {}'.format(self._wrapStr(key, format), self._wrapStr(self[key], format))).join(', '), spec)
+    def __format__(self, spec) : return "{{ {} }}".format(self.keys().map(lambda key : '{} : {}'.format(self._wrap_str(key, format), self._wrap_str(self[key], format))).join(', '), spec)
 
     @print_func
-    def printFormat(self) : return self.keys().mapped(lambda key : f'{self._wrapStr(key, format)}: {self._wrapStr(self[key], format)}').join('\n'), True
+    def print_format(self) : return self.keys().mapped(lambda key : f'{self._wrap_str(key, format)}: {self._wrap_str(self[key], format)}').join('\n'), True
 
     # Return str(self).
-    def __str__(self) : return 'Dict{{ {} }}'.format(self.keys().map(lambda key : '{} : {}'.format(self._wrapStr(key, str), self._wrapStr(self[key], str))).join(', '))
+    def __str__(self) : return 'Dict{{ {} }}'.format(self.keys().map(lambda key : '{} : {}'.format(self._wrap_str(key, str), self._wrap_str(self[key], str))).join(', '))
 
     @print_func
-    def printStr(self) : return self.keys().mapped(lambda key : f'{self._wrapStr(key, str)}: {self._wrapStr(self[key], str)}').join('\n'), True
+    def print_str(self) : return self.keys().mapped(lambda key : f'{self._wrap_str(key, str)}: {self._wrap_str(self[key], str)}').join('\n'), True
 
     # Return repr(self).
-    def __repr__(self) : return 'Dict({{ {} }})'.format(self.keys().map(lambda key : '{} : {}'.format(self._wrapStrOrType(key, repr), self._wrapStrOrType(self[key], repr))).join(', '))
+    def __repr__(self) : return 'Dict({{ {} }})'.format(self.keys().map(lambda key : '{} : {}'.format(self._wrap_str_or_type(key, repr), self._wrap_str_or_type(self[key], repr))).join(', '))
 
     @print_func
-    def printJ(self) : return self.j(), True
+    def print_j(self) : return self.j(), True
 
     # 带有业务逻辑，与 j 不同
     # NOT IN PLACE
     def json(self) : return Dict((key, self[key].json()) if 'json' in dir(self[key]) else (key, self[key]) for key in self)
 
     @print_func
-    def printJson(self) : return f'{self.json().j()}', False
+    def print_json(self) : return f'{self.json().j()}', False
 
     def inspect(self, **kwargs) : from ..app.Inspect import Inspect; return Inspect(self, **kwargs)
 
     # other: Union[dict, Dict]
     def diff(self, other) : from ..app.Inspect import Diff; return Diff(self, other)
 
-    def isList(self) : return False
+    def is_list(self) : return False
 
-    def isDict(self) : return True
+    def is_dict(self) : return True
 
     # Return self==value.
     def __eq__(self, other) :
@@ -167,9 +167,9 @@ class Dict(dict, base_class) :
 
     def len(self) : return super().__len__()
 
-    def isEmpty(self) : return self.len() == 0
+    def is_empty(self) : return self.len() == 0
 
-    def isNotEmpty(self) : return not self.isEmpty()
+    def is_not_empty(self) : return not self.is_empty()
 
     # D.__contains__(k) -> True if D has a key k, else False.
     def __contains__(self, key, /) : return super().__contains__(key)
@@ -185,13 +185,13 @@ class Dict(dict, base_class) :
             return True
         else                                           : raise CustomTypeError(key_list)
 
-    def hasNo(self, key_list, /) : return not self.has(key_list)
+    def has_no(self, key_list, /) : return not self.has(key_list)
 
-    def hasAnyOf(self, key_list_list, /) : return any(self.has(key_list) for key_list in key_list_list)
+    def has_any_of(self, key_list_list, /) : return any(self.has(key_list) for key_list in key_list_list)
 
-    def hasAllOf(self, key_list_list, /) : return all(self.has(key_list) for key_list in key_list_list)
+    def has_all_of(self, key_list_list, /) : return all(self.has(key_list) for key_list in key_list_list)
 
-    def hasNoneOf(self, key_list_list, /) : return all(self.hasNo(key_list) for key_list in key_list_list)
+    def has_none_of(self, key_list_list, /) : return all(self.has_no(key_list) for key_list in key_list_list)
 
     # D.keys() -> a set-like object providing a view on D's keys
     def keys(self) : return self._List(list(super().keys()))
@@ -221,11 +221,11 @@ class Dict(dict, base_class) :
     def get(self, key_list, /, default = None) :
         if isinstance(key_list, self._raw_type_tuple)  :
             if default == self.NV and not super().__contains__(key_list) : raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
-            return super().get(key_list, self._wrapValue(default))
+            return super().get(key_list, self._wrap_value(default))
         elif isinstance(key_list, list)                :
-            if self.hasNo(key_list) :
+            if self.has_no(key_list) :
                 if default == self.NV : raise Exception(f'键 {key_list} 不能为空\n{self=}')
-                return self._wrapValue(default)
+                return self._wrap_value(default)
             else                    :
                 now = self
                 for key in key_list : now = now[key]
@@ -240,12 +240,11 @@ class Dict(dict, base_class) :
     # When a default argument is given, it is returned when the attribute doesn't
     # exist; without it, an exception is raised in that case.
     def __getattr__(self, key) : return self.__getitem__(key)
-        # if key in ('List', 'Dict', 'Str', 'Object') : print(f'__getattr__ {key=}')
 
     # operator.attrgetter(*attrs)
     # [ (key1,), (key2, None), key3 ]
-    def getMulti(self, key_list: list, /, *, de_underscore: bool = False) :
-        def deUnderscoure(key: str) :
+    def get_multi(self, key_list: list, /, *, de_underscore: bool = False) :
+        def de_underscoure(key: str) :
             if de_underscore and key[0] == '_' : return key[1:]
             else                               : return key
         result = Dict()
@@ -264,7 +263,7 @@ class Dict(dict, base_class) :
 
     # Set self[key] to value.
     # IN PLACE
-    def __setitem__(self, key, value) : super().__setitem__(key, self._wrapValue(value)); return value
+    def __setitem__(self, key, value) : super().__setitem__(key, self._wrap_value(value)); return value
 
     # Implement setattr(self, name, value).
     # Sets the named attribute on the given object to the specified value.
@@ -326,55 +325,37 @@ class Dict(dict, base_class) :
     # D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
     # If key is not found, d is returned if given, otherwise KeyError is raised
     # IN PLACE
-    def popKey(self, key_list, /, default = NV) :
+    def pop_key(self, key_list, /, default = NV) :
         if isinstance(key_list, self._raw_type_tuple)  :
             if default == self.NV : return super().pop(key_list)
-            else                  : return super().pop(key_list, self._wrapValue(default))
+            else                  : return super().pop(key_list, self._wrap_value(default))
         elif isinstance(key_list, list)                :
-            if self.hasNo(key_list) :
+            if self.has_no(key_list) :
                 if default == self.NV : raise KeyError(key_list)
-                else                  : return self._wrapValue(default)
+                else                  : return self._wrap_value(default)
             else                    :
                 now = self
                 for key in key_list[ : -1] : now = now[key]
                 if default == self.NV : return dict.pop(now, key_list[-1])
-                else                  : return dict.pop(now, key_list[-1], self._wrapValue(default))
+                else                  : return dict.pop(now, key_list[-1], self._wrap_value(default))
         else                                           : raise CustomTypeError(key_list)
 
     # NOT IN PLACE
-    def poppedKey(self, key_list, /, default = NV) : return self.copy().popKey(key_list, default)
+    def popped_key(self, key_list, /, default = NV) : return self.copy().pop_key(key_list, default)
 
     # IN PLACE
-    def dropKey(self, key_list, /, default = NV) : self.popKey(key_list, None); return self
+    def drop_key(self, key_list, /, default = NV) : self.pop_key(key_list, None); return self
 
     # NOT IN PLACE
-    def droppedKey(self, key_list, /, default = NV) : self.copy().dropKey(key_list, default); return self
+    def dropped_key(self, key_list, /, default = NV) : self.copy().drop_key(key_list, default); return self
 
     # D.popitem() -> (k, v), remove and return some (key, value) pair as a
     # 2-tuple; but raise KeyError if D is empty.
     # IN PLACE
-    # def popItem(self) : return super().popitem()
-
-    def _stripValue(self, value, string, /) :
-        if isinstance(value, (self._Str, self._List, self._Dict)) : return value.strip(string) # can't be list, dict, str
-        elif isinstance(value, tuple)                             : return (self._stripValue(_, string) for _ in value)
-        elif isinstance(value, set)                               : return set([self._stripValue(_, string) for _ in value])
-        elif isinstance(value, object)                            :
-            if 'strip' in dir(value) : value.strip(string)
-            return value
-        elif isinstance(value, self._raw_type_tuple)              : return value
-        else                                                      : raise CustomTypeError(value)
-
-    # IN PLACE
-    def strip(self, string = ' \t\n', /) :
-        for key in self : self[key] = self._stripValue(self[key], string)
-        return self
+    # def pop_item(self) : return super().popitem()
 
     # NOT IN PLACE
-    def stripped(self, string = ' \t\n', /) : return self.copy().strip(string)
-
-    # NOT IN PLACE
-    def forEach(self, func, /, *args, **kwargs) :
+    def for_each(self, func, /, *args, **kwargs) :
         for key, value in self.items() : func(key, value, *args, **kwargs)
         return self
 
@@ -382,7 +363,7 @@ class Dict(dict, base_class) :
     # IN PLACE
     def clear(self) : super().clear(); return self
 
-    def writeToFile(self, file, /, *, indent = True) : file.writeData(self, indent = indent); return self
+    def write_to_file(self, file, /, *, indent = True) : file.write_data(self, indent = indent); return self
 
     # python2
     # '__class__', '__cmp__', '__contains__', '__delattr__', '__delitem__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__iter__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'clear', 'copy', 'fromkeys', 'get', 'has_key', 'items', 'iteritems', 'iterkeys', 'itervalues', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values', 'viewitems', 'viewkeys', 'viewvalues'
@@ -424,11 +405,11 @@ class Dict(dict, base_class) :
     # def __subclasshook__(self) :
 
 if __name__ == '__main__':
-    # print(hasattr(Dict({'a':'b',3:4}), 'getMulti'))
-    # print(getattr(Dict({'a':'b',3:4}), 'getMulti'))
-    # print(Dict({'a':'b',3:4}).getMulti)
-    # # print(Dict({'a':'b',3:4}).__getattr__('getMulti'))
-    # print(Dict({'a':'b',3:4}).__getattribute__('getMulti'))
+    # print(hasattr(Dict({'a':'b',3:4}), 'get_multi'))
+    # print(getattr(Dict({'a':'b',3:4}), 'get_multi'))
+    # print(Dict({'a':'b',3:4}).get_multi)
+    # # print(Dict({'a':'b',3:4}).__getattr__('get_multi'))
+    # print(Dict({'a':'b',3:4}).__getattribute__('get_multi'))
     a = {'b' : [1,2,3]}
     # b = a['b']
     d = Dict(a)

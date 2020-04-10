@@ -46,18 +46,18 @@ class File(base_class) :
     @prop
     def ext(self) -> Str : return self._ext
 
-    def extIs(self, ext, /) : return self._ext.toLower() == Str(ext).toLower()
+    def ext_is(self, ext, /) : return self._ext.to_lower() == Str(ext).to_lower()
 
-    def isTxt(self) : return self.extIs('txt')
+    def is_txt(self) : return self.ext_is('txt')
 
-    def isJson(self) : return self.extIs('json')
+    def is_json(self) : return self.ext_is('json')
 
     @prop
     def range(self) : return self._range
 
     def exists(self) : return exists(self._path)
 
-    def notExists(self) : return not self.exists()
+    def not_exists(self) : return not self.exists()
 
     @prop
     def size(self) : return getsize(self._path)
@@ -68,9 +68,9 @@ class File(base_class) :
 
     # os.remove(path, *, dir_fd=None)
     # Remove (delete) the file path. If path is a directory, an IsADirectoryError is raised. Use rmdir() to remove directories.
-    def delete(self) : remove(self._path); Timer.printTiming(f'{self} 已删除', color = R); return self
+    def delete(self) : remove(self._path); Timer.print_timing(f'{self} 已删除', color = R); return self
 
-    def jsonSerialize(self) -> str : return self._raw_path
+    def json_serialize(self) -> str : return self._raw_path
 
     def __eq__(self, other) : return self.abs_path == other.abs_path
 
@@ -91,12 +91,12 @@ class File(base_class) :
             return self
         else                        : raise CustomTypeError(index)
 
-    def readRaw(self) : return Str(''.join(open(self._path).readlines()))
+    def read_raw(self) : return Str(''.join(open(self._path).readlines()))
 
     def __iter__(self) :
         for line in open(self._path) : yield Str(line)
 
-    def _readLineList(self, *, raw = False, filter_white_lines = False, replace_abnormal_char = True) -> Union[list, List] :
+    def _read_line_list(self, *, raw = False, filter_white_lines = False, replace_abnormal_char = True) -> Union[list, List] :
         if raw : result = []
         else   : result = List()
         start = self._range.start if hasattr(self, '_range') else None
@@ -104,14 +104,14 @@ class File(base_class) :
         for index, line in enumerate(open(self._path)) :
             if start is not None and index < start        : continue
             if stop is not None and stop <= index         : break
-            if filter_white_lines and Str(line).isEmpty() : continue
+            if filter_white_lines and Str(line).is_empty() : continue
             if replace_abnormal_char : line = line.replace(' ', ' ').replace('．', '.')
             result.append(line.strip('\n\r'))
         return result
 
-    def readFieldList(self, *, index, sep = '\t') -> List : return self._readLineList(filter_white_lines = True).map(lambda line : line.split(sep)[index])
+    def read_field_list(self, *, index, sep = '\t') -> List : return self._read_line_list(filter_white_lines = True).map(lambda line : line.split(sep)[index])
 
-    def _loadJson(self, *, raw = False) -> Union[list, dict, List, Dict] :
+    def _load_json(self, *, raw = False) -> Union[list, dict, List, Dict] :
         from ..app.Json import raw_load_json_file
         data = raw_load_json_file(open(self._path))
         if isinstance(data, list)   :
@@ -124,27 +124,27 @@ class File(base_class) :
             else                       : return data
         else                        : raise CustomTypeError(data)
 
-    def loadData(self, **kwargs) :
-        if self.notExists() : raise Exception(f'{self} 不存在')
-        if self.isTxt()     : return self._readLineList(**kwargs)
-        elif self.isJson()  : return self._loadJson(**kwargs)
+    def load_data(self, **kwargs) :
+        if self.not_exists() : raise Exception(f'{self} 不存在')
+        if self.is_txt()     : return self._read_line_list(**kwargs)
+        elif self.is_json()  : return self._load_json(**kwargs)
         else                : raise Exception(f'不支持的后缀名：{self._ext=}')
 
-    def writeString(self, string, /, *, append = False) : open(self._path, 'a' if append else 'w').write(string); return self
+    def write_string(self, string, /, *, append = False) : open(self._path, 'a' if append else 'w').write(string); return self
 
-    def writeBytes(self, bytes_content, /) : open(self._path, 'wb').write(bytes_content); return self
+    def write_bytes(self, bytes_content, /) : open(self._path, 'wb').write(bytes_content); return self
 
-    def writeLine(self, string, /, *, append = False) : return self.writeString(f'{string}\n', append = append)
+    def write_line(self, string, /, *, append = False) : return self.write_string(f'{string}\n', append = append)
 
-    def writeLineList(self, line_list, /, *, append = False) : return self.writeString('\n'.join(line_list), append = append)
+    def write_line_list(self, line_list, /, *, append = False) : return self.write_string('\n'.join(line_list), append = append)
 
-    def _dumpJson(self, obj, /, *, indent = True) :
+    def _dump_json(self, obj, /, *, indent = True) :
         from ..app.Json import raw_dump_json_file
         raw_dump_json_file(obj, open(self._path, 'w'), indent = indent) # raw_dump_json_file 内部可以处理 List, Dict 类型
         return self
 
-    def writeData(self, data, /, **kwargs) :
-        if isinstance(data, (list, dict)) : return self._dumpJson(data, **kwargs)
+    def write_data(self, data, /, **kwargs) :
+        if isinstance(data, (list, dict)) : return self._dump_json(data, **kwargs)
         else                              : raise CustomTypeError(data)
 
     # def load_table(fin, fields = None, primary_key = None, cast = None, is_matrix = False, sep = '\t') :
@@ -169,7 +169,7 @@ class File(base_class) :
     #         else : data[datum[primary_key]] = datum
     #     return data
 
-    def loadTable(self) : raise NotImplementedError
+    def load_table(self) : raise NotImplementedError
 
     # def dump_table(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
     #     if is_matrix :
@@ -189,7 +189,7 @@ class File(base_class) :
     #             safe_print(fout, sep.join([datum.get(field, default) for field in fields]) + '\n')
     #             fout.flush()
 
-    def dumpTable(self) : raise NotImplementedError
+    def dump_table(self) : raise NotImplementedError
 
     # # delete
     # def load_mapping(fin) :
@@ -210,4 +210,4 @@ class File(base_class) :
     #     data = strip(data)
     #     return data
 
-    def loadMapping(self) : raise NotImplementedError
+    def load_mapping(self) : raise NotImplementedError
