@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-  
 import sys, requests
-from sys    import exit
-from .shared import *
-from .models import *
-from .app    import *
+from sys        import exit
+from .shared    import *
+from .datatypes import *
+from .app       import *
 
 class SysArgv :
 
@@ -33,15 +33,53 @@ def main_func(kwarg_to_type = Dict(), /) :
         @wraps(func)
         def wrapper() :
             try :
-                kwargs = SysArgv.getKwargs()
+                kwarg_to_type['trace']   = bool
+                kwarg_to_type['profile'] = bool
+                kwargs                   = SysArgv.getKwargs()
                 for name in kwargs :
                     if name in kwarg_to_type :
                         if isinstance(kwarg_to_type[name], tuple) : kwargs[name] = kwarg_to_type[name][0](kwargs[name], *(kwarg_to_type[name][1:]))
                         elif kwarg_to_type[name] is bool          : kwargs[name] = True if kwargs[name] == '1' else False
                         else                                      : kwargs[name] = kwarg_to_type[name](kwargs[name])
                 Timer.printTiming('开始', color = Y)
-                result = func(kwargs)
-                Timer.printTiming('结束', color = G)
+                result = None
+                if kwargs.get('trace', False) :
+                    import trace
+                    tracer = trace.Trace(
+                        ignoredirs   = [sys.prefix, sys.exec_prefix, '/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/'],
+                        ignoremods   = ['encodings', 'simplejson', 'logging', 'json', 'requests', '__init__', '_bootlocale', '_collections', '_collections_abc', '_internal_utils', '_policybase', '_strptime', 'abc', 'adapters', 'api', 'calendar', 'client', 'codecs', 'connection', 'connectionpool', 'contextlib', 'cookiejar', 'cookies', 'decoder', 'encoder', 'enum', 'feedparser', 'fnmatch', 'functools', 'genericpath', 'hooks', 'idna', 'inspect', 'locale', 'message', 'models', 'netrc', 'objectid', 'os', 'parse', 'parser', 'poolmanager', 'posixpath', 'py3compat', 'queue', 're', 'request', 'response', 'retry', 'sessions', 'shlex', 'six', 'socket', 'sre_compile', 'sre_parse', 'ssl', 'ssl_', 'structures', 'threading', 'timeout', 'types', 'url', 'wcwidth'],
+                        trace        = 1,
+                        count        = 1,
+                        countfuncs   = 0,
+                        countcallers = 0,
+                        infile       = 'trace/count.txt',
+                        outfile      = 'trace/count.txt',
+                    )
+                    Folder.mkdir('trace/')
+                    temp = sys.stdout
+                    sys.stdout = open('trace/trace.txt', 'w')
+
+                    tracer.runctx('result = func(kwargs)', globals = {'result' : result}, locals = {'func' : func, 'kwargs' : kwargs})
+                    
+                    r = tracer.results()
+                    r.write_results(show_missing = False, coverdir = "trace/")
+                    sys.stdout = temp
+                elif kwargs.get('profile', False) :
+                    import cProfile, pstats
+                    from pstats import SortKey
+                    Folder.mkdir('profile/')
+                    cProfile.runctx('result = func(kwargs)', filename = 'profile/profile.txt', globals = {'result' : result}, locals = {'func' : func, 'kwargs' : kwargs})
+                    p = pstats.Stats('profile/profile.txt')
+                    # p.strip_dirs()
+                    # p.sort_stats(SortKey.NAME, SortKey.FILENAME).print_stats()
+                    # p.sort_stats(SortKey.TIME, SortKey.CUMULATIVE).print_stats(.5, 'init')
+                    p.sort_stats(SortKey.CUMULATIVE).print_stats(60)
+                    # p.sort_stats(SortKey.CUMULATIVE).print_callers('Json.py', 60)
+                    p.sort_stats(SortKey.CUMULATIVE).print_callees('python3.8/json', 60)
+                    # p.add('restats')
+                else :
+                    result = func(kwargs)
+                Timer.printTiming(f'结束 {result}', color = G)
                 return result
             except :
                 import traceback

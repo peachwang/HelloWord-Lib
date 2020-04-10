@@ -1,3 +1,4 @@
 *.pyc
+*.cover
 *.sublime-project
 *.sublime-workspace

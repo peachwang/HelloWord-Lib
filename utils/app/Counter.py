@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-  
-from ..shared          import *
-from ..models.DateTime import DateTime
-from ..models.List     import List
+from ..shared             import *
+from ..datatypes.DateTime import DateTime
+from ..datatypes.List     import List
 
 class Counter :
 

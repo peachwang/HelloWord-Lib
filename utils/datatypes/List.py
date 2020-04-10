@@ -37,16 +37,15 @@ class List(list, base_class) :
 
     # @Timer.timeitTotal('_wrapItem')
     def _wrapItem(self, item, /) :
-        self._importTypes()
         if isinstance(item, (self._ObjectId, self._Str, self._List, self._Dict)) : return item
         elif isinstance(item, str)                                               : return self._Str(item)
+        elif isinstance(item, dict)                                              : return self._Dict(item)
+        elif isinstance(item, list)                                              : return self._List(item)
+        elif isinstance(item, tuple)                                             : return tuple([ self._wrapItem(_) for _ in item ])
         elif isinstance(item, self._timedelta)                                   : return self._TimeDelta(item)
         elif isinstance(item, self._date)                                        : return self._Date(item)
         elif isinstance(item, self._time)                                        : return self._Time(item)
         elif isinstance(item, self._datetime)                                    : return self._DateTime(item)
-        elif isinstance(item, list)                                              : return self._List(item)
-        elif isinstance(item, dict)                                              : return self._Dict(item)
-        elif isinstance(item, tuple)                                             : return tuple([ self._wrapItem(_) for _ in item ])
         elif isinstance(item, set)                                               : return set([ self._wrapItem(_) for _ in item ])
         else                                                                     : return item
 
@@ -55,7 +54,11 @@ class List(list, base_class) :
     def _wrapStrOrType(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
 
     # Initialize self.  See help(type(self)) for accurate signature.
+    # list() -> new empty list
+    # list(iterable) -> new list initialized from iterable's items
+    # def __class__(self) :
     def __init__(self, *args) :
+        self._importTypes()
         if len(args) == 0   : super().__init__([])
         elif len(args) == 1 :
             if isinstance(args[0], List)       : super().__init__(args[0]._getData())
@@ -88,7 +91,7 @@ class List(list, base_class) :
 
     # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     # NOT IN PLACE
-    def getRaw(self) -> list : self._importTypes(); return [ item.getRaw() if 'getRaw' in dir(item) else item for item in self ]
+    def getRaw(self) -> list : return [ item.getRaw() if 'getRaw' in dir(item) else item for item in self ]
 
     jsonSerialize = _getData
 
@@ -316,6 +319,14 @@ class List(list, base_class) :
     # IN PLACE
     def __imul__(self, value: int) : return super().__imul__(value)
 
+    # Implement delattr(self, name).
+    # Deletes the named attribute from the given object.
+    # delattr(x, 'y') is equivalent to ``del x.y''
+    # def __delattr__(self) :
+
+    # Delete self[key].
+    def __delitem__(self, key: Union[int, slice]) : return super().__delitem__(key)
+
     # L.pop([index]) -> item -- remove and return item at index (default last).
     # Raises IndexError if list is empty or index is out of range.
     # IN PLACE
@@ -402,7 +413,6 @@ class List(list, base_class) :
     # NOT IN PLACE
     # 可以允许字段不存在
     def valueList(self, key_list_or_func_name: Union[list, str], /, *, default = None) :
-        self._importTypes()
         if self.len() == 0                          : return self.copy()
         if isinstance(key_list_or_func_name, list)  :
             if isinstance(self[0], self._Object) : return self.batched('_get', key_list_or_func_name)
@@ -432,7 +442,6 @@ class List(list, base_class) :
     def format(self, pattern, /) : return self.mapped(lambda _ : pattern.format(_))
 
     def _stripItem(self, item, string, /) :
-        self._importTypes()
         # can't be list, dict, str
         if isinstance(item, (self._Str, self._List, self._Dict)) : return item.strip(string)
         elif isinstance(item, tuple)                             : return (self._stripItem(_, string) for _ in item)
@@ -479,7 +488,6 @@ class List(list, base_class) :
 
     # IN PLACE
     def filterByValue(self, key_list_or_func_name: Optional[Union[list, str]], value_or_list, /) :
-        self._importTypes()
         if not isinstance(value_or_list, list)       : value_or_list = [ value_or_list ]
         if key_list_or_func_name is None             : return self.filter(lambda item : item in value_or_list)
         elif isinstance(key_list_or_func_name, list) :
@@ -571,7 +579,7 @@ class List(list, base_class) :
         )
 
     # NOT IN PLACE
-    def join(self, sep: str = '', /) : self._importTypes(); return self._Str(sep).join(self)
+    def join(self, sep: str = '', /) : return self._Str(sep).join(self)
 
     # IN PLACE
     # O(??)
@@ -669,18 +677,6 @@ class List(list, base_class) :
     # '__add__', '__class__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__iadd__', '__imul__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__reversed__', '__rmul__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'append', 'clear', 'copy', 'count', 'extend', 'index', 'insert', 'pop', 'remove', 'reverse', 'sort'
 
     # ===============================================================
-
-    # list() -> new empty list
-    # list(iterable) -> new list initialized from iterable's items
-    # def __class__(self) :
-
-    # Implement delattr(self, name).
-    # Deletes the named attribute from the given object.
-    # delattr(x, 'y') is equivalent to ``del x.y''
-    # def __delattr__(self) :
-
-    # Delete self[key].
-    # def __delitem__(self) :
 
     # __dir__() -> list
     # default dir() implementation

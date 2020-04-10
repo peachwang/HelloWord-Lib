@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
-from ..shared import *
-from ..models import *
+from ..shared    import *
+from ..datatypes import *
 
 class CustomDecoder(json.JSONDecoder) :
 
@@ -71,9 +71,9 @@ class CustomEncoder(json.JSONEncoder) :
         return json.JSONEncoder.default(self, obj)
 
     # @log_entering('{0}')
-    def encode(self, obj) -> str :
-        if isinstance(obj, dict) : return super().encode({ str(key) : obj[key] for key in obj })
-        else                     : return super().encode(obj)
+    # def encode(self, obj) -> str :
+        # if isinstance(obj, dict) : return super().encode({ str(key) : obj[key] for key in obj })
+        # else                     : return super().encode(obj)
 
 def raw_dump_json_file(obj, fp, /, *, indent = True) -> None :
     json.dump(obj, fp, indent = 4 if indent is True else (None if indent is False else indent), ensure_ascii = False, sort_keys = True, cls = CustomEncoder)

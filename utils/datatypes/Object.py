@@ -13,20 +13,20 @@ class Object(base_class) :
     def _wrapValue(self, value, /) :
         if isinstance(value, (Str, List, Dict))   : return value
         elif isinstance(value, str)               : return Str(value)
+        elif isinstance(value, dict)              : return Dict(value)
+        elif isinstance(value, list)              : return List(value)
         elif isinstance(value, bytes)             : return Str(value.decode())
         elif isinstance(value, timedelta_class)   : return TimeDelta(value)
         elif isinstance(value, date_class)        : return Date(value)
         elif isinstance(value, time_class)        : return Time(value)
         elif isinstance(value, datetime_class)    : return DateTime(value)
-        elif isinstance(value, list)              : return List(value)
-        elif isinstance(value, dict)              : return Dict(value)
         elif isinstance(value, tuple)             : return tuple([ self._wrapValue(_) for _ in value ])
         elif isinstance(value, set)               : return set([ self._wrapValue(_) for _ in value ])
         else                                      : return value
     
     def __init__(self) :
         object.__setattr__(self, '_data',          Dict())
-        object.__setattr__(self, '_class',         Str(self.__class__).split('.')[1][ : -2])
+        object.__setattr__(self, '_class',         Str(self.__class__).split('.')[-1][ : -2])
         object.__setattr__(self, '_property_dict', {})
 
     # def _registerEnhancedProperty(self, property_config_list, /) :
@@ -234,16 +234,16 @@ class Object(base_class) :
 
     def getRaw(self) : return self._data.getRaw()
 
-    def getSignature(self) : return f'<{self.__class__} at {self.getId()}>'
+    def getSignature(self) : return f'<{self._class} at {self.getId()}>'
 
     @_antiLoop
     def jsonSerialize(self) -> dict : return self._data.jsonSerialize()
 
     @_antiLoop
-    def __format__(self, spec) : return f"{f'<{self.__class__} at {self.getId()}>._data={self._data}':{spec}}"
+    def __format__(self, spec) : return f"{f'<{self._class} at {self.getId()}>._data={self._data}':{spec}}"
 
     @_antiLoop
-    def __str__(self) : return f'<{self.__class__} at {self.getId()}>._data={self._data!s}'
+    def __str__(self) : return f'<{self._class} at {self.getId()}>._data={self._data!s}'
 
     @_antiLoop
     def __repr__(self) : raise NotImplementedError

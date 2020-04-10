@@ -14,13 +14,13 @@ class File(base_class) :
     @anti_duplicate_init
     def __init__(self, file_path, folder = None, /) :
         self._raw_path    = file_path
-        self._path        = Str(file_path)
+        self._path        = file_path
         self._folder      = folder
         _                 = self._path.split('/')
-        self._full_name   = _[-1]
-        self._folder_path = _[ : -1].join('/')
-        self._ext         = self._full_name.split('.')[-1] if self._full_name.has('.') else Str('')
-        self._name        = self._full_name[ : - self._ext.len() - 1]
+        self._full_name   = Str(_[-1])
+        self._folder_path = Str('/'.join(_[ : -1]))
+        self._ext         = Str(_[-1].split('.')[-1] if '.' in _[-1] else '')
+        self._name        = Str(_[-1][ : - len(self._ext) - 1])
 
     @prop
     def raw_path(self) -> str : return self._raw_path

@@ -90,7 +90,7 @@ def log_entering(pattern: str = '') :
             # kwargs['self'] = cls_or_self
             msg = pattern.format(*args, self = cls_or_self, **kwargs)
             # kwargs.pop('self')
-            if '.' in str(cls_or_self.__class__) : _ = f'{id(cls_or_self)}{str(cls_or_self.__class__).split(".")[1][ : -2]:>15}.{func.__qualname__:30}'
+            if '.' in str(cls_or_self.__class__) : _ = f'{id(cls_or_self)}{str(cls_or_self.__class__).split(".")[-1][ : -2]:>15}.{func.__qualname__:30}'
             else                                 : _ = f'{id(cls_or_self)}.{func.__qualname__:30}'
             Timer.printTiming(f'{_} {Y("开始")} {msg}')
             result = func(cls_or_self, *args, **kwargs)
@@ -112,13 +112,36 @@ class base_class :
     @print_func
     def printJ(self) : return self.j(), False
 
+    # This method is called when a class is subclassed.
+    # The default implementation does nothing. It may be
+    # overridden to extend subclasses.
+    # def __init_subclass__(self) :
+    # https://blog.yuo.be/2018/08/16/__init_subclass__-a-simpler-way-to-implement-class-registries-in-python/
+    # https://www.python.org/dev/peps/pep-0487/
+    # https://stackoverflow.com/questions/45400284/understanding-init-subclass
+
+    # D.__sizeof__() -> size of D in memory, in bytes
+    # def __sizeof__(self) :
+
+    # Abstract classes can override this to customize issubclass().
+    # This is invoked early on by abc.ABCMeta.__subclasscheck__().
+    # It should return True, False or NotImplemented.  If it returns
+    # NotImplemented, the normal algorithm is used.  Otherwise, it
+    # overrides the normal algorithm (and the outcome is cached).
+    # def __subclasshook__(self) :
+
 def anti_duplicate_new(func) :
     @wraps(func)
     def wrapper(cls, *args, **kwargs) :
         key = func(cls, *args, **kwargs)
         if '_instance_dict' not in dir(cls)        : cls._instance_dict = {}
         if cls._instance_dict.get(key) is not None : return cls._instance_dict[key]
-        else                                       : instance = cls.__bases__[0].__new__(cls); cls._instance_dict[key] = instance; return instance
+        else                                       :
+            if str(cls.__bases__[0].__new__)[ : -15] != str(func)[ : -15] : new_func = cls.__bases__[0].__new__
+            else                                                          : new_func = cls.__bases__[0].__bases__[0].__new__
+            instance = new_func(cls)
+            cls._instance_dict[key] = instance
+            return instance
     return wrapper
 
 def anti_duplicate_init(func) :

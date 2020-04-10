@@ -14,7 +14,7 @@ class Folder(base_class) :
     def notExists(folder_path) : return not Folder.exists(folder_path)
 
     @anti_duplicate_new
-    def __new__(cls, folder_path, **kwargs) : return realpath(folder_path)
+    def __new__(cls, folder_path, *args, **kwargs) : return realpath(folder_path)
 
     @anti_duplicate_init
     def __init__(self, folder_path, /, *, auto_build = True) :

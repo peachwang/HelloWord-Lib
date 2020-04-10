@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-  
-from ..shared      import *
-from ..models.Str  import Str
-from ..models.List import List
-from ..models.Dict import Dict
-from .Json         import j
+from ..shared         import *
+from ..datatypes.Str  import Str
+from ..datatypes.List import List
+from ..datatypes.Dict import Dict
+from .Json            import j
 
 # DataStructure Module
 #   def compatibleTo

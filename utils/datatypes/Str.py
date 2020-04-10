@@ -43,7 +43,6 @@ class _Match :
     def __init__(self, match, /) :
         self._pattern       = _Pattern(match.re)
         self._match         = match
-        self._name_to_group = self.namedGroupDict()
 
     def getRaw(self) : return self._match
 
@@ -63,7 +62,7 @@ class _Match :
     @cached_prop
     def whole_match(self) : return Str(self._match.group())
 
-    def __getattr__(self, name) : return self._name_to_group[name]
+    def __getattr__(self, name) : return self.namedGroupDict()[name]
     
     def __getitem__(self, name) : return self.__getattr__(name)
 

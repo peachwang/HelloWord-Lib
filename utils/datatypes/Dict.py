@@ -36,16 +36,15 @@ class Dict(dict, base_class) :
 
     # @Timer.timeitTotal('_wrapValue')
     def _wrapValue(self, value, /) :
-        self._importTypes()
         if isinstance(value, (self._ObjectId, self._Str, self._List, self._Dict)) : return value
         elif isinstance(value, str)                                               : return self._Str(value)
+        elif isinstance(value, dict)                                              : return self._Dict(value)
+        elif isinstance(value, list)                                              : return self._List(value)
+        elif isinstance(value, tuple)                                             : return tuple([ self._wrapValue(_) for _ in value ])
         elif isinstance(value, self._timedelta)                                   : return self._TimeDelta(value)
         elif isinstance(value, self._date)                                        : return self._Date(value)
         elif isinstance(value, self._time)                                        : return self._Time(value)
         elif isinstance(value, self._datetime)                                    : return self._DateTime(value)
-        elif isinstance(value, list)                                              : return self._List(value)
-        elif isinstance(value, dict)                                              : return self._Dict(value)
-        elif isinstance(value, tuple)                                             : return tuple([ self._wrapValue(_) for _ in value ])
         elif isinstance(value, set)                                               : return set([ self._wrapValue(_) for _ in value ])
         else                                                                      : return value
 
@@ -54,12 +53,25 @@ class Dict(dict, base_class) :
     def _wrapStrOrType(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
 
     # Initialize self.  See help(type(self)) for accurate signature.
+    # dict() -> new empty dictionary
+    # dict(mapping) -> new dictionary initialized from a mapping object's (key, value) pairs
+    # dict(iterable) -> new dictionary initialized as if via:
+    #     d = {}
+    #     for k, v in iterable:
+    #         d[k] = v
+    # dict(**kwargs) -> new dictionary initialized with the name=value pairs in the keyword argument list.  For example:  dict(one=1, two=2)
+    # def __class__(self) :
     def __init__(self, *args, **kwargs) :
+        self._importTypes()
         if len(args) == 0   : super().__init__({})
         elif len(args) == 1 :
             if isinstance(args[0], Dict)                   : super().__init__(args[0]._getData())
             elif isinstance(args[0], dict)                 :
-                for key in args[0] : super().__setitem__(eval(key) if isinstance(key, str) and key[ : 2] == "b'" else key, self._wrapValue(args[0][key]))
+                for key in args[0] :
+                    super().__setitem__(
+                        eval(key) if isinstance(key, str) and key[ : 2] == "b'" and key[-1] == "'" else key,
+                        self._wrapValue(args[0][key])
+                    )
             elif isinstance(args[0], (zip, GeneratorType)) : self.__init__(dict(args[0]))
             else                                           : raise CustomTypeError(args)
         else                : raise CustomTypeError(args)
@@ -86,7 +98,7 @@ class Dict(dict, base_class) :
 
     # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     # NOT IN PLACE
-    def getRaw(self) -> dict : self._importTypes(); return { key : self[key].getRaw() if 'getRaw' in dir(self[key]) else self[key] for key in self }
+    def getRaw(self) -> dict : return { key : self[key].getRaw() if 'getRaw' in dir(self[key]) else self[key] for key in self }
 
     jsonSerialize = _getData
 
@@ -163,7 +175,6 @@ class Dict(dict, base_class) :
     def __contains__(self, key, /) : return super().__contains__(key)
 
     def has(self, key_list, /) :
-        self._importTypes()
         if isinstance(key_list, self._raw_type_tuple)  : return super().__contains__(key_list)
         elif isinstance(key_list, list)                :
             if len(key_list) == 0 : raise Exception(f'非法{key_list=}')
@@ -183,13 +194,13 @@ class Dict(dict, base_class) :
     def hasNoneOf(self, key_list_list, /) : return all(self.hasNo(key_list) for key_list in key_list_list)
 
     # D.keys() -> a set-like object providing a view on D's keys
-    def keys(self) : self._importTypes(); return self._List(list(super().keys()))
+    def keys(self) : return self._List(list(super().keys()))
     
     # D.values() -> an object providing a view on D's values
-    def values(self) : self._importTypes(); return self._List(list(super().values()))
+    def values(self) : return self._List(list(super().values()))
 
     # D.items() -> a set-like object providing a view on D's items
-    def items(self) : self._importTypes(); return self._List(list(super().items()))
+    def items(self) : return self._List(list(super().items()))
 
     # Implement iter(self).
     # iter(iterable) -> iterator
@@ -197,7 +208,7 @@ class Dict(dict, base_class) :
     # Get an iterator from an object.  In the first form, the argument must
     # supply its own iterator, or be a sequence.
     # In the second form, the callable is called until it returns the sentinel.
-    def __iter__(self) : self._importTypes(); return self.keys().iter()
+    def __iter__(self) : return self.keys().iter()
 
     def iter(self) : return self.__iter__()
 
@@ -208,7 +219,6 @@ class Dict(dict, base_class) :
 
     # D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.
     def get(self, key_list, /, default = None) :
-        self._importTypes()
         if isinstance(key_list, self._raw_type_tuple)  :
             if default == self.NV and not super().__contains__(key_list) : raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
             return super().get(key_list, self._wrapValue(default))
@@ -267,7 +277,6 @@ class Dict(dict, base_class) :
 
     # IN PLACE
     def set(self, key_list, value, /) :
-        self._importTypes()
         if isinstance(key_list, self._raw_type_tuple)  : self[key_list] = value
         elif isinstance(key_list, list)                :
             if len(key_list) == 0 : raise Exception(f'非法{key_list=}')
@@ -289,8 +298,8 @@ class Dict(dict, base_class) :
     # In either case, this is followed by: for k in F:  D[k] = F[k]
     # IN PLACE
     def update(self, mapping: dict, /, **kwargs) :
-        if isinstance(mapping, dict)   : super().update(Dict(mapping))
-        elif isinstance(mapping, Dict) : super().update(mapping)
+        if isinstance(mapping, Dict)   : super().update(mapping)
+        elif isinstance(mapping, dict) : super().update(Dict(mapping))
         else                           : raise CustomTypeError(mapping)
         if len(kwargs) > 0             : super().update(Dict(kwargs))
         return self
@@ -318,7 +327,6 @@ class Dict(dict, base_class) :
     # If key is not found, d is returned if given, otherwise KeyError is raised
     # IN PLACE
     def popKey(self, key_list, /, default = NV) :
-        self._importTypes()
         if isinstance(key_list, self._raw_type_tuple)  :
             if default == self.NV : return super().pop(key_list)
             else                  : return super().pop(key_list, self._wrapValue(default))
@@ -348,7 +356,6 @@ class Dict(dict, base_class) :
     # def popItem(self) : return super().popitem()
 
     def _stripValue(self, value, string, /) :
-        self._importTypes()
         if isinstance(value, (self._Str, self._List, self._Dict)) : return value.strip(string) # can't be list, dict, str
         elif isinstance(value, tuple)                             : return (self._stripValue(_, string) for _ in value)
         elif isinstance(value, set)                               : return set([self._stripValue(_, string) for _ in value])
@@ -384,17 +391,6 @@ class Dict(dict, base_class) :
     # '__class__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'clear', 'copy', 'fromkeys', 'get', 'items', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values'
 
     # ===============================================================
-
-    # dict() -> new empty dictionary
-    # dict(mapping) -> new dictionary initialized from a mapping object's
-    #     (key, value) pairs
-    # dict(iterable) -> new dictionary initialized as if via:
-    #     d = {}
-    #     for k, v in iterable:
-    #         d[k] = v
-    # dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    #     in the keyword argument list.  For example:  dict(one=1, two=2)
-    # def __class__(self) :
 
     # __dir__() -> list
     # default dir() implementation
