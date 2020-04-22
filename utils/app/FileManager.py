@@ -7,6 +7,7 @@ class FileManager :
     @anti_duplicate_new
     def __new__(cls, key = None, /, *args, **kwargs) : return cls.key if key is None else key
 
+    # @log_entering()
     @anti_duplicate_init
     def __init__(self) :
         super().__init__()

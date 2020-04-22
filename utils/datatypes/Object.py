@@ -5,10 +5,11 @@ from .DateTime import timedelta_class, TimeDelta, date_class, Date, time_class, 
 from .List     import List
 from .Dict     import Dict
 
-class Object(base_class) :
+@add_print_func
+class Object :
 
-    __id_list           = [ ]
-    NV = P_NON_VACANCY  = 'P_NON_VACANCY'
+    __id_list = [ ]
+    _no_value = object()
 
     def _wrap_value(self, value, /) :
         if isinstance(value, (Str, List, Dict))   : return value
@@ -24,6 +25,7 @@ class Object(base_class) :
         elif isinstance(value, set)               : return set([ self._wrap_value(_) for _ in value ])
         else                                      : return value
     
+    # @log_entering()
     def __init__(self) :
         object.__setattr__(self, '_data',          Dict())
         object.__setattr__(self, '_class',         Str(self.__class__).split('.')[-1][ : -2])
@@ -40,12 +42,12 @@ class Object(base_class) :
                 p_type      = config[2] if len(config) > 2 else None
                 p_validator = config[3] if len(config) > 3 else None
                 pd[name]    = {}
-                if p_default != self.P_NON_VACANCY : pd[name]['default'] = self._wrap_value(p_default)
-                if p_type is not None              :
+                if p_default != self._no_value  : pd[name]['default'] = self._wrap_value(p_default)
+                if p_type is not None           :
                     if not isinstance(p_type, (type, tuple))     : raise CustomTypeError(p_type)
-                    if isinstance(p_type, tuple)                 : p_type = tuple(type(None) if item is None else item for item in p_type)
+                    if isinstance(p_type, tuple)                 : p_type = tuple(item or type(None) for item in p_type)
                     pd[name]['type'] = p_type
-                if p_validator is not None         :
+                if p_validator is not None      :
                     if not isinstance(p_validator, (str, tuple)) : raise CustomTypeError(p_validator)
                     # pd[name]['validator'] = Str(p_validator) if isinstance(p_validator, str) else p_validator
                     pd[name]['validator'] = p_validator
@@ -72,8 +74,7 @@ class Object(base_class) :
     def append_property(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
         def append_value(value) :
             if filter_none and value == None : return
-            if self._data.has_no(name) : self._data[name] = List()
-            self._data[name].append(value)
+            self._data.get_with_default_set(name, List()).append(value)
         if (isgenerator(value_or_generator_or_iterator)
             or '__next__' in dir(value_or_generator_or_iterator)) :
             for value in value_or_generator_or_iterator : append_value(value)
@@ -83,8 +84,7 @@ class Object(base_class) :
     def unique_append_property(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
         def unique_append_value(value) :
             if filter_none and value == None : return
-            if self._data.has_no(name) : self._data[name] = List()
-            self._data[name].unique_append(value)
+            self._data.get_with_default_set(name, List()).unique_append(value)
         if (isgenerator(value_or_generator_or_iterator)
             or '__next__' in dir(value_or_generator_or_iterator)) :
             for value in value_or_generator_or_iterator : unique_append_value(value)
@@ -120,9 +120,9 @@ class Object(base_class) :
     #       [name]    (8) 不允许，__setattr__ 规避了其余情况
     # @Timer.timeit_total('Object.__getattr__', group_args = True)
     def __getattr__(self, name) :
-        # if name == '_data'   : return self.__getattribute__('_data')
-        # if name == '_class'  : return self.__getattribute__('_class')
-        # if name in dir(self) : return self.__getattribute__(name)
+        # if name == '_data'     : return self.__getattribute__('_data')
+        # if name == '_class'    : return self.__getattribute__('_class')
+        # if name in dir(self)   : return self.__getattribute__(name)
         
         pd = self.__getattribute__('_property_dict')
         if name in pd or name[0] == '_' and name[1:] in pd : # (1) (2) (3) (4) 已注册
@@ -136,6 +136,8 @@ class Object(base_class) :
             else                      : name = name[1:] # (5) (7)
             if name not in self._data : pass # 未赋值 报错
             else                      : return self._data[name] # 已赋值
+
+        # 在此方法内自动初始化描述器，而非在class 或 __init__ 中由用户手动创建
 
         from functools import partial
         for prefix in ( 'has', 'has_no', 'ensure_has', 'get', 'set', 'append', 'unique_append' ) :
@@ -177,27 +179,27 @@ class Object(base_class) :
                 if self._data.has(name) :
                     value = self._data[name]
                     
-                    if name[-4:] in ('list', 'List') and not isinstance(value, list)                        :
+                    if name[-4:] in ('list', 'List') and not isinstance(value, list)                           :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不是列表\n{self}\n')
-                    elif name[-4:] not in ('list', 'List') and isinstance(value, list)                      :
+                    elif name[-4:] not in ('list', 'List') and isinstance(value, list)                         :
                         raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是List/list\n{self}\n')
-                    elif isinstance(value, list) and len(value) > 0 and 'validate_property' in dir(value[0]) :
+                    elif isinstance(value, list) and len(value) > 0 and hasattr(value[0], 'validate_property') :
                         for idx, item in value.enum() : item.validate_property(idx + 1)
                     
-                    if name[-4:] in ('dict', 'Dict') and not isinstance(value, dict)                        :
+                    if name[-4:] in ('dict', 'Dict') and not isinstance(value, dict)                           :
                         raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不是字典\n{self}\n')
-                    elif name[-4:] not in ('dict', 'Dict') and isinstance(value, dict)                      :
+                    elif name[-4:] not in ('dict', 'Dict') and isinstance(value, dict)                         :
                         raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是Dict/dict\n{self}\n')
-                    elif isinstance(value, dict)                                                            :
+                    elif isinstance(value, dict)                                                               :
                         for v in value.values() :
-                            if 'validate_property' in dir(v) : v.validate_property()
+                            if hasattr(v, 'validate_property') : v.validate_property()
 
-                    if isinstance(value, Object)                                                            : value.validate_property()
+                    if isinstance(value, Object)                                                               : value.validate_property()
 
                     pt = pd[name]['type'] if 'type' in pd[name] else None
                     pv = pd[name]['validator'] if 'validator' in pd[name] else None
 
-                    if pt is not None and not isinstance(pv, tuple)                                         :
+                    if pt is not None and not isinstance(pv, tuple)                                            :
                         if isinstance(value, list) :
                             if isinstance(pt, type)    :
                                 func = lambda item : isinstance(item, pt)
@@ -251,9 +253,9 @@ class Object(base_class) :
     @_anti_loop
     def json(self) :
         return Dict(
-            (name, value.json() if 'json' in dir(value := self.__getattr__(f'_{name}')) else value)
+            (name, value.json() if hasattr((value := self.__getattr__(f'_{name}')), 'json') else value)
             for name in self.__getattribute__('_property_dict')
-            if self._data.has(name) or name in dir(self)
+            if self._data.has(name) or hasattr(self, name)
         )
 
     @print_func

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-  
 from ..shared import *
 
-class Dict(dict, base_class) :
+@add_print_func
+class Dict(dict) :
 
     _has_imported_types = False
-    NV = V_NON_VACANCY = 'V_NON_VACANCY'
+    _no_value = object()
 
     @classmethod
     def _import_types(cls) :
@@ -63,19 +64,20 @@ class Dict(dict, base_class) :
     # def __class__(self) :
     def __init__(self, *args, **kwargs) :
         self._import_types()
-        if len(args) == 0   : super().__init__({})
+        if len(args) == 0   : dict.__init__(self, {})
         elif len(args) == 1 :
-            if isinstance(args[0], Dict)                   : super().__init__(args[0]._get_data())
+            if isinstance(args[0], Dict)                   : dict.__init__(self, args[0]._get_data())
             elif isinstance(args[0], dict)                 :
                 for key in args[0] :
-                    super().__setitem__(
+                    dict.__setitem__(
+                        self,
                         eval(key) if isinstance(key, str) and key[ : 2] == "b'" and key[-1] == "'" else key,
                         self._wrap_value(args[0][key])
                     )
             elif isinstance(args[0], (zip, GeneratorType)) : self.__init__(dict(args[0]))
             else                                           : raise CustomTypeError(args)
         else                : raise CustomTypeError(args)
-        if len(kwargs) > 0  : super().update(Dict(kwargs))
+        if len(kwargs) > 0  : dict.update(self, Dict(kwargs))
 
     # Returns a new dict with keys from iterable and values equal to value.
     # IN PLACE
@@ -98,7 +100,7 @@ class Dict(dict, base_class) :
 
     # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     # NOT IN PLACE
-    def get_raw(self) -> dict : return { key : self[key].get_raw() if 'get_raw' in dir(self[key]) else self[key] for key in self }
+    def get_raw(self) -> dict : return { key : self[key].get_raw() if hasattr(self[key], 'get_raw') else self[key] for key in self }
 
     json_serialize = _get_data
 
@@ -128,7 +130,7 @@ class Dict(dict, base_class) :
 
     # 带有业务逻辑，与 j 不同
     # NOT IN PLACE
-    def json(self) : return Dict((key, self[key].json()) if 'json' in dir(self[key]) else (key, self[key]) for key in self)
+    def json(self) : return Dict((key, self[key].json()) if hasattr(self[key], 'json') else (key, self[key]) for key in self)
 
     @print_func
     def print_json(self) : return f'{self.json().j()}', False
@@ -163,19 +165,19 @@ class Dict(dict, base_class) :
     def __lt__(self, other) : raise NotImplementedError
 
     # Return len(self).
-    def __len__(self) : return super().__len__()
+    def __len__(self) : return dict.__len__(self)
 
-    def len(self) : return super().__len__()
+    def len(self) : return dict.__len__(self)
 
     def is_empty(self) : return self.len() == 0
 
     def is_not_empty(self) : return not self.is_empty()
 
     # D.__contains__(k) -> True if D has a key k, else False.
-    def __contains__(self, key, /) : return super().__contains__(key)
+    def __contains__(self, key, /) : return dict.__contains__(self, key)
 
     def has(self, key_list, /) :
-        if isinstance(key_list, self._raw_type_tuple)  : return super().__contains__(key_list)
+        if isinstance(key_list, self._raw_type_tuple)  : return dict.__contains__(self, key_list)
         elif isinstance(key_list, list)                :
             if len(key_list) == 0 : raise Exception(f'非法{key_list=}')
             now = self
@@ -194,13 +196,13 @@ class Dict(dict, base_class) :
     def has_none_of(self, key_list_list, /) : return all(self.has_no(key_list) for key_list in key_list_list)
 
     # D.keys() -> a set-like object providing a view on D's keys
-    def keys(self) : return self._List(list(super().keys()))
+    def keys(self) : return self._List(list(dict.keys(self)))
     
     # D.values() -> an object providing a view on D's values
-    def values(self) : return self._List(list(super().values()))
+    def values(self) : return self._List(list(dict.values(self)))
 
     # D.items() -> a set-like object providing a view on D's items
-    def items(self) : return self._List(list(super().items()))
+    def items(self) : return self._List(list(dict.items(self)))
 
     # Implement iter(self).
     # iter(iterable) -> iterator
@@ -215,25 +217,28 @@ class Dict(dict, base_class) :
     # Return getattr(self, name).
     # def __getattribute__(self, key) :
         # if key in ('List', 'Dict', 'Str', 'Object') : print(f'__getattribute__ {key=}')
-        # return super().__getattribute__(key)
+        # return dict.__getattribute__(self, key)
 
     # D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.
     def get(self, key_list, /, default = None) :
         if isinstance(key_list, self._raw_type_tuple)  :
-            if default == self.NV and not super().__contains__(key_list) : raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
-            return super().get(key_list, self._wrap_value(default))
+            if default == self._no_value and not dict.__contains__(self, key_list) : raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
+            return dict.get(self, key_list, self._wrap_value(default))
         elif isinstance(key_list, list)                :
             if self.has_no(key_list) :
-                if default == self.NV : raise Exception(f'键 {key_list} 不能为空\n{self=}')
+                if default == self._no_value : raise Exception(f'键 {key_list} 不能为空\n{self=}')
                 return self._wrap_value(default)
-            else                    :
+            else                     :
                 now = self
                 for key in key_list : now = now[key]
                 return now
         else                                           : raise CustomTypeError(key_list)
 
+    # D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D
+    def get_with_default_set(self, key, /, default = None) : return dict.setdefault(self, key, self._wrap_value(default))
+
     # x.__getitem__(y) <==> x[y]
-    def __getitem__(self, key) : return self.get(key, self.NV)
+    def __getitem__(self, key) : return self.get(key, self._no_value)
 
     # getattr(object, name[, default]) -> value
     # Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
@@ -263,16 +268,13 @@ class Dict(dict, base_class) :
 
     # Set self[key] to value.
     # IN PLACE
-    def __setitem__(self, key, value) : super().__setitem__(key, self._wrap_value(value)); return value
+    def __setitem__(self, key, value) : dict.__setitem__(self, key, self._wrap_value(value)); return value
 
     # Implement setattr(self, name, value).
     # Sets the named attribute on the given object to the specified value.
     # setattr(x, 'y', v) is equivalent to ``x.y = v
     # IN PLACE
     def __setattr__(self, key, value) : return self.__setitem__(key, value)
-
-    # D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D
-    # def setdefault(self) :
 
     # IN PLACE
     def set(self, key_list, value, /) :
@@ -297,10 +299,10 @@ class Dict(dict, base_class) :
     # In either case, this is followed by: for k in F:  D[k] = F[k]
     # IN PLACE
     def update(self, mapping: dict, /, **kwargs) :
-        if isinstance(mapping, Dict)   : super().update(mapping)
-        elif isinstance(mapping, dict) : super().update(Dict(mapping))
+        if isinstance(mapping, Dict)   : dict.update(self, mapping)
+        elif isinstance(mapping, dict) : dict.update(self, Dict(mapping))
         else                           : raise CustomTypeError(mapping)
-        if len(kwargs) > 0             : super().update(Dict(kwargs))
+        if len(kwargs) > 0             : dict.update(self, Dict(kwargs))
         return self
 
     # NOT IN PLACE
@@ -314,7 +316,7 @@ class Dict(dict, base_class) :
 
     # Delete self[key].
     # IN PLACE
-    def __delitem__(self, key) : super().__delitem__(key); return self
+    def __delitem__(self, key) : dict.__delitem__(self, key); return self
 
     # Implement delattr(self, name).
     # Deletes the named attribute from the given object.
@@ -325,34 +327,34 @@ class Dict(dict, base_class) :
     # D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
     # If key is not found, d is returned if given, otherwise KeyError is raised
     # IN PLACE
-    def pop_key(self, key_list, /, default = NV) :
+    def pop_key(self, key_list, /, default = _no_value) :
         if isinstance(key_list, self._raw_type_tuple)  :
-            if default == self.NV : return super().pop(key_list)
-            else                  : return super().pop(key_list, self._wrap_value(default))
+            if default == self._no_value : return dict.pop(self, key_list)
+            else                         : return dict.pop(self, key_list, self._wrap_value(default))
         elif isinstance(key_list, list)                :
             if self.has_no(key_list) :
-                if default == self.NV : raise KeyError(key_list)
-                else                  : return self._wrap_value(default)
+                if default == self._no_value : raise KeyError(key_list)
+                else                         : return self._wrap_value(default)
             else                    :
                 now = self
                 for key in key_list[ : -1] : now = now[key]
-                if default == self.NV : return dict.pop(now, key_list[-1])
-                else                  : return dict.pop(now, key_list[-1], self._wrap_value(default))
+                if default == self._no_value : return dict.pop(now, key_list[-1])
+                else                         : return dict.pop(now, key_list[-1], self._wrap_value(default))
         else                                           : raise CustomTypeError(key_list)
 
     # NOT IN PLACE
-    def popped_key(self, key_list, /, default = NV) : return self.copy().pop_key(key_list, default)
+    def popped_key(self, key_list, /, default = _no_value) : return self.copy().pop_key(key_list, default)
 
     # IN PLACE
-    def drop_key(self, key_list, /, default = NV) : self.pop_key(key_list, None); return self
+    def drop_key(self, key_list, /, default = _no_value) : self.pop_key(key_list, None); return self
 
     # NOT IN PLACE
-    def dropped_key(self, key_list, /, default = NV) : self.copy().drop_key(key_list, default); return self
+    def dropped_key(self, key_list, /, default = _no_value) : self.copy().drop_key(key_list, default); return self
 
     # D.popitem() -> (k, v), remove and return some (key, value) pair as a
     # 2-tuple; but raise KeyError if D is empty.
     # IN PLACE
-    # def pop_item(self) : return super().popitem()
+    # def pop_item(self) : return dict.popitem(self)
 
     # NOT IN PLACE
     def for_each(self, func, /, *args, **kwargs) :
@@ -361,7 +363,7 @@ class Dict(dict, base_class) :
 
     # D.clear() -> None.  Remove all items from D.
     # IN PLACE
-    def clear(self) : super().clear(); return self
+    def clear(self) : dict.clear(self); return self
 
     def write_to_file(self, file, /, *, indent = True) : file.write_data(self, indent = indent); return self
 

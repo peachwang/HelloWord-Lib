@@ -3,7 +3,8 @@ from ..shared import *
 
 # ListDiff: 以 item 作为最小比较单元。降维后可用于StrDiff
 
-class List(list, base_class) :
+@add_print_func
+class List(list) :
 
     _has_imported_types = False
 
@@ -59,11 +60,11 @@ class List(list, base_class) :
     # def __class__(self) :
     def __init__(self, *args) :
         self._import_types()
-        if len(args) == 0   : super().__init__([])
+        if len(args) == 0   : list.__init__(self, [])
         elif len(args) == 1 :
-            if isinstance(args[0], List)       : super().__init__(args[0]._get_data())
+            if isinstance(args[0], List)       : list.__init__(self, args[0]._get_data())
             elif isinstance(args[0], list)     :
-                for item in args[0] : super().append(self._wrap_item(item))
+                for item in args[0] : list.append(self, self._wrap_item(item))
             elif (isinstance(args[0], (range, GeneratorType))
                 or isgenerator(args[0])
                 or '__next__' in dir(args[0])) : self.__init__(list(args[0]))
@@ -84,14 +85,14 @@ class List(list, base_class) :
     # Get an iterator from an object.  In the first form, the argument must
     # supply its own iterator, or be a sequence.
     # In the second form, the callable is called until it returns the sentinel.
-    def iter(self) : return super().__iter__()
+    def iter(self) : return list.__iter__(self)
     
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
     def _get_data(self) -> list : return [ item for item in self ]
 
     # 原生化 list, dict, str, Object._data, timedelta, date, time, datetime
     # NOT IN PLACE
-    def get_raw(self) -> list : return [ item.get_raw() if 'get_raw' in dir(item) else item for item in self ]
+    def get_raw(self) -> list : return [ item.get_raw() if hasattr(item, 'get_raw') else item for item in self ]
 
     json_serialize = _get_data
 
@@ -128,7 +129,7 @@ class List(list, base_class) :
 
     # 带有业务逻辑，与 j 不同
     # NOT IN PLACE
-    def json(self) : return List(item.json() if 'json' in dir(item) else item for item in self)
+    def json(self) : return List(item.json() if hasattr(item, 'json') else item for item in self)
 
     @print_func
     def print_json(self) : return f'{self.json().j()}', False
@@ -151,18 +152,18 @@ class List(list, base_class) :
     def __ne__(self, other) : return not self.__eq__(other)
 
     # Return len(self).
-    def __len__(self) : return super().__len__()
+    def __len__(self) : return list.__len__(self)
 
-    def len(self) : return super().__len__()
+    def len(self) : return list.__len__(self)
 
     def is_empty(self) : return self.len() == 0
 
     def is_not_empty(self) : return not self.is_empty()
 
     # x.__contains__(y) <==> y in x
-    def __contains__(self, item, /) : return super().__contains__(item)
+    def __contains__(self, item, /) : return list.__contains__(self, item)
 
-    def has(self, item, /) : return super().__contains__(item)
+    def has(self, item, /) : return list.__contains__(self, item)
 
     def has_no(self, item, /) : return not self.has(item)
 
@@ -173,12 +174,12 @@ class List(list, base_class) :
     def has_none_of(self, item_list, /) : return all(self.has_no(item) for item in item_list)
 
     # L.count(value) -> integer -- return number of occurrences of value
-    def count(self, item, /) -> int : return super().count(item)
+    def count(self, item, /) -> int : return list.count(self, item)
 
     # L.index(value, [start, [stop]]) -> integer -- return first index of value.
     # Raises ValueError if the value is not present.
     def left_index(self, item, /, *, start = 0) -> Optional[int] :
-        try               : index = super().index(item, start)
+        try               : index = list.index(self, item, start)
         except ValueError : return None
         else              : return index
 
@@ -192,7 +193,7 @@ class List(list, base_class) :
     def unique_index(self, item, /) -> int :
         if self.count(item) == 0  : raise Exception(f'{self=}\n中值：\n{item=}\n不存在')
         elif self.count(item) > 1 : raise Exception(f'{self=}\n中值：\n{item=}\n不唯一')
-        return super().index(item)
+        return list.index(self, item)
 
     # Return getattr(self, name).
     # def __getattribute__(self) :
@@ -217,10 +218,10 @@ class List(list, base_class) :
     # https://docs.python.org/3/library/collections.abc.html?highlight=__contains__#collections.abc.ByteString
     # Implementation note: Some of the mixin methods, such as __iter__(), __reversed__() and index(), make repeated calls to the underlying __getitem__() method. Consequently, if __getitem__() is implemented with constant access speed, the mixin methods will have linear performance; however, if the underlying method is linear (as it would be with a linked list), the mixins will have quadratic performance and will likely need to be overridden.
     def __getitem__(self, index: Union[int, slice], /) :
-        if isinstance(index, int)     : return super().__getitem__(index)
+        if isinstance(index, int)     : return list.__getitem__(self, index)
         elif isinstance(index, slice) :
             if (index.start is None or isinstance(index.start, int)) and (index.stop is None or isinstance(index.stop, int)) :
-                return List(super().__getitem__(index))
+                return List(list.__getitem__(self, index))
             else :
                 start, end = None, None
                 for idx, item in self.enum() :
@@ -244,7 +245,7 @@ class List(list, base_class) :
 
     # Set self[index] to value.
     # IN PLACE
-    def __setitem__(self, index, item) : super().__setitem__(index, self._wrap_item(item)); return item
+    def __setitem__(self, index, item) : list.__setitem__(self, index, self._wrap_item(item)); return item
 
     # IN PLACE
     def set(self, index, item, /) : self.__setitem__(index, item); return self
@@ -254,7 +255,7 @@ class List(list, base_class) :
 
     # L.append(object) -> None -- append object to end
     # IN PLACE
-    def append(self, item, /) : super().append(self._wrap_item(item)); return self
+    def append(self, item, /) : list.append(self, self._wrap_item(item)); return self
 
     # NOT IN PLACE
     def appended(self, item, /) : return self.copy().append(item)
@@ -280,7 +281,7 @@ class List(list, base_class) :
 
     # L.insert(index, object) -> None -- insert object before index
     # IN PLACE
-    def insert(self, index, item, /) : super().insert(index, self._wrap_item(item)); return self
+    def insert(self, index, item, /) : list.insert(self, index, self._wrap_item(item)); return self
 
     # NOT IN PLACE
     def inserted(self, index, item, /) : return self.copy().insert(index, item)
@@ -288,19 +289,19 @@ class List(list, base_class) :
     # Return self+value.
     # NOT IN PLACE
     # item_list: Union[list, List]
-    def __add__(self, item_list) : return List(super().__add__(List(item_list)))
+    def __add__(self, item_list) : return List(list.__add__(self, List(item_list)))
 
     # Implement self+=value.
     # IN PLACE
     # item_list: Union[list, List]
-    def __iadd__(self, item_list) : return super().__iadd__(List(item_list))
+    def __iadd__(self, item_list) : return list.__iadd__(self, List(item_list))
     
     # L.extend(iterable) -> None -- extend list by appending elements from the iterable
     # IN PLACE
     def extend(self, item_list: Optional[list], /) :
         if (isinstance(item_list, (list, GeneratorType))
             or isgenerator(item_list)
-            or '__next__' in dir(item_list)) : super().extend(List(item_list)); return self
+            or '__next__' in dir(item_list)) : list.extend(self, List(item_list)); return self
         elif item_list is None               : return self
         else                                 : raise CustomTypeError(item_list)
 
@@ -309,15 +310,15 @@ class List(list, base_class) :
 
     # Return self*value
     # NOT IN PLACE
-    def __mul__(self, value: int) : return List(super().__mul__(value))
+    def __mul__(self, value: int) : return List(list.__mul__(self, value))
     
     # Return value*self.
     # NOT IN PLACE
-    def __rmul__(self, value: int) : return List(super().__rmul__(value))
+    def __rmul__(self, value: int) : return List(list.__rmul__(self, value))
 
     # Implement self*=value.
     # IN PLACE
-    def __imul__(self, value: int) : return super().__imul__(value)
+    def __imul__(self, value: int) : return list.__imul__(self, value)
 
     # Implement delattr(self, name).
     # Deletes the named attribute from the given object.
@@ -325,12 +326,12 @@ class List(list, base_class) :
     # def __delattr__(self) :
 
     # Delete self[key].
-    def __delitem__(self, key: Union[int, slice]) : return super().__delitem__(key)
+    def __delitem__(self, key: Union[int, slice]) : return list.__delitem__(self, key)
 
     # L.pop([index]) -> item -- remove and return item at index (default last).
     # Raises IndexError if list is empty or index is out of range.
     # IN PLACE
-    def pop_index(self, index, /) : return super().pop(index)
+    def pop_index(self, index, /) : return list.pop(self, index)
 
     # NOT IN PLACE
     def popped_index(self, index, /) : return self.copy().pop_index(index)
@@ -338,17 +339,17 @@ class List(list, base_class) :
     # L.remove(value) -> None -- remove first occurrence of value.
     # Raises ValueError if the value is not present.
     # IN PLACE
-    def drop_item(self, item, /) : super().remove(item); return self
+    def drop_item(self, item, /) : list.remove(self, item); return self
 
     # NOT IN PLACE
     def dropped_item(self, item, /) : return self.copy().drop_item()
     
     # L.__reversed__() -- return a reverse iterator over the list
-    def __reversed__(self) : return super().__reversed__()
+    def __reversed__(self) : return list.__reversed__(self)
 
     # L.reverse() -> None -- reverse *IN PLACE*
     # IN PLACE
-    def reverse(self) : super().reverse(); return self
+    def reverse(self) : list.reverse(self); return self
 
     # NOT IN PLACE
     def reversed(self) : return self.copy().reverse()
@@ -357,8 +358,8 @@ class List(list, base_class) :
     # IN PLACE
     def sort(self, key_func_or_attr_name = None, /, *, reverse = False) :
         if (callable(key_func_or_attr_name)
-            or key_func_or_attr_name is None)       : super().sort(key = key_func_or_attr_name, reverse = reverse)
-        elif isinstance(key_func_or_attr_name, str) : super().sort(key = lambda _ : _.__getattr__(key_func_or_attr_name), reverse = reverse)
+            or key_func_or_attr_name is None)       : list.sort(self, key = key_func_or_attr_name, reverse = reverse)
+        elif isinstance(key_func_or_attr_name, str) : list.sort(self, key = attrgetter(key_func_or_attr_name), reverse = reverse)
         else                                        : raise CustomTypeError(key_func_or_attr_name)
         return self
 
@@ -500,7 +501,7 @@ class List(list, base_class) :
     def group_by(self, key_func = None, /, *, value_func = None) :
         from itertools import groupby
         result = self._Dict()
-        for k, g in groupby(self.sorted((lambda _ : f'{_}' if _ is not None else '') if key_func is None else key_func), key = key_func) :
+        for k, g in groupby(self.sorted(key_func or (lambda _ : f'{_}' if _ is not None else '')), key = key_func) :
             if value_func is None : result[k] = List(g)
             else                  : result[k] = List(value_func(item) for item in g)
         return result
@@ -637,7 +638,7 @@ class List(list, base_class) :
 
     # L.clear() -> None -- remove all items from L
     # IN PLACE
-    def clear(self) : super().clear(); return self
+    def clear(self) : list.clear(self); return self
     
     def write_to_file(self, file, /, *, indent = True) : file.write_data(self, indent = indent); return self
 

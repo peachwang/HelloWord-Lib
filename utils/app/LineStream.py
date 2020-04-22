@@ -38,8 +38,8 @@ class _Line :
 class LineStream :
 
     # @Timer.timeit_total('LineStream.__init__')
-    def __init__(self, raw_line_list = [], /) :
-        self._raw_line_list            = raw_line_list
+    def __init__(self, raw_line_list = None, /) :
+        self._raw_line_list            = raw_line_list or []
         self._tag_name_to_line_content = {}
         self._tag_name_to_sub_stream   = {}
         self._sub_stream_list          = []
@@ -75,11 +75,8 @@ class LineStream :
         else                          : return self._tag_name
 
     def _append_sub_stream(self, sub_stream, /, *, is_list: bool) :
-        if is_list :
-            if sub_stream.tag_name not in self._tag_name_to_sub_stream : self._tag_name_to_sub_stream[sub_stream.tag_name] = []
-            self._tag_name_to_sub_stream[sub_stream.tag_name].append(sub_stream)
-        else       :
-            self._tag_name_to_sub_stream[sub_stream.tag_name] = sub_stream
+        if is_list : self._tag_name_to_sub_stream.setdefault(sub_stream.tag_name, []).append(sub_stream)
+        else       : self._tag_name_to_sub_stream[sub_stream.tag_name] = sub_stream
         self._sub_stream_list.append(sub_stream)
         return self
 

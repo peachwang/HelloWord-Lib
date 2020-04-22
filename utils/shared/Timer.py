@@ -70,9 +70,9 @@ class Timer :
                 # key = func.__qualname__
                 if group_args :
                     key_args = f'{args}{kwargs if len(kwargs) > 0 else ""}'
-                    if key not in Timer.get_timer_dict()       : Timer.get_timer_dict()[key] = {}
+                    Timer.get_timer_dict().setdefault(key, {})
                     if key_args in Timer.get_timer_dict()[key] : timer = Timer.get_timer_dict()[key][key_args]
-                    else                                     : Timer.get_timer_dict()[key][key_args] = timer = Timer(f'{key}{key_args}')
+                    else                                       : Timer.get_timer_dict()[key][key_args] = timer = Timer(f'{key}{key_args}')
                 else          :
                     if key in Timer.get_timer_dict() : timer = Timer.get_timer_dict()[key]
                     else                           : Timer.get_timer_dict()[key] = timer = Timer(key)

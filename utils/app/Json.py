@@ -26,7 +26,7 @@ class CustomDecoder(json.JSONDecoder) :
         return dct
 
     def decode(self, string) :
-        try                              : return super().decode(string)
+        try                              : return json.JSONDecoder.decode(self, string)
         except json.JSONDecodeError as e :
             if e.pos > 100               : start = e.pos - 100
             else                         : start = 0
@@ -63,7 +63,7 @@ class CustomEncoder(json.JSONEncoder) :
         if isinstance(obj, date_class)                               : return wrap_dct(obj, Date(obj).json_serialize())
         if isinstance(obj, time_class)                               : return wrap_dct(obj, Time(obj).json_serialize())
         if isinstance(obj, (DateList, DateRange, Year, Month, Week)) : return wrap_dct(obj, obj.json_serialize())
-        if 'json_serialize' in dir(obj)                              : return wrap_dct(obj, obj.json_serialize())
+        if hasattr(obj, 'json_serialize')                            : return wrap_dct(obj, obj.json_serialize())
         if isinstance(obj, range)                                    : return wrap_dct(obj, [obj.start, obj.stop, obj.step])
         if isinstance(obj, type)                                     : return wrap_dct(obj, type_to_str(obj))
         if isinstance(obj, (zip, slice))                             : raise TypeError('无法序列化 zip, slice')
@@ -72,8 +72,8 @@ class CustomEncoder(json.JSONEncoder) :
 
     # @log_entering('{0}')
     # def encode(self, obj) -> str :
-        # if isinstance(obj, dict) : return super().encode({ str(key) : obj[key] for key in obj })
-        # else                     : return super().encode(obj)
+        # if isinstance(obj, dict) : return json.JSONEncoder.encode(self, { str(key) : obj[key] for key in obj })
+        # else                     : return json.JSONEncoder.encode(self, obj)
 
 def raw_dump_json_file(obj, fp, /, *, indent = True) -> None :
     json.dump(obj, fp, indent = 4 if indent is True else (None if indent is False else indent), ensure_ascii = False, sort_keys = True, cls = CustomEncoder)

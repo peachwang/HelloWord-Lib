@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-  
-from os       import remove, rename
-from os.path  import realpath, exists, getsize
-from ..shared import *
-from .Str     import Str
-from .List    import List
-from .Dict    import Dict
+from os        import remove, rename
+from os.path   import isfile, realpath, basename, dirname, splitext, exists, getsize, getatime, getmtime
+from ..shared  import *
+from .Str      import Str
+from .DateTime import DateTime
+from .List     import List
+from .Dict     import Dict
 
-class File(base_class) :
+@add_print_func
+class File :
+    
+    def is_file(file_path) : return isfile(folder_path)
 
     @anti_duplicate_new
     def __new__(cls, file_path, *args, **kwargs) : return realpath(file_path)
@@ -14,13 +18,12 @@ class File(base_class) :
     @anti_duplicate_init
     def __init__(self, file_path, folder = None, /) :
         self._raw_path    = file_path
-        self._path        = file_path
+        self._path        = Str(file_path)
         self._folder      = folder
-        _                 = self._path.split('/')
-        self._full_name   = Str(_[-1])
-        self._folder_path = Str('/'.join(_[ : -1]))
-        self._ext         = Str(_[-1].split('.')[-1] if '.' in _[-1] else '')
-        self._name        = Str(_[-1][ : - len(self._ext) - 1])
+        self._full_name   = Str(basename(file_path))
+        self._folder_path = Str(dirname(file_path))
+        self._ext         = Str(splitext(file_path)[1][1:])
+        self._name        = Str(basename(file_path)[ : - len(self._ext) - 1])
 
     @prop
     def raw_path(self) -> str : return self._raw_path
@@ -62,6 +65,12 @@ class File(base_class) :
     @prop
     def size(self) : return getsize(self._path)
 
+    @prop
+    def last_access_dt(self) -> DateTime : return DateTime(getatime(self._path))
+
+    @prop
+    def last_modification_dt(self) -> DateTime : return DateTime(getmtime(self._path))
+
     def rename(self, new_name) : raise NotImplementedError # 改 self._path
 
     def move(self, new_path) : raise NotImplementedError # 改 self._path
@@ -91,29 +100,36 @@ class File(base_class) :
             return self
         else                        : raise CustomTypeError(index)
 
-    def read_raw(self) : return Str(''.join(open(self._path).readlines()))
+    def read_raw(self) :
+        with open(self._path) as f : return Str(''.join(f.readlines()))
 
     def __iter__(self) :
-        for line in open(self._path) : yield Str(line)
+        with open(self._path) as f :
+            for line in f : yield Str(line)
 
-    def _read_line_list(self, *, raw = False, filter_white_lines = False, replace_abnormal_char = True) -> Union[list, List] :
-        if raw : result = []
-        else   : result = List()
+    def read_line_iter(self, *, raw = False, filter_white_lines = False, replace_abnormal_char = True) -> Union[list, List] :
         start = self._range.start if hasattr(self, '_range') else None
         stop  = self._range.stop if hasattr(self, '_range') else None
-        for index, line in enumerate(open(self._path)) :
-            if start is not None and index < start        : continue
-            if stop is not None and stop <= index         : break
-            if filter_white_lines and Str(line).is_empty() : continue
-            if replace_abnormal_char : line = line.replace(' ', ' ').replace('．', '.')
-            result.append(line.strip('\n\r'))
-        return result
+        with open(self._path) as f :
+            for index, line in enumerate(f) :
+                if start is not None and index < start         : continue
+                if stop is not None and stop <= index          : break
+                if filter_white_lines and Str(line).is_empty() : continue
+                if replace_abnormal_char                       : line = line.replace(' ', ' ').replace('．', '.')
+                if raw                                         : yield line.strip('\n\r')
+                else                                           : yield Str(line.strip('\n\r'))
 
-    def read_field_list(self, *, index, sep = '\t') -> List : return self._read_line_list(filter_white_lines = True).map(lambda line : line.split(sep)[index])
+    def _read_line_list(self, **kwargs) -> Union[list, List] :
+        if raw : return list(self.read_line_iter(**kwargs))
+        else   : return List(self.read_line_iter(**kwargs))
+
+    def read_field_list(self, *, index, sep = '\t') -> List :
+        return self._read_line_list(filter_white_lines = True).map(lambda line : line.split(sep)[index])
 
     def _load_json(self, *, raw = False) -> Union[list, dict, List, Dict] :
         from ..app.Json import raw_load_json_file
-        data = raw_load_json_file(open(self._path))
+        with open(self._path) as f :
+            data = raw_load_json_file(open(self._path))
         if isinstance(data, list)   :
             if not raw                 : data = List(data)
             if hasattr(self, '_range') : return data[self._range]
@@ -130,17 +146,24 @@ class File(base_class) :
         elif self.is_json()  : return self._load_json(**kwargs)
         else                : raise Exception(f'不支持的后缀名：{self._ext=}')
 
-    def write_string(self, string, /, *, append = False) : open(self._path, 'a' if append else 'w').write(string); return self
+    def write_string(self, string, /, *, append = False, ensure_not_exists = False) :
+        with open(self._path, 'x' if ensure_not_exists else ('a' if append else 'w')) as f :
+            f.write(string)
+        return self
 
-    def write_bytes(self, bytes_content, /) : open(self._path, 'wb').write(bytes_content); return self
+    def write_bytes(self, bytes_content, /, *, append = False, ensure_not_exists = False) :
+        with open(self._path, 'xb' if ensure_not_exists else ('ab' if append else 'wb')) as f :
+            f.write(bytes_content)
+        return self
 
-    def write_line(self, string, /, *, append = False) : return self.write_string(f'{string}\n', append = append)
+    def write_line(self, string, /, **kwargs) : return self.write_string(f'{string}\n', **kwargs)
 
-    def write_line_list(self, line_list, /, *, append = False) : return self.write_string('\n'.join(line_list), append = append)
+    def write_line_list(self, line_list, /, **kwargs) : return self.write_string('\n'.join(line_list), **kwargs)
 
-    def _dump_json(self, obj, /, *, indent = True) :
+    def _dump_json(self, obj, /, *, indent = True, ensure_not_exists = False) :
         from ..app.Json import raw_dump_json_file
-        raw_dump_json_file(obj, open(self._path, 'w'), indent = indent) # raw_dump_json_file 内部可以处理 List, Dict 类型
+        with open(self._path, 'x' if ensure_not_exists else 'w') as f :
+            raw_dump_json_file(obj, f, indent = indent) # raw_dump_json_file 内部可以处理 List, Dict 类型
         return self
 
     def write_data(self, data, /, **kwargs) :
@@ -169,7 +192,25 @@ class File(base_class) :
     #         else : data[datum[primary_key]] = datum
     #     return data
 
-    def load_table(self) : raise NotImplementedError
+    def load_table(self) :
+        raise NotImplementedError
+        # col_types = [str, float, str, str, float, int]
+        # with open('stocks.csv') as f:
+        #     f_csv = csv.reader(f)
+        #     headers = next(f_csv)
+        #     for row in f_csv:
+        #         # Apply conversions to the row items
+        #         row = tuple(convert(value) for convert, value in zip(col_types, row))
+        #         ...
+        # field_types = [ ('Price', float),
+        #                 ('Change', float),
+        #                 ('Volume', int) ]
+
+        # with open('stocks.csv') as f:
+        #     for row in csv.DictReader(f):
+        #         row.update((key, conversion(row[key]))
+        #                 for key, conversion in field_types)
+        #         print(row)
 
     # def dump_table(fout, data, fields = None, primary_key = None, is_matrix = False, sep = '\t', default = '') :
     #     if is_matrix :

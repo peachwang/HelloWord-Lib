@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-  
-from os       import makedirs, rmdir, walk
-from ..shared import *
-from .Str     import Str
-from .List    import List
-from .File    import File, realpath, exists
+from os        import makedirs, rmdir, listdir
+from os.path   import isdir, join
+from ..shared  import *
+from .Str      import Str
+from .DateTime import DateTime
+from .List     import List
+from .File     import File, basename, realpath, exists, getatime, getmtime
 
-class Folder(base_class) :
+@add_print_func
+class Folder :
 
     def mkdir(folder_path) : makedirs(folder_path, exist_ok = True); return Folder
 
     def exists(folder_path) : return exists(folder_path)
 
     def not_exists(folder_path) : return not Folder.exists(folder_path)
+
+    def is_folder(folder_path) : return isdir(folder_path)
 
     @anti_duplicate_new
     def __new__(cls, folder_path, *args, **kwargs) : return realpath(folder_path)
@@ -21,9 +26,9 @@ class Folder(base_class) :
         if Folder.not_exists(folder_path) : raise Exception(f'Folder({folder_path} = {realpath(folder_path)}) 不存在')
         self._raw_path   = folder_path
         self._path       = Str(folder_path)
-        self._name       = self._path.split('/')[-1]
+        self._name       = Str(basename(folder_path))
         self._auto_build = auto_build
-        self._has_walked = False
+        self._has_listed = False
         self._has_built  = False
         if not auto_build : pass
         else              : self._build()
@@ -41,28 +46,33 @@ class Folder(base_class) :
     def name(self) -> Str : return self._name
 
     # @log_entering()
-    def _walk(self) :
+    def _listdir(self) :
         try                   :
-            for path, sub_folder_name_list, sub_file_name_list in walk(self._path) :
-                self._path, self._sub_folder_name_list, self._sub_file_name_list = Str(path), List(sub_folder_name_list), List(sub_file_name_list)
-                break
-            self._sub_file_name_list.filter(lambda file_name : file_name != '.DS_Store')
-            self._path = self._path.rstrip('/')
-            self._name = self._path.split('/')[-1]
-        except Exception as e : raise Exception(f'Fail to walk folder path: {self._path} = {self.abs_path}')
-        self._has_walked = True
+            self._sub_folder_name_list = List()
+            self._sub_file_name_list   = List()
+            for name in listdir(self._path) :
+                if isdir(join(self.path, name)) : self._sub_folder_name_list.append(name)
+                elif name != '.DS_Store'        : self._sub_file_name_list.append(name)
+        except Exception as e : raise Exception(f'Fail to list folder path: {self._path} = {self.abs_path}')
+        self._has_listed = True
         return self
 
     # @log_entering()
     def _build(self) :
-        if not self._has_walked : self._walk()
-        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(f'{self._path}/{folder_name}', auto_build = self._auto_build))
-        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(f'{self._path}/{file_name}', self))#.print_format(pattern = f'{index + 1} {{}}', print_timing = True))
+        if not self._has_listed : self._listdir()
+        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(join(self._path, folder_name), auto_build = self._auto_build))
+        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(join(self._path, file_name), self))#.print_format(pattern = f'{index + 1} {{}}', print_timing = True))
         self._has_built = True
         return self
 
     @prop
     def size(self) : return self.flat_sub_file_list.size.sum()
+
+    @prop
+    def last_access_dt(self) -> DateTime : return DateTime(getatime(self._path))
+
+    @prop
+    def last_modification_dt(self) -> DateTime : return DateTime(getmtime(self._path))
 
     def json_serialize(self) -> str : return self._raw_path
 
@@ -78,7 +88,7 @@ class Folder(base_class) :
 
     @prop
     def sub_folder_name_list(self) :
-        if not self._has_walked : self._walk()
+        if not self._has_listed : self._listdir()
         return self._sub_folder_name_list.copy()
     
     @prop
@@ -97,7 +107,7 @@ class Folder(base_class) :
     
     @prop
     def sub_file_name_list(self) :
-        if not self._has_walked : self._walk()
+        if not self._has_listed : self._listdir()
         return self._sub_file_name_list.copy()
     
     @prop

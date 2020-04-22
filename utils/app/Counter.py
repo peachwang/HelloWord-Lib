@@ -33,6 +33,12 @@ class Counter :
     
     def items(self) : return List(list(self._key_to_sum.items()))
 
+    # def __add__
+    # def __iadd__
+    # def __sub__
+    # def __isub__
+    # https://python3-cookbook.readthedocs.io/zh_CN/latest/c01/p12_determine_most_freqently_items_in_seq.html
+
     def add(self, key, value, /) :
         if key not in self._key_to_value_list : self._init(key)
         self._key_to_value_list[key].append(value)

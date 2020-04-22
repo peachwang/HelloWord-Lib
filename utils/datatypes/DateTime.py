@@ -42,8 +42,9 @@ from ..shared import *
     # tm_zone     时区名称的缩写
     # tm_gmtoff   以秒为单位的UTC以东偏离
 
+@add_print_func
 @total_ordering
-class TimeDelta(base_class) :
+class TimeDelta :
 
     # @class_property min        The most negative timedelta object, timedelta(-999999999).
     # @class_property max        The most positive timedelta object, timedelta(days=999999999, hours=23, minutes=59, seconds=59, microseconds=999999).
@@ -181,20 +182,24 @@ class TimeDelta(base_class) :
     
     def __repr__(self) : return f'TimeDelta({self._timedelta!r})'
 
+@add_print_func
 @total_ordering
-class Date(base_class) :
+class Date :
 
     # @class_property min        最小的日期 date(MINYEAR, 1, 1) 。
     # @class_property max        最大的日期 date(MAXYEAR, 12, 31)。
     # @class_property resolution 两个日期对象的最小间隔，timedelta(days=1)。
 
-    def today() : return Date(date_class.fromtimestamp(time.time()))
+    @classmethod
+    def today(cls) : return cls(date_class.fromtimestamp(time.time()))
 
     # 返回对应于预期格列高利历序号的日期，其中公元 1 年 1 月 1 日的序号为 1。
-    def from_ordinal_num(ordinal_num, /) : return Date(date_class.fromordinal(ordinal_num))
+    @classmethod
+    def from_ordinal_num(cls, ordinal_num, /) : return cls(date_class.fromordinal(ordinal_num))
 
     # 返回指定 year, week 和 day 所对应 ISO 历法日期的 date。 这是函数 date.isocalendar() 的逆操作。
-    def from_iso_year_week_day(yaer, week, day, /) : return Date(date_class.fromisocalendar(year, week, day))
+    @classmethod
+    def from_iso_year_week_day(cls, yaer, week, day, /) : return cls(date_class.fromisocalendar(year, week, day))
 
     #class datetime.date(year, month, day)
     def __init__(self, timestamp_or_date_or_string = None, /, pattern = '%Y-%m-%d', **kwargs) :
@@ -303,14 +308,16 @@ class Date(base_class) :
         weekday = {1 : '一', 2 : '二', 3 : '三', 4 : '四', 5 : '五', 6 : '六', 7 : '日'}[self.weekday]
         return f'{self}({weekday})'
 
+@add_print_func
 @total_ordering
-class Time(base_class) :
+class Time :
 
     # @class_property min        早最的可表示 time, time(0, 0, 0, 0)。
     # @class_property max        最晚的可表示 time, time(23, 59, 59, 999999)。
     # @class_property resolution 两个不相等的 time 对象之间可能的最小间隔，timedelta(microseconds=1)，但是请注意 time 对象并不支持算术运算。
 
-    def now() : return DateTime().time()
+    @classmethod
+    def now(cls) : return cls(DateTime().time)
 
     # class datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
     def __init__(self, time_or_string = None, /, pattern = '%H:%M:%S', **kwargs) :
@@ -366,8 +373,9 @@ class Time(base_class) :
     
     def __repr__(self) : return f'Time({self._time!r})'
 
+@add_print_func
 @total_ordering
-class DateTime(base_class) :
+class DateTime :
 
     # @class_property min        最早的可表示 datetime，datetime(MINYEAR, 1, 1, tzinfo=None)。
     # @class_property max        最晚的可表示 datetime，datetime(MAXYEAR, 12, 31, 23, 59, 59, 999999, tzinfo=None)。
@@ -375,11 +383,13 @@ class DateTime(base_class) :
 
     # datetime.now(tz=None)
     # datetime.now(timezone.utc)
-    def now() : return DateTime()
+    @classmethod
+    def now(cls) : return cls()
 
-    def combine(date: Date, time: Time) :
+    @classmethod
+    def combine(cls, date: Date, time: Time) :
         if not isinstance(date, Date) or not isinstance(time, Time) : raise CustomTypeError((date, time))
-        return DateTime(datetime_class.combine(date.get_raw(), time.get_raw()))
+        return cls(datetime_class.combine(date.get_raw(), time.get_raw()))
 
     # class datetime.datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
     def __init__(self, timestamp_or_datetime_or_string = None, /, pattern = '%Y-%m-%d %H:%M:%S', **kwargs) :
@@ -490,7 +500,8 @@ class DateTime(base_class) :
         weekday = {1 : '一', 2 : '二', 3 : '三', 4 : '四', 5 : '五', 6 : '六', 7 : '日'}[self.date.weekday]
         return f'{self}({weekday})'
 
-class DateList(base_class) :
+@add_print_func
+class DateList :
 
     def __init__(self, date_list, /) :
         from .List import List
@@ -530,15 +541,15 @@ class DateList(base_class) :
 
 class DateRange(DateList) :
 
-    def __init__(self, start: Union[date_class, Date, str], end: Union[date_class, Date, str], pattern = '%Y-%m-%d', /) :
+    def __init__(self, start: Union[date_class, Date, str], end: Union[date_class, Date, str], pattern = '%Y-%m-%d', /, *, step = 1) :
         from .List import List
         start_date = Date(start, pattern)
         end_date   = Date(end, pattern)
-        if start_date == end_date : super().__init__(List()); return
-        direction  = 1 if end_date > start_date else -1
+        if start_date == end_date : DateList.__init__(self, List()); return
+        direction  = step if end_date > start_date else - step
         result     = []
         while start_date != end_date : result.append(start_date); start_date = start_date + direction
-        super().__init__(result)
+        DateList.__init__(self, result)
 
     @cached_prop
     def first_date(self) -> Date : return self[0]
@@ -575,7 +586,7 @@ class Year(DateRange) :
         self._year = year
         start = Date(year = year, month = 1,  day = 1)
         end   = Date(year = year + 1, month = 1,  day = 1)
-        super().__init__(start, end)
+        DateRange.__init__(self, start, end)
 
     @cached_prop
     def year(self) -> int : return self._year
@@ -593,7 +604,7 @@ class Month(DateRange) :
         start = Date(year = year, month = month,  day = 1)
         if month == 12 : end = Date(year = year + 1, month = 1,  day = 1)
         else           : end = Date(year = year, month = month + 1,  day = 1)
-        super().__init__(start, end)
+        DateRange.__init__(self, start, end)
 
     @cached_prop
     def year(self) -> int : return self._year
@@ -614,7 +625,7 @@ class Week(DateRange) :
         self._year  = start.year
         self._month = start.month
         self._day   = start.day
-        super().__init__(start, start + 6)
+        DateRange.__init__(self, start, start + 6)
 
     @cached_prop
     def year(self) -> int : return self._year
@@ -631,7 +642,8 @@ class Week(DateRange) :
     @cached_prop
     def tuple(self) -> tuple : return (self._year, self._month, self._day)
 
-class TimeZone(base_class) :
+@add_print_func
+class TimeZone :
 
     # class_property utc UTC 时区，timezone(timedelta(0))。
 

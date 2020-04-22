@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-  
 from .Color    import R, Y, G, C, B, P, S, W, E
 from .Timer    import Timer
+from weakref   import ref, WeakValueDictionary
 from inspect   import isclass, isfunction, ismethod, isgenerator, signature
 from functools import wraps, cached_property as cached_prop, lru_cache as cached_func, total_ordering; prop = property
 from types     import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, LambdaType, GeneratorType
@@ -19,7 +20,6 @@ from operator  import attrgetter, itemgetter, methodcaller
 # operator.methodcaller(name, /, *args, **kwargs)
 # Return a callable object that calls the method name on its operand. If additional arguments and/or keyword arguments are given, they will be given to the method as well. For example:
 # methodcaller('name', 'foo', bar = 1)(a) = a.name('foo', bar = 1).
-
 
 class CustomTypeError(TypeError) :
 
@@ -99,18 +99,24 @@ def log_entering(pattern: str = '') :
         return wrapper
     return decorator
 
-class base_class :
+def add_print_func(cls) :
 
     @print_func
     def print_format(self) : return self.__format__(''), False
+    cls.print_format = print_format
 
     @print_func
     def print_str(self) : return self.__str__(), False
+    cls.print_str = print_str
 
     def j(self, *, indent = True) : from ..app.Json import j; return j(self.json_serialize(), indent = indent)
+    cls.j = j
 
     @print_func
     def print_j(self) : return self.j(), False
+    cls.print_j = print_j
+
+    return cls
 
     # This method is called when a class is subclassed.
     # The default implementation does nothing. It may be
@@ -134,7 +140,7 @@ def anti_duplicate_new(func) :
     @wraps(func)
     def wrapper(cls, *args, **kwargs) :
         key = func(cls, *args, **kwargs)
-        if '_instance_dict' not in dir(cls)        : cls._instance_dict = {}
+        if not hasattr(cls, '_instance_dict')      : cls._instance_dict = WeakValueDictionary()
         if cls._instance_dict.get(key) is not None : return cls._instance_dict[key]
         else                                       :
             if str(cls.__bases__[0].__new__)[ : -15] != str(func)[ : -15] : new_func = cls.__bases__[0].__new__
@@ -147,7 +153,7 @@ def anti_duplicate_new(func) :
 def anti_duplicate_init(func) :
     @wraps(func)
     def wrapper(self, *args, **kwargs) :
-        if '_has_init' in dir(self) : return
+        if hasattr(self, '_has_init') : return
         func(self, *args, **kwargs)
         object.__setattr__(self, '_has_init', True)
     return wrapper

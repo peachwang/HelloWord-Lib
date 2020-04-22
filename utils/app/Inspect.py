@@ -20,10 +20,10 @@ class _FieldSlot :
         self._list_len_list         = []
         self._child_field_slot_list = List()
 
-    def set_parent_field_slot(self, field_slot, /) : self._parent_field_slot = field_slot; return self
+    def set_parent_field_slot(self, field_slot, /) : self._parent_field_slot_ref = ref(field_slot); return self
 
     @cached_prop
-    def is_root(self) : return self._parent_field_slot is None
+    def is_root(self) : return self._parent_field_slot_ref() is None
 
     @cached_prop
     def path_str(self) -> str : return '.'.join(self._path_tuple) if len(self._path_tuple) > 0 else 'ROOT'
@@ -41,7 +41,7 @@ class _FieldSlot :
     def is_dict(self) : return self._type_str_list.join(', ') == 'dict'
 
     @cached_prop
-    def in_list(self) : return False if self.is_root else self._parent_field_slot.is_list
+    def in_list(self) : return False if self.is_root else self._parent_field_slot_ref().is_list
 
     def add_field(self, field, /) :
         self._field_list.append(field)
@@ -63,12 +63,12 @@ class _FieldSlot :
     # @cached_prop
     # def existence(self) :
     #     if self.is_root : return True
-    #     return self.field_num == self._parent_field_slot.field_num
+    #     return self.field_num == self._parent_field_slot_ref().field_num
 
     def __format__(self, spec) :
         max_len   = 3
         max_width = 25
-        result    = f'{self.path_str!s:80}{self.name:>25} {P(Y(self._type_str_list.join(", ")) == "dict") == "list":<10} {"  " if self.is_root or self.in_list else (P("必") if self.field_num == self._parent_field_slot.field_num else Y("可"))}存在{self.field_num:>3} 次'
+        result    = f'{self.path_str!s:80}{self.name:>25} {P(Y(self._type_str_list.join(", ")) == "dict") == "list":<10} {"  " if self.is_root or self.in_list else (P("必") if self.field_num == self._parent_field_slot_ref().field_num else Y("可"))}存在{self.field_num:>3} 次'
         if self._child_field_slot_list.len() > 0 or self.is_list or self.is_dict :
             if self.is_list   :
                 if len(self._list_len_list) == 0         : result += f' {G("为空")}'
@@ -92,15 +92,14 @@ class _FieldSlot :
 class _Field :
     
     def __init__(self, parent_field, name: str, value, field_slot_dict, /, **kwargs) :
-        self._parent_field     = parent_field
+        self._parent_field_ref = ref(parent_field)
         if '.' in name : raise CustomTypeError(name)
         self._name             = name
         self._value            = value
         self._child_field_list = []
         self._build(field_slot_dict, **kwargs)
         
-        if self.slot_path_tuple not in field_slot_dict : field_slot_dict[self.slot_path_tuple] = _FieldSlot(self.slot_path_tuple)
-        self._field_slot = field_slot_dict[self.slot_path_tuple].add_field(self)
+        self._field_slot = field_slot_dict.setdefault(self.slot_path_tuple, _FieldSlot(self.slot_path_tuple)).add_field(self)
         if not self.is_leaf                            :
             for child_field in self._child_field_list : # 建立双向映射
                 self._field_slot.child_field_slot_list.unique_append(child_field.field_slot)
@@ -109,7 +108,7 @@ class _Field :
 
     def _build(self, field_slot_dict, /) :
         if self.is_root : self._path_tuple = tuple()
-        else            : self._path_tuple = tuple(list(self._parent_field.path_tuple) + [self._name])
+        else            : self._path_tuple = tuple(list(self._parent_field_ref().path_tuple) + [self._name])
         if isinstance(self._value, dict)   :
             for name, value in self._value.items() :
                 child_field = _Field(self, name, value, field_slot_dict)
@@ -124,7 +123,7 @@ class _Field :
         return self
 
     @cached_prop
-    def is_root(self) : return self._parent_field is None
+    def is_root(self) : return self._parent_field_ref() is None
 
     @cached_prop
     def name(self) -> str : return self._name
@@ -222,7 +221,7 @@ class Inspect :
 class _DiffField(_Field) :
 
     def __init__(self, parent_diff_field, field_1, field_2, /) :
-        self._parent_diff_field     = parent_diff_field
+        self._parent_diff_field_ref = ref(parent_diff_field)
         self._field_1               = field_1
         self._field_2               = field_2
         self._child_diff_field_list = []
