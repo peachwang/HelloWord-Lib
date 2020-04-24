@@ -158,6 +158,8 @@ def anti_duplicate_init(func) :
         object.__setattr__(self, '_has_init', True)
     return wrapper
 
+def bar(num, mod, /, *, char = '-') : return char * (num // mod)
+
 def shell(command) :
     import subprocess
     p = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
