@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-  
 from ..shared             import *
+from ..datatypes.Str      import Str
 from ..datatypes.DateTime import DateTime
 from ..datatypes.List     import List
 
@@ -11,6 +12,9 @@ class Counter :
         self._key_to_sum        = {}
         if key_list is not None :
             for key in key_list : self._init(key)
+
+    @cached_prop
+    def name(self) -> Str : return Str(self._name)
 
     def _init(self, key, /) :
         self._key_to_value_list[key] = []

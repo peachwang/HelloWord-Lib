@@ -179,7 +179,7 @@ class _Match :
 @add_print_func
 class Str(str) :
 
-    _no_value = object()
+    _no_value = _Match._no_value
 
     # id(object) -> integer
     # Return the identity of an object.  This is guaranteed to be unique among
@@ -203,6 +203,8 @@ class Str(str) :
     # The substitutions are identified by braces ('{' and '}').
     # NOT IN PLACE
     def format(self, *args, **kwargs) : return Str(str.format(self, *args, **kwargs))
+
+    def _wrap(self, value, /) : return Str(value) if isinstance(value, str) else value
 
     # Make object readable
     # Return str(self).
@@ -311,7 +313,6 @@ class Str(str) :
     # Note that even in MULTILINE mode, re.match() will only match at the
     # beginning of the string and not at the beginning of each line.
     # If you want to locate a match anywhere in string, use search() instead
-    @log_entering()
     def left_match(self, pattern, /, *, flags = 0) -> Optional[_Match] : return _Match(re.match(pattern, self, flags)) if _ else None
 
     def ensure_left_match(self, pattern = None, /, *, flags = 0) :
