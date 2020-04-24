@@ -24,28 +24,29 @@ class Folder :
     @anti_duplicate_init
     def __init__(self, folder_path, /, *, auto_build = True) :
         if Folder.not_exists(folder_path) : raise Exception(f'Folder({folder_path} = {realpath(folder_path)}) 不存在')
-        self._raw_path   = folder_path
-        self._path       = Str(folder_path)
-        self._name       = Str(basename(folder_path))
-        self._auto_build = auto_build
-        self._has_listed = False
-        self._has_built  = False
+        self._raw_path         = folder_path
+        self._path             = Str(folder_path)
+        self._name             = Str(basename(folder_path))
+        self._auto_build       = auto_build
+        self._has_listed       = False
+        self._has_built_folder = False
+        self._has_built_file   = False
         if not auto_build : pass
         else              : self._build()
 
-    @prop
+    @cached_prop
     def raw_path(self) -> str : return self._raw_path
 
-    @prop
+    @cached_prop
     def path(self) -> Str : return self._path
 
-    @prop
+    @cached_prop
     def abs_path(self) -> Str : return Str(realpath(self._path))
 
-    @prop
+    @cached_prop
     def name(self) -> Str : return self._name
 
-    # @log_entering()
+    # @log_entering('{self}')
     def _listdir(self) :
         try                   :
             self._sub_folder_name_list = List()
@@ -57,13 +58,23 @@ class Folder :
         self._has_listed = True
         return self
 
-    # @log_entering()
-    def _build(self) :
+    # @log_entering('{self}')
+    def _build_folder(self) :
         if not self._has_listed : self._listdir()
         self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(join(self._path, folder_name), auto_build = self._auto_build))
-        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(join(self._path, file_name), self))#.print_format(pattern = f'{index + 1} {{}}', print_timing = True))
-        self._has_built = True
+        self._has_built_folder = True
         return self
+    
+    # @log_entering('{self}')
+    def _build_file(self) :
+        if not self._has_listed : self._listdir()
+        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(join(self._path, file_name), self))#.print_format(pattern = f'{index + 1} {{}}', print_timing = True))
+        self._has_built_file = True
+        return self
+
+    # @log_entering('{self}')
+    def _build(self) :
+        return self._build_folder()._build_file()
 
     @prop
     def size(self) : return self.flat_sub_file_list.size.sum()
@@ -86,41 +97,42 @@ class Folder :
 
     def __repr__(self) : return f'Folder({self._raw_path!r})'
 
-    @prop
+    @cached_prop
     def sub_folder_name_list(self) :
         if not self._has_listed : self._listdir()
         return self._sub_folder_name_list.copy()
     
-    @prop
+    @cached_prop
     def sub_folder_list(self) :
-        if not self._has_built : self._build()
+        if not self._has_built_folder : self._build_folder()
         return self._sub_folder_list.copy()
 
-    @prop
+    @cached_prop
     def flat_sub_folder_list(self) :
         if hasattr(self, '_flat_sub_folder_list') : return self._flat_sub_folder_list
-        if not self._has_built : self._build()
+        if not self._has_built_folder : self._build_folder()
         
         self._flat_sub_folder_list = self._sub_folder_list.copy()
         for folder in self._sub_folder_list : self._flat_sub_folder_list.extend(folder.flat_sub_folder_list)
         return self._flat_sub_folder_list
     
-    @prop
+    @cached_prop
     def sub_file_name_list(self) :
         if not self._has_listed : self._listdir()
         return self._sub_file_name_list.copy()
     
-    @prop
+    @cached_prop
     def sub_file_list(self) :
-        if not self._has_built : self._build()
+        if not self._has_built_file : self._build_file()
         return self._sub_file_list.copy()
 
     def get_one_sub_file(self, *, name_contains) : return self.sub_file_list.filter_one(lambda file : file.name.has(name_contains))
 
-    @prop
+    @cached_prop
     def flat_sub_file_list(self) :
         if hasattr(self, '_flat_sub_file_list') : return self._flat_sub_file_list
-        if not self._has_built : self._build()
+        if not self._has_built_folder : self._build_folder()
+        if not self._has_built_file   : self._build_file()
         
         self._flat_sub_file_list = self._sub_file_list.copy()
         for folder in self._sub_folder_list : self._flat_sub_file_list.extend(folder.flat_sub_file_list)

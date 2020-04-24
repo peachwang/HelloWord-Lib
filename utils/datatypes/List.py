@@ -534,7 +534,7 @@ class List(list) :
         else                                         : raise CustomTypeError(key_list_or_func_name)
 
     # NOT IN PLACE
-    def max(self, key_list_or_func_name = None, /, *, default = 0) :
+    def max(self, key_list_or_func_name = None, /, *, default = None) :
         if self.len() == 0 : return default
         return self._reduce(
             key_list_or_func_name,
@@ -543,7 +543,7 @@ class List(list) :
         )
 
     # NOT IN PLACE
-    def min(self, key_list_or_func_name = None, /, *, default = 0) :
+    def min(self, key_list_or_func_name = None, /, *, default = None) :
         if self.len() == 0 : return default
         return self._reduce(
             key_list_or_func_name,

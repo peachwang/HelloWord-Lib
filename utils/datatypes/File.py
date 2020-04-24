@@ -25,28 +25,28 @@ class File :
         self._ext         = Str(splitext(file_path)[1][1:])
         self._name        = Str(basename(file_path)[ : - len(self._ext) - 1])
 
-    @prop
+    @cached_prop
     def raw_path(self) -> str : return self._raw_path
 
-    @prop
+    @cached_prop
     def path(self) -> Str : return self._path
 
-    @prop
+    @cached_prop
     def abs_path(self) -> Str : return Str(realpath(self._path))
 
-    @prop
+    @cached_prop
     def folder(self) : return self._folder
 
-    @prop
+    @cached_prop
     def folder_path(self) -> Str : return self._folder_path
 
-    @prop
+    @cached_prop
     def full_name(self) -> Str : return self._full_name
 
-    @prop
+    @cached_prop
     def name(self) -> Str : return self._name
 
-    @prop
+    @cached_prop
     def ext(self) -> Str : return self._ext
 
     def ext_is(self, ext, /) : return self._ext.to_lower() == Str(ext).to_lower()

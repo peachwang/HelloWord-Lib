@@ -90,8 +90,8 @@ def log_entering(pattern: str = '') :
             # kwargs['self'] = cls_or_self
             msg = pattern.format(*args, self = cls_or_self, **kwargs)
             # kwargs.pop('self')
-            if '.' in str(cls_or_self.__class__) : _ = f'{id(cls_or_self)}{str(cls_or_self.__class__).split(".")[-1][ : -2]:>15}.{func.__qualname__:30}'
-            else                                 : _ = f'{id(cls_or_self)}.{func.__qualname__:30}'
+            if '.' in str(cls_or_self.__class__) : _ = f'id = {id(cls_or_self)} {str(cls_or_self.__class__).split(".")[-1][ : -2]:>15}.{func.__qualname__:30}'
+            else                                 : _ = f'id = {id(cls_or_self)} {func.__qualname__:30}'
             Timer.print_timing(f'{_} {Y("开始")} {msg}')
             result = func(cls_or_self, *args, **kwargs)
             Timer.print_timing(f'{_} {G("结束")} {msg}')
