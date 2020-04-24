@@ -10,13 +10,13 @@ class ObjectId(objectid) :
     @classmethod
     def is_valid(cls, string) -> bool : objectid.is_valid(cls, string)
 
-    def __init__(self, string_or_id = None) :
-        if isinstance(string_or_id, str)        : objectid.__init__(self, string_or_id)
-        elif isinstance(string_or_id, objectid) : objectid.__init__(self, str(string_or_id))
-        elif (isinstance(string_or_id, dict)
-            and len(string_or_id) == 1
-            and '$id' in string_or_id)          : objectid.__init__(self, string_or_id['$id'])
-        else                                    : raise CustomTypeError(string_or_id)
+    def __init__(self, str_or_id_or_dct = None) :
+        if isinstance(str_or_id_or_dct, str)        : objectid.__init__(self, str_or_id_or_dct)
+        elif isinstance(str_or_id_or_dct, objectid) : objectid.__init__(self, str(str_or_id_or_dct))
+        elif (isinstance(str_or_id_or_dct, dict)
+            and len(str_or_id_or_dct) == 1
+            and '$id' in str_or_id_or_dct)          : objectid.__init__(self, str_or_id_or_dct['$id'])
+        else                                        : raise CustomTypeError(str_or_id_or_dct)
 
     # @log_entering()
     def __format__(self, spec) : return f'{objectid.__str__(self):{spec}}' # 不用 objectid.__format__

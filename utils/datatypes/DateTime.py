@@ -202,17 +202,17 @@ class Date :
     def from_iso_year_week_day(cls, yaer, week, day, /) : return cls(date_class.fromisocalendar(year, week, day))
 
     #class datetime.date(year, month, day)
-    def __init__(self, timestamp_or_date_or_string = None, /, pattern = '%Y-%m-%d', **kwargs) :
-        if timestamp_or_date_or_string is None                     :
+    def __init__(self, ts_or_d_or_str = None, /, pattern = '%Y-%m-%d', **kwargs) :
+        if ts_or_d_or_str is None                     :
             if len(kwargs) > 0 : self._date = date_class(**kwargs)
             else               : self._date = date_class.fromtimestamp(time.time())
-        elif isinstance(timestamp_or_date_or_string, date_class)   : self._date = timestamp_or_date_or_string
-        elif isinstance(timestamp_or_date_or_string, Date)         : self._date = timestamp_or_date_or_string.get_raw()
-        elif isinstance(timestamp_or_date_or_string, (int, float)) :
-            if timestamp_or_date_or_string < 10000 or timestamp_or_date_or_string > 2000000000 : raise CustomTypeError(timestamp_or_date_or_string)
+        elif isinstance(ts_or_d_or_str, date_class)   : self._date = ts_or_d_or_str
+        elif isinstance(ts_or_d_or_str, Date)         : self._date = ts_or_d_or_str.get_raw()
+        elif isinstance(ts_or_d_or_str, (int, float)) :
+            if ts_or_d_or_str < 10000 or ts_or_d_or_str > 2000000000 : raise CustomTypeError(ts_or_d_or_str)
             self._date = date_class.fromtimestamp(timestamp_or_datetime_or_string)
-        elif isinstance(timestamp_or_date_or_string, str)          : self._date = datetime_class.strptime(f'{timestamp_or_date_or_string} 00:00:00', f'{pattern} %H:%M:%S').date()
-        else                                                       : raise CustomTypeError(timestamp_or_date_or_string)
+        elif isinstance(ts_or_d_or_str, str)          : self._date = datetime_class.strptime(f'{ts_or_d_or_str} 00:00:00', f'{pattern} %H:%M:%S').date()
+        else                                          : raise CustomTypeError(ts_or_d_or_str)
 
     # 1 <= year <= 9999
     @cached_prop
@@ -320,14 +320,14 @@ class Time :
     def now(cls) : return cls(DateTime().time)
 
     # class datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
-    def __init__(self, time_or_string = None, /, pattern = '%H:%M:%S', **kwargs) :
-        if time_or_string is None                   :
+    def __init__(self, t_or_str = None, /, pattern = '%H:%M:%S', **kwargs) :
+        if t_or_str is None                   :
             if len(kwargs) > 0 : self._time = time_class(**kwargs)
             else               : self._time = datetime_class.fromtimestamp(time.time()).time()
-        elif isinstance(time_or_string, time_class) : self._time = time_or_string
-        elif isinstance(time_or_string, Time)       : self._time = time_or_string.get_raw()
-        elif isinstance(time_or_string, str)        : self._time = datetime_class.strptime(time_or_string, pattern).time()
-        else                                        : raise CustomTypeError(time_or_string)
+        elif isinstance(t_or_str, time_class) : self._time = t_or_str
+        elif isinstance(t_or_str, Time)       : self._time = t_or_str.get_raw()
+        elif isinstance(t_or_str, str)        : self._time = datetime_class.strptime(t_or_str, pattern).time()
+        else                                  : raise CustomTypeError(t_or_str)
 
     # 0 <= hour < 24
     @cached_prop
@@ -392,17 +392,22 @@ class DateTime :
         return cls(datetime_class.combine(date.get_raw(), time.get_raw()))
 
     # class datetime.datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
-    def __init__(self, timestamp_or_datetime_or_string = None, /, pattern = '%Y-%m-%d %H:%M:%S', **kwargs) :
-        if timestamp_or_datetime_or_string is None                       :
+    def __init__(self, ts_or_dt_or_str_or_dct = None, /, pattern = '%Y-%m-%d %H:%M:%S', **kwargs) :
+        if ts_or_dt_or_str_or_dct is None                       :
             if len(kwargs) > 0 : self._datetime = datetime_class(**kwargs)
             else               : self._datetime = datetime_class.fromtimestamp(time.time())
-        elif isinstance(timestamp_or_datetime_or_string, datetime_class) : self._datetime = timestamp_or_datetime_or_string
-        elif isinstance(timestamp_or_datetime_or_string, DateTime)       : self._datetime = timestamp_or_datetime_or_string.get_raw()
-        elif isinstance(timestamp_or_datetime_or_string, (int, float))   :
-            if timestamp_or_datetime_or_string < 10000 or timestamp_or_datetime_or_string > 2000000000 : raise CustomTypeError(timestamp_or_datetime_or_string)
-            self._datetime = datetime_class.fromtimestamp(timestamp_or_datetime_or_string)
-        elif isinstance(timestamp_or_datetime_or_string, str)            : self._datetime = datetime_class.strptime(timestamp_or_datetime_or_string, pattern)
-        else                                                             : raise CustomTypeError(timestamp_or_datetime_or_string)
+        elif isinstance(ts_or_dt_or_str_or_dct, datetime_class) : self._datetime = ts_or_dt_or_str_or_dct
+        elif isinstance(ts_or_dt_or_str_or_dct, DateTime)       : self._datetime = ts_or_dt_or_str_or_dct.get_raw()
+        elif isinstance(ts_or_dt_or_str_or_dct, (int, float))   :
+            if ts_or_dt_or_str_or_dct < 10000 or ts_or_dt_or_str_or_dct > 2000000000 : raise CustomTypeError(ts_or_dt_or_str_or_dct)
+            self._datetime = datetime_class.fromtimestamp(ts_or_dt_or_str_or_dct)
+        elif isinstance(ts_or_dt_or_str_or_dct, str)            : self._datetime = datetime_class.strptime(ts_or_dt_or_str_or_dct, pattern)
+        elif (isinstance(ts_or_dt_or_str_or_dct, dict)
+            and len(ts_or_dt_or_str_or_dct) == 2
+            and 'sec' in ts_or_dt_or_str_or_dct
+            and 'usec' in ts_or_dt_or_str_or_dct)               :
+            self._datetime = datetime_class.fromtimestamp(ts_or_dt_or_str_or_dct['sec'] + ts_or_dt_or_str_or_dct['usec'] / 1000000)
+        else                                                    : raise CustomTypeError(ts_or_dt_or_str_or_dct)
 
     # 1 <= year <= 9999
     @cached_prop
