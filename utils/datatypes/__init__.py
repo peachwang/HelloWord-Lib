@@ -3,6 +3,7 @@ from .ObjectId   import ObjectId
 from .Str        import Str
 from .DateTime   import TimeDelta, Date, Time, DateTime, DateList, DateRange, Year, Month, Week, timedelta_class, date_class, time_class, datetime_class
 from .List       import List
+from .Iter       import Iter
 from .Dict       import Dict
 from .Object     import Object
 from .File       import File

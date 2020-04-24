@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-  
-from .Color    import R, Y, G, C, B, P, S, W, E
-from .Timer    import Timer
-from weakref   import ref, WeakValueDictionary
-from inspect   import isclass, isfunction, ismethod, isgenerator, signature
-from functools import wraps, cached_property as cached_prop, lru_cache as cached_func, total_ordering; prop = property
-from types     import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, LambdaType, GeneratorType
-from typing    import Optional, Union
-from operator  import attrgetter, itemgetter, methodcaller
+from .Color          import R, Y, G, C, B, P, S, W, E
+from .Timer          import Timer
+from weakref         import ref, WeakValueDictionary
+from inspect         import isclass, isfunction, ismethod, signature
+from functools       import wraps, cached_property as cached_prop, lru_cache as cached_func, total_ordering; prop = property
+from collections.abc import Iterable, Iterator, Generator, Callable
+from typing          import Optional, Union
+from operator        import attrgetter, itemgetter, methodcaller
 # operator.attrgetter(*attrs)
 # Return a callable object that fetches attr from its operand. If more than one attribute is requested, returns a tuple of attributes. The attribute names can also contain dots. For example:
 # attrgetter('name.first', 'name.last')(a) = (a.name.first, a.name.last).

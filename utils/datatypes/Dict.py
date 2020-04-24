@@ -66,16 +66,16 @@ class Dict(dict) :
         self._import_types()
         if len(args) == 0   : dict.__init__(self, {})
         elif len(args) == 1 :
-            if isinstance(args[0], Dict)                   : dict.__init__(self, args[0]._get_data())
-            elif isinstance(args[0], dict)                 :
+            if isinstance(args[0], Dict)       : dict.__init__(self, args[0]._get_data())
+            elif isinstance(args[0], dict)     :
                 for key in args[0] :
                     dict.__setitem__(
                         self,
                         eval(key) if isinstance(key, str) and key[ : 2] == "b'" and key[-1] == "'" else key,
                         self._wrap_value(args[0][key])
                     )
-            elif isinstance(args[0], (zip, GeneratorType)) : self.__init__(dict(args[0]))
-            else                                           : raise CustomTypeError(args)
+            elif isinstance(args[0], Iterable) : self.__init__(dict(args[0]))
+            else                               : raise CustomTypeError(args)
         else                : raise CustomTypeError(args)
         if len(kwargs) > 0  : dict.update(self, Dict(kwargs))
 

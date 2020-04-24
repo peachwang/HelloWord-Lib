@@ -265,17 +265,17 @@ class Str(str) :
     def has_no(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
         return not self.has(sub_or_pattern, re_mode = re_mode, flags = flags)
 
-    def has_any_of(self, sub_list_or_iter, /) :
-        if not isinstance(sub_list_or_iter, list) or hasattr(sub_list_or_iter, '__next__') : raise CustomTypeError(sub_list_or_iter)
-        return any(self.has(sub) for sub in sub_list_or_iter)
+    def has_any_of(self, sub_iterable, /) :
+        if not isinstance(sub_iterable, Iterable) : raise CustomTypeError(sub_iterable)
+        return any(self.has(sub) for sub in sub_iterable)
 
-    def has_all_of(self, sub_list_or_iter, /) :
-        if not isinstance(sub_list_or_iter, list) or hasattr(sub_list_or_iter, '__next__') : raise CustomTypeError(sub_list_or_iter)
-        return all(self.has(sub) for sub in sub_list_or_iter)
+    def has_all_of(self, sub_iterable, /) :
+        if not isinstance(sub_iterable, Iterable) : raise CustomTypeError(sub_iterable)
+        return all(self.has(sub) for sub in sub_iterable)
 
-    def has_none_of(self, sub_list_or_iter, /) :
-        if not isinstance(sub_list_or_iter, list) or hasattr(sub_list_or_iter, '__next__') : raise CustomTypeError(sub_list_or_iter)
-        return all(self.has_no(sub) for sub in sub_list_or_iter)
+    def has_none_of(self, sub_iterable, /) :
+        if not isinstance(sub_iterable, Iterable) : raise CustomTypeError(sub_iterable)
+        return all(self.has_no(sub) for sub in sub_iterable)
 
     # S.count(sub[, start[, end]]) -> int
     # Return the number of non-overlapping occurrences of substring sub in
@@ -360,7 +360,9 @@ class Str(str) :
     # matches for the RE pattern in string. The string is scanned left-to-right,
     # and matches are returned in the order found. Empty matches are included
     # in the result.
-    def find_all_match_list(self, pattern, /, *, flags = 0) : from .List import List; return List(_Match(match) for match in re.finditer(pattern, self, flags))
+    def find_all_match_iter(self, pattern, /, *, flags = 0) : from .Iter import Iter; return Iter(_Match(match) for match in re.finditer(pattern, self, flags))
+    
+    def find_all_match_list(self, *args, **kwargs) : from .List import List; return List(self.find_all_match_iter(*args, **kwargs))
     
     def only_one_match(self, pattern, /, *, flags = 0, default = _no_value) -> _Match :
         matches = self.find_all_match_list(pattern, flags = flags)

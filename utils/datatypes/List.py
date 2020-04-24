@@ -65,9 +65,7 @@ class List(list) :
             if isinstance(args[0], List)       : list.__init__(self, args[0]._get_data())
             elif isinstance(args[0], list)     :
                 for item in args[0] : list.append(self, self._wrap_item(item))
-            elif (isinstance(args[0], (range, GeneratorType))
-                or isgenerator(args[0])
-                or '__next__' in dir(args[0])) : self.__init__(list(args[0]))
+            elif isinstance(args[0], Iterable) : self.__init__(list(args[0]))
             else                               : self.__init__(list(args))
         else                : self.__init__(list(args))
 
@@ -299,11 +297,9 @@ class List(list) :
     # L.extend(iterable) -> None -- extend list by appending elements from the iterable
     # IN PLACE
     def extend(self, item_list: Optional[list], /) :
-        if (isinstance(item_list, (list, GeneratorType))
-            or isgenerator(item_list)
-            or '__next__' in dir(item_list)) : list.extend(self, List(item_list)); return self
-        elif item_list is None               : return self
-        else                                 : raise CustomTypeError(item_list)
+        if isinstance(item_list, Iterable) : list.extend(self, List(item_list)); return self
+        elif item_list is None             : return self
+        else                               : raise CustomTypeError(item_list)
 
     # NOT IN PLACE
     def extended(self, item_list, /) : return self.copy().extend(item_list)

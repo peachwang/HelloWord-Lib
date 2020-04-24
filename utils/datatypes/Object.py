@@ -71,24 +71,22 @@ class Object :
         self._data[name[1:]] = self._wrap_value(value)
         return value
 
-    def append_property(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
+    def append_property(self, name, value_or_iterator, /, *, filter_none = True) :
         def append_value(value) :
             if filter_none and value == None : return
             self._data.get_with_default_set(name, List()).append(value)
-        if (isgenerator(value_or_generator_or_iterator)
-            or '__next__' in dir(value_or_generator_or_iterator)) :
-            for value in value_or_generator_or_iterator : append_value(value)
-        else                                                      : append_value(value_or_generator_or_iterator)
+        if isinstance(value_or_iterator, Iterator) :
+            for value in value_or_iterator : append_value(value)
+        else                                       : append_value(value_or_iterator)
         return self
 
-    def unique_append_property(self, name, value_or_generator_or_iterator, /, *, filter_none = True) :
+    def unique_append_property(self, name, value_or_iterator, /, *, filter_none = True) :
         def unique_append_value(value) :
             if filter_none and value == None : return
             self._data.get_with_default_set(name, List()).unique_append(value)
-        if (isgenerator(value_or_generator_or_iterator)
-            or '__next__' in dir(value_or_generator_or_iterator)) :
-            for value in value_or_generator_or_iterator : unique_append_value(value)
-        else                                                      : unique_append_value(value_or_generator_or_iterator)
+        if isinstance(value_or_iterator, Iterator) :
+            for value in value_or_iterator : unique_append_value(value)
+        else                                       : unique_append_value(value_or_iterator)
         return self
 
     def update_property(self, mapping, /) :
