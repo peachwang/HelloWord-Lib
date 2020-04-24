@@ -12,11 +12,15 @@ class ObjectId(objectid) :
 
     def __init__(self, str_or_id_or_dct = None) :
         if isinstance(str_or_id_or_dct, str)        : objectid.__init__(self, str_or_id_or_dct)
-        elif isinstance(str_or_id_or_dct, objectid) : objectid.__init__(self, str(str_or_id_or_dct))
+        elif isinstance(str_or_id_or_dct, objectid) : objectid.__init__(self, objectid.__str__(str_or_id_or_dct))
         elif (isinstance(str_or_id_or_dct, dict)
             and len(str_or_id_or_dct) == 1
             and '$id' in str_or_id_or_dct)          : objectid.__init__(self, str_or_id_or_dct['$id'])
         else                                        : raise CustomTypeError(str_or_id_or_dct)
+
+    def get_raw(self) : return objectid(objectid.__str__(self))
+
+    def json_serialize(self) -> dict : return { '$id' : objectid.__str__(self) }
 
     # @log_entering()
     def __format__(self, spec) : return f'{objectid.__str__(self):{spec}}' # 不用 objectid.__format__
@@ -30,8 +34,6 @@ class ObjectId(objectid) :
 
     @cached_prop
     def str(self) : from .Str import Str; return Str(objectid.__str__(self))
-
-    def json_serialize(self) -> dict : return { '$id' : objectid.__str__(self) }
 
     # A datetime.datetime instance representing the time of generation for this ObjectId.
     # The datetime.datetime is timezone aware, and represents the generation time in UTC. It is precise to the second.
