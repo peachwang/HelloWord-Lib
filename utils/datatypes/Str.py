@@ -239,7 +239,7 @@ class Str(str) :
 
     def len(self) : return str.__len__(self)
 
-    @log_entering()
+    @log_entering
     def is_empty(self) : return self.full_match(r'[ \t\r\n]*')
 
     def ensure_empty(self) :

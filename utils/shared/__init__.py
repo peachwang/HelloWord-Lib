@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-  
 from .Color          import R, Y, G, C, B, P, S, W, E
 from .Timer          import Timer
+from .ClassTools     import print_func, add_print_func, anti_duplicate_new, anti_duplicate_init, total_ordering, prop, cls_prop, cached_prop, cls_cached_prop, SingularMetaClass, SingularBaseClass, ABCMeta, ABC, abstractmethod
+from functools       import wraps, lru_cache as cached_func
 from weakref         import ref, WeakValueDictionary
 from inspect         import isclass, isfunction, ismethod, signature
-from functools       import wraps, cached_property as cached_prop, lru_cache as cached_func, total_ordering; prop = property
 from collections.abc import Iterable, Iterator, Generator, Callable
 from typing          import Optional, Union
 from operator        import attrgetter, itemgetter, methodcaller
@@ -20,6 +21,8 @@ from operator        import attrgetter, itemgetter, methodcaller
 # operator.methodcaller(name, /, *args, **kwargs)
 # Return a callable object that calls the method name on its operand. If additional arguments and/or keyword arguments are given, they will be given to the method as well. For example:
 # methodcaller('name', 'foo', bar = 1)(a) = a.name('foo', bar = 1).
+
+# https://docs.python.org/3/library/types.html
 
 class CustomTypeError(TypeError) :
 
@@ -71,92 +74,25 @@ def ensure_args_type(func) :
         return result
     return wrapper
 
-def print_func(func) :
-    @wraps(func)
-    def wrapper(self, *args, pattern = '{}', color = None, print_timing = False, **kwargs) :
-        content, print_len = func(self, *args)
-        content = pattern.format(content)
-        if color is not None : content = color(content)
-        if print_timing      : Timer.print_timing(content)
-        else                 : print(content, **kwargs)
-        if print_len         : self.print_len(color = color, **kwargs)
-        return self
-    return wrapper
-
-def log_entering(pattern: str = '') :
+def log_entering(pattern_or_func) :
+    if isinstance(pattern_or_func, str) : pattern = pattern_or_func
+    else                                : pattern = ''
     def decorator(func) :
         @wraps(func)
         def wrapper(cls_or_self, *args, **kwargs) :
             # kwargs['self'] = cls_or_self
             msg = pattern.format(*args, self = cls_or_self, **kwargs)
             # kwargs.pop('self')
-            if '.' in str(cls_or_self.__class__) : _ = f'id = {id(cls_or_self)} {str(cls_or_self.__class__).split(".")[-1][ : -2]:>15}.{func.__qualname__:30}'
+            if '.' in str(cls_or_self.__class__) : _ = f'id = {id(cls_or_self)} {cls_or_self.__class__.__name__:>15}.{func.__qualname__:30}'
             else                                 : _ = f'id = {id(cls_or_self)} {func.__qualname__:30}'
             Timer.print_timing(f'{_} {Y("开始")} {msg}')
             result = func(cls_or_self, *args, **kwargs)
             Timer.print_timing(f'{_} {G("结束")} {msg}')
             return result
         return wrapper
-    return decorator
-
-def add_print_func(cls) :
-
-    @print_func
-    def print_format(self) : return self.__format__(''), False
-    cls.print_format = print_format
-
-    @print_func
-    def print_str(self) : return self.__str__(), False
-    cls.print_str = print_str
-
-    def j(self, *, indent = True) : from ..app.Json import j; return j(self.json_serialize(), indent = indent)
-    cls.j = j
-
-    @print_func
-    def print_j(self) : return self.j(), False
-    cls.print_j = print_j
-
-    return cls
-
-    # This method is called when a class is subclassed.
-    # The default implementation does nothing. It may be
-    # overridden to extend subclasses.
-    # def __init_subclass__(self) :
-    # https://blog.yuo.be/2018/08/16/__init_subclass__-a-simpler-way-to-implement-class-registries-in-python/
-    # https://www.python.org/dev/peps/pep-0487/
-    # https://stackoverflow.com/questions/45400284/understanding-init-subclass
-
-    # D.__sizeof__() -> size of D in memory, in bytes
-    # def __sizeof__(self) :
-
-    # Abstract classes can override this to customize issubclass().
-    # This is invoked early on by abc.ABCMeta.__subclasscheck__().
-    # It should return True, False or NotImplemented.  If it returns
-    # NotImplemented, the normal algorithm is used.  Otherwise, it
-    # overrides the normal algorithm (and the outcome is cached).
-    # def __subclasshook__(self) :
-
-def anti_duplicate_new(func) :
-    @wraps(func)
-    def wrapper(cls, *args, **kwargs) :
-        key = func(cls, *args, **kwargs)
-        if not hasattr(cls, '_instance_dict')      : cls._instance_dict = WeakValueDictionary()
-        if cls._instance_dict.get(key) is not None : return cls._instance_dict[key]
-        else                                       :
-            if str(cls.__bases__[0].__new__)[ : -15] != str(func)[ : -15] : new_func = cls.__bases__[0].__new__
-            else                                                          : new_func = cls.__bases__[0].__bases__[0].__new__
-            instance = new_func(cls)
-            cls._instance_dict[key] = instance
-            return instance
-    return wrapper
-
-def anti_duplicate_init(func) :
-    @wraps(func)
-    def wrapper(self, *args, **kwargs) :
-        if hasattr(self, '_has_init') : return
-        func(self, *args, **kwargs)
-        object.__setattr__(self, '_has_init', True)
-    return wrapper
+    if isinstance(pattern_or_func, str)        : return decorator
+    elif isinstance(pattern_or_func, Callable) : return decorator(pattern_or_func)
+    else                                       : raise CustomTypeError(pattern_or_func)
 
 def bar(num, mod, /, *, char = '-') : return char * (num // mod)
 

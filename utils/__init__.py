@@ -5,7 +5,7 @@ from .shared    import *
 from .datatypes import *
 from .app       import *
 
-class SysArgv :
+class SysArgv(SingularBaseClass) :
 
     _has_inited = False
 
@@ -22,20 +22,22 @@ class SysArgv :
             else             : cls._args.append(arg)
         cls._has_inited = True
 
-    @classmethod
-    def get_args(cls) : cls.__initclass__(); return cls._args
+    @cls_cached_prop
+    def args(cls)   : cls.__initclass__(); return cls._args
 
-    @classmethod
-    def get_kwargs(cls) : cls.__initclass__(); return cls._kwargs
+    @cls_cached_prop
+    def kwargs(cls) : cls.__initclass__(); return cls._kwargs
 
-def main_func(kwarg_to_type = Dict(), /) :
+def main_func(kwarg_to_type_or_func) :
+    if isinstance(kwarg_to_type_or_func, dict) : kwarg_to_type = kwarg_to_type_or_func
+    else                                       : kwarg_to_type = Dict()
     def decorator(func) :
         @wraps(func)
         def wrapper() :
             try :
                 kwarg_to_type['trace']   = bool
                 kwarg_to_type['profile'] = bool
-                kwargs                   = SysArgv.get_kwargs()
+                kwargs                   = SysArgv.kwargs
                 for name in kwargs :
                     if name in kwarg_to_type :
                         if isinstance(kwarg_to_type[name], tuple) : kwargs[name] = kwarg_to_type[name][0](kwargs[name], *(kwarg_to_type[name][1:]))
@@ -55,7 +57,7 @@ def main_func(kwarg_to_type = Dict(), /) :
                         infile       = 'trace/count.txt',
                         outfile      = 'trace/count.txt',
                     )
-                    Folder.mkdir('trace/')
+                    Folder('trace/').mkdir()
                     temp = sys.stdout
                     sys.stdout = open('trace/trace.txt', 'w')
 
@@ -67,7 +69,7 @@ def main_func(kwarg_to_type = Dict(), /) :
                 elif kwargs.get('profile', False) :
                     import cProfile, pstats
                     from pstats import SortKey
-                    Folder.mkdir('profile/')
+                    Folder('profile/').mkdir()
                     cProfile.runctx('result = func(kwargs)', filename = 'profile/profile.txt', globals = {'result' : result}, locals = {'func' : func, 'kwargs' : kwargs})
                     p = pstats.Stats('profile/profile.txt')
                     # p.strip_dirs()
@@ -95,7 +97,9 @@ def main_func(kwarg_to_type = Dict(), /) :
                 line_list.reverse().for_each(lambda line : print(line))
                 Timer.print_timing('失败', color = R)
         return wrapper
-    return decorator
+    if isinstance(kwarg_to_type_or_func, dict)       : return decorator
+    elif isinstance(kwarg_to_type_or_func, Callable) : return decorator(kwarg_to_type_or_func)
+    else                                             : raise CustomTypeError(kwarg_to_type_or_func)
 
 
 if __name__ == '__main__':

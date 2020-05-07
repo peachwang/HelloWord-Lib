@@ -26,7 +26,7 @@ class List(list) :
         from .DateTime import Year;            cls._Year      = Year
         from .DateTime import Month;           cls._Month     = Month
         from .DateTime import Week;            cls._Week      = Week
-        cls._List                                            = List
+        cls._List                                             = List
         from .Dict     import Dict;            cls._Dict      = Dict
         from .Object   import Object;          cls._Object    = Object
         from .File     import File;            cls._File      = File
@@ -37,27 +37,32 @@ class List(list) :
         cls._has_imported_types = True
 
     # @Timer.timeit_total('_wrap_item')
-    def _wrap_item(self, item, /) :
-        if isinstance(item, (self._ObjectId, self._Str, self._List, self._Dict)) : return item
-        elif isinstance(item, str)                                               : return self._Str(item)
-        elif isinstance(item, dict)                                              : return self._Dict(item)
-        elif isinstance(item, list)                                              : return self._List(item)
-        elif isinstance(item, tuple)                                             : return tuple([ self._wrap_item(_) for _ in item ])
-        elif isinstance(item, self._timedelta)                                   : return self._TimeDelta(item)
-        elif isinstance(item, self._date)                                        : return self._Date(item)
-        elif isinstance(item, self._time)                                        : return self._Time(item)
-        elif isinstance(item, self._datetime)                                    : return self._DateTime(item)
-        elif isinstance(item, set)                                               : return set([ self._wrap_item(_) for _ in item ])
-        else                                                                     : return item
+    @classmethod
+    def _wrap_item(cls, item, /) :
+        if isinstance(item, (cls._ObjectId, cls._Str, cls._List, cls._Dict)) : return item
+        elif isinstance(item, str)                                           : return cls._Str(item)
+        elif isinstance(item, dict)                                          : return cls._Dict(item)
+        elif isinstance(item, list)                                          : return cls._List(item)
+        elif isinstance(item, tuple)                                         : return tuple([ cls._wrap_item(_) for _ in item ])
+        elif isinstance(item, cls._timedelta)                                : return cls._TimeDelta(item)
+        elif isinstance(item, cls._date)                                     : return cls._Date(item)
+        elif isinstance(item, cls._time)                                     : return cls._Time(item)
+        elif isinstance(item, cls._datetime)                                 : return cls._DateTime(item)
+        elif isinstance(item, set)                                           : return set([ cls._wrap_item(_) for _ in item ])
+        else                                                                 : return item
 
-    def _wrap_str(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
+    @staticmethod
+    def _wrap_str(_, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
     
-    def _wrap_str_or_type(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
+    @staticmethod
+    def _wrap_str_or_type(_, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
+
+    # Create and return a new object.  See help(type) for accurate signature.
+    # def __new__(self) :
 
     # Initialize self.  See help(type(self)) for accurate signature.
     # list() -> new empty list
     # list(iterable) -> new list initialized from iterable's items
-    # def __class__(self) :
     def __init__(self, *args) :
         self._import_types()
         if len(args) == 0   : list.__init__(self, [])
@@ -99,28 +104,28 @@ class List(list) :
 
     @print_func
     def print_line(self, pattern = None, /) :
-        if pattern is None : return self.mapped(lambda item, index : f'{index + 1} {self._wrap_str(item, format)}').join('\n'), True
-        else               : return self.mapped(lambda item, index : pattern.format(self._wrap_str(item, format), index)).join('\n'), True
+        if pattern is None : return self.mapped(lambda item, index : f'{index + 1} {List._wrap_str(item, format)}').join('\n'), True
+        else               : return self.mapped(lambda item, index : pattern.format(List._wrap_str(item, format), index)).join('\n'), True
 
     # default object formatter
-    # @log_entering()
-    def __format__(self, spec) : return '[ {} ]'.format(self.mapped(lambda item : self._wrap_str(item, format)).join(', '), spec)
+    # @log_entering
+    def __format__(self, spec) : return '[ {} ]'.format(self.mapped(lambda item : List._wrap_str(item, format)).join(', '), spec)
 
     @print_func
     def print_format(self, pattern = None, /) :
-        if pattern is None : return self.mapped(lambda item : self._wrap_str(item, format)).join('\n'), True
-        else               : return self.mapped(lambda item, index : pattern.format(self._wrap_str(item, format), index)).join('\n'), True
+        if pattern is None : return self.mapped(lambda item : List._wrap_str(item, format)).join('\n'), True
+        else               : return self.mapped(lambda item, index : pattern.format(List._wrap_str(item, format), index)).join('\n'), True
 
     # Return str(self).
-    # @log_entering()
-    def __str__(self) : return 'List[ {} ]'.format(self.mapped(lambda item : self._wrap_str(item, str)).join(', '))
+    # @log_entering
+    def __str__(self) : return 'List[ {} ]'.format(self.mapped(lambda item : List._wrap_str(item, str)).join(', '))
 
     @print_func
-    def print_str(self) : return self.mapped(lambda item : self._wrap_str(item, str)).join('\n'), True
+    def print_str(self) : return self.mapped(lambda item : List._wrap_str(item, str)).join('\n'), True
 
     # Return repr(self).
-    # @log_entering()
-    def __repr__(self) : return 'List( {} )'.format(self.mapped(lambda item : self._wrap_str_or_type(item, repr)).join(', '))
+    # @log_entering
+    def __repr__(self) : return 'List( {} )'.format(self.mapped(lambda item : List._wrap_str_or_type(item, repr)).join(', '))
 
     @print_func
     def print_j(self) : return self.j(), True
@@ -636,51 +641,102 @@ class List(list) :
     # IN PLACE
     def clear(self) : list.clear(self); return self
     
-    def write_to_file(self, file, /, *, indent = True) : file.write_data(self, indent = indent); return self
+    def write_to_file(self, file, /, *, indent = True) : file.write_json(self, indent = indent); return self
 
     def write_line_list_to_file(self, file, /) : file.write_line_list(self); return self
 
     # list(map(lambda x : print(f'\n{x}\n{list.__getattribute__([], x).__doc__}\n'), dir(list)))
 
-    # python2
-    # '__add__', '__class__', '__contains__', '__delattr__', '__delitem__', '__delslice__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getslice__', '__gt__', '__hash__', '__iadd__', '__imul__', '__init__', '__iter__', '__le__', '__len__', '__lt__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__reversed__', '__rmul__', '__setattr__', '__setitem__', '__setslice__', '__sizeof__', '__str__', '__subclasshook__', 'append', 'count', 'extend', 'index', 'insert', 'pop', 'remove', 'reverse', 'sort'
+    # ===================== 3.3.7.     Emulating container types =====================
+    # The following methods can be defined to implement container objects.
+    # Containers usually are sequences (such as lists or tuples) or mappings (like dictionaries), but can represent other containers as well.
 
+    # The first set of methods is used either to emulate a sequence or to emulate a mapping;
+    # the difference is that for a sequence, the allowable keys should be the integers k for which 0 <= k < N where N is the length of the sequence,
+    # or slice objects, which define a range of items.
 
-    # python3
-    # '__add__', '__class__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__iadd__', '__imul__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__reversed__', '__rmul__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'append', 'clear', 'copy', 'count', 'extend', 'index', 'insert', 'pop', 'remove', 'reverse', 'sort'
+    # It is also recommended that mappings provide the methods keys(), values(), items(), get(), clear(), setdefault(), pop(), popitem(), copy(), and update()
+    # behaving similar to those for Python’s standard dictionary objects.
+    # The collections.abc module provides a MutableMapping abstract base class to help create those methods from a base set of __getitem__(), __setitem__(), __delitem__(), and keys().
 
-    # ===============================================================
+    # Mutable sequences should provide methods append(), count(), index(), extend(), insert(), pop(), remove(), reverse() and sort(), like Python standard list objects.
+    # Finally, sequence types should implement addition (meaning concatenation) and multiplication (meaning repetition) by defining the methods
+    # __add__(), __radd__(), __iadd__(), __mul__(), __rmul__() and __imul__() described below; they should not define other numerical operators.
 
-    # __dir__() -> list
-    # default dir() implementation
-    # def __dir__(self) :
+    # It is recommended that both mappings and sequences implement the __contains__() method to allow efficient use of the in operator;
+    # for mappings, in should search the mapping’s keys; for sequences, it should search through the values.
 
-    # None
-    # def __hash__(self) :
+    # It is further recommended that both mappings and sequences implement the __iter__() method to allow efficient iteration through the container;
+    # for mappings, __iter__() should iterate through the object’s keys; for sequences, it should iterate through the values.
 
-    # This method is called when a class is subclassed.
-    # The default implementation does nothing. It may be
-    # overridden to extend subclasses.
-    # def __init_subclass__(self) :
+    # object.__len__(self)
+        # Called to implement the built-in function len(). Should return the length of the object, an integer >= 0.
+        # Also, an object that doesn’t define a __bool__() method and whose __len__() method returns zero is considered to be false in a Boolean context.
 
-    # Create and return a new object.  See help(type) for accurate signature.
-    # def __new__(self) :
+        # CPython implementation detail: In CPython, the length is required to be at most sys.maxsize.
+        # If the length is larger than sys.maxsize some features (such as len()) may raise OverflowError.
+        # To prevent raising OverflowError by truth value testing, an object must define a __bool__() method.
 
-    # helper for pickle
-    # def __reduce__(self) :
+    # object.__length_hint__(self)
+        # Called to implement operator.length_hint(). Should return an estimated length for the object (which may be greater or less than the actual length).
+        # The length must be an integer >= 0. The return value may also be NotImplemented, which is treated the same as if the __length_hint__ method didn’t exist at all.
+        # This method is purely an optimization and is never required for correctness.
 
-    # helper for pickle
-    # def __reduce_ex__(self) :
+        # New in version 3.4.
 
-    # L.__sizeof__() -- size of L in memory, in bytes
-    # def __sizeof__(self) :
+    # Note Slicing is done exclusively with the following three methods. A call like
+    # a[1:2] = b
+    # is translated to
+    # a[slice(1, 2, None)] = b
+    # and so forth. Missing slice items are always filled in with None.
 
-    # Abstract classes can override this to customize issubclass().
-    # This is invoked early on by abc.ABCMeta.__subclasscheck__().
-    # It should return True, False or NotImplemented.  If it returns
-    # NotImplemented, the normal algorithm is used.  Otherwise, it
-    # overrides the normal algorithm (and the outcome is cached).
-    # def __subclasshook__(self) :
+    # object.__getitem__(self, key)
+        # Called to implement evaluation of self[key].
+        # For sequence types, the accepted keys should be integers and slice objects.
+        # Note that the special interpretation of negative indexes (if the class wishes to emulate a sequence type) is up to the __getitem__() method.
+        # If key is of an inappropriate type, TypeError may be raised;
+        # if of a value outside the set of indexes for the sequence (after any special interpretation of negative values), IndexError should be raised.
+        # For mapping types, if key is missing (not in the container), KeyError should be raised.
+
+        # Note: for loops expect that an IndexError will be raised for illegal indexes to allow proper detection of the end of the sequence.
+
+    # object.__setitem__(self, key, value)
+        # Called to implement assignment to self[key]. Same note as for __getitem__().
+        # This should only be implemented for mappings if the objects support changes to the values for keys, or if new keys can be added, or for sequences if elements can be replaced.
+        # The same exceptions should be raised for improper key values as for the __getitem__() method.
+
+    # object.__delitem__(self, key)
+        # Called to implement deletion of self[key]. Same note as for __getitem__().
+        # This should only be implemented for mappings if the objects support removal of keys, or for sequences if elements can be removed from the sequence.
+        # The same exceptions should be raised for improper key values as for the __getitem__() method.
+
+    # object.__missing__(self, key)
+        # Called by dict.__getitem__() to implement self[key] for dict subclasses when key is not in the dictionary.
+
+    # object.__iter__(self)
+        # This method is called when an iterator is required for a container. This method should return a new iterator object that can iterate over all the objects in the container.
+        # For mappings, it should iterate over the keys of the container.
+
+        # Iterator objects also need to implement this method; they are required to return themselves. For more information on iterator objects, see Iterator Types.
+
+    # object.__reversed__(self)
+        # Called (if present) by the reversed() built-in to implement reverse iteration. It should return a new iterator object that iterates over all the objects in the container in reverse order.
+
+        # If the __reversed__() method is not provided, the reversed() built-in will fall back to using the sequence protocol (__len__() and __getitem__()).
+        # Objects that support the sequence protocol should only provide __reversed__() if they can provide an implementation that is more efficient than the one provided by reversed().
+
+    # The membership test operators (in and not in) are normally implemented as an iteration through a container.
+    # However, container objects can supply the following special method with a more efficient implementation, which also does not require the object be iterable.
+
+    # object.__contains__(self, item)
+        # Called to implement membership test operators. Should return true if item is in self, false otherwise.
+        # For mapping objects, this should consider the keys of the mapping rather than the values or the key-item pairs.
+
+        # For objects that don’t define __contains__(), the membership test first tries iteration via __iter__(),
+        # then the old sequence iteration protocol via __getitem__(), see this section in the language reference.
+        # 
+        # For container types such as list, tuple, set, frozenset, dict, or collections.deque, the expression x in y is equivalent to any(x is e or x == e for e in y).
+
 
 if __name__ == '__main__':
     a = List([1,2,3])

@@ -568,17 +568,17 @@ class DateRange(DateList) :
     
     def __eq__(self, other) : return self.first_date == other.first_date and self.last_date == other.last_date
 
-    # @log_entering()
+    # @log_entering
     def __format__(self, spec) :
         if not isinstance(self, (Year, Month, Week)) : return f"{f'{self.first_date} ~ {self.last_date}':{spec}}"
         else                                         : return f"{f'{self._name}{self.tuple}':{spec}}"
 
-    # @log_entering()
+    # @log_entering
     def __str__(self) :
         if not isinstance(self, (Year, Month, Week)) : return f'DateRange({self.first_date!s} ~ {self.last_date!s})'
         else                                         : return f'{self._name}{self.tuple}'
     
-    # @log_entering()
+    # @log_entering
     def __repr__(self) :
         if not isinstance(self, (Year, Month, Week)) : return f'DateRange({self.first_date!r}, {self.last_date + 1!r})'
         else                                         : return f'{self._name}{self.tuple}'

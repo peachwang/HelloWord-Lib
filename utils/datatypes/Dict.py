@@ -5,7 +5,7 @@ from ..shared import *
 class Dict(dict) :
 
     _has_imported_types = False
-    _no_value = object()
+    _no_value           = object()
 
     @classmethod
     def _import_types(cls) :
@@ -26,7 +26,7 @@ class Dict(dict) :
         from .DateTime import Month;           cls._Month     = Month
         from .DateTime import Week;            cls._Week      = Week
         from .List     import List;            cls._List      = List
-        cls._Dict                                            = Dict
+        cls._Dict                                             = Dict
         from .Object   import Object;          cls._Object    = Object
         from .File     import File;            cls._File      = File
         from .Folder   import Folder;          cls._Folder    = Folder
@@ -36,22 +36,28 @@ class Dict(dict) :
         cls._has_imported_types = True
 
     # @Timer.timeit_total('_wrap_value')
-    def _wrap_value(self, value, /) :
-        if isinstance(value, (self._ObjectId, self._Str, self._List, self._Dict)) : return value
-        elif isinstance(value, str)                                               : return self._Str(value)
-        elif isinstance(value, dict)                                              : return self._Dict(value)
-        elif isinstance(value, list)                                              : return self._List(value)
-        elif isinstance(value, tuple)                                             : return tuple([ self._wrap_value(_) for _ in value ])
-        elif isinstance(value, self._timedelta)                                   : return self._TimeDelta(value)
-        elif isinstance(value, self._date)                                        : return self._Date(value)
-        elif isinstance(value, self._time)                                        : return self._Time(value)
-        elif isinstance(value, self._datetime)                                    : return self._DateTime(value)
-        elif isinstance(value, set)                                               : return set([ self._wrap_value(_) for _ in value ])
-        else                                                                      : return value
+    @classmethod
+    def _wrap_value(cls, value, /) :
+        if isinstance(value, (cls._ObjectId, cls._Str, cls._List, cls._Dict)) : return value
+        elif isinstance(value, str)                                           : return cls._Str(value)
+        elif isinstance(value, dict)                                          : return cls._Dict(value)
+        elif isinstance(value, list)                                          : return cls._List(value)
+        elif isinstance(value, tuple)                                         : return tuple([ cls._wrap_value(_) for _ in value ])
+        elif isinstance(value, cls._timedelta)                                : return cls._TimeDelta(value)
+        elif isinstance(value, cls._date)                                     : return cls._Date(value)
+        elif isinstance(value, cls._time)                                     : return cls._Time(value)
+        elif isinstance(value, cls._datetime)                                 : return cls._DateTime(value)
+        elif isinstance(value, set)                                           : return set([ cls._wrap_value(_) for _ in value ])
+        else                                                                  : return value
 
-    def _wrap_str(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
+    @staticmethod
+    def _wrap_str(_, func) : return '"{}"'.format(_) if isinstance(_, str) else func(_)
     
-    def _wrap_str_or_type(self, _, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
+    @staticmethod
+    def _wrap_str_or_type(_, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
+
+    # Create and return a new object.  See help(type) for accurate signature.
+    # def __new__(self) :
 
     # Initialize self.  See help(type(self)) for accurate signature.
     # dict() -> new empty dictionary
@@ -61,7 +67,6 @@ class Dict(dict) :
     #     for k, v in iterable:
     #         d[k] = v
     # dict(**kwargs) -> new dictionary initialized with the name=value pairs in the keyword argument list.  For example:  dict(one=1, two=2)
-    # def __class__(self) :
     def __init__(self, *args, **kwargs) :
         self._import_types()
         if len(args) == 0   : dict.__init__(self, {})
@@ -91,8 +96,7 @@ class Dict(dict) :
     def copy(self) : return Dict(self)
 
     # id(object) -> integer
-    # Return the identity of an object.  This is guaranteed to be unique among
-    # simultaneously existing objects.  (Hint: it's the object's memory address.)
+    # Return the identity of an object.  This is guaranteed to be unique among simultaneously existing objects.  (Hint: it's the object's memory address.)
     def get_id(self) -> int : return hex(id(self))
 
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
@@ -108,22 +112,22 @@ class Dict(dict) :
     def print_len(self) : return f'{self.len()}个键值', False
 
     @print_func
-    def print_line(self) : return self.keys().mapped(lambda key, index : f'{index + 1} {self._wrap_str(key, format)}: {self._wrap_str(self[key], format)}').join('\n'), True
+    def print_line(self) : return self.keys().mapped(lambda key, index : f'{index + 1} {Dict._wrap_str(key, format)}: {Dict._wrap_str(self[key], format)}').join('\n'), True
 
     # default object formatter
-    def __format__(self, spec) : return "{{ {} }}".format(self.keys().map(lambda key : '{} : {}'.format(self._wrap_str(key, format), self._wrap_str(self[key], format))).join(', '), spec)
+    def __format__(self, spec) : return "{{ {} }}".format(self.keys().map(lambda key : '{} : {}'.format(Dict._wrap_str(key, format), Dict._wrap_str(self[key], format))).join(', '), spec)
 
     @print_func
-    def print_format(self) : return self.keys().mapped(lambda key : f'{self._wrap_str(key, format)}: {self._wrap_str(self[key], format)}').join('\n'), True
+    def print_format(self) : return self.keys().mapped(lambda key : f'{Dict._wrap_str(key, format)}: {Dict._wrap_str(self[key], format)}').join('\n'), True
 
     # Return str(self).
-    def __str__(self) : return 'Dict{{ {} }}'.format(self.keys().map(lambda key : '{} : {}'.format(self._wrap_str(key, str), self._wrap_str(self[key], str))).join(', '))
+    def __str__(self) : return 'Dict{{ {} }}'.format(self.keys().map(lambda key : '{} : {}'.format(Dict._wrap_str(key, str), Dict._wrap_str(self[key], str))).join(', '))
 
     @print_func
-    def print_str(self) : return self.keys().mapped(lambda key : f'{self._wrap_str(key, str)}: {self._wrap_str(self[key], str)}').join('\n'), True
+    def print_str(self) : return self.keys().mapped(lambda key : f'{Dict._wrap_str(key, str)}: {Dict._wrap_str(self[key], str)}').join('\n'), True
 
     # Return repr(self).
-    def __repr__(self) : return 'Dict({{ {} }})'.format(self.keys().map(lambda key : '{} : {}'.format(self._wrap_str_or_type(key, repr), self._wrap_str_or_type(self[key], repr))).join(', '))
+    def __repr__(self) : return 'Dict({{ {} }})'.format(self.keys().map(lambda key : '{} : {}'.format(Dict._wrap_str_or_type(key, repr), Dict._wrap_str_or_type(self[key], repr))).join(', '))
 
     @print_func
     def print_j(self) : return self.j(), True
@@ -207,8 +211,7 @@ class Dict(dict) :
     # Implement iter(self).
     # iter(iterable) -> iterator
     # iter(callable, sentinel) -> iterator
-    # Get an iterator from an object.  In the first form, the argument must
-    # supply its own iterator, or be a sequence.
+    # Get an iterator from an object.  In the first form, the argument must supply its own iterator, or be a sequence.
     # In the second form, the callable is called until it returns the sentinel.
     def __iter__(self) : return self.keys().iter()
 
@@ -242,8 +245,7 @@ class Dict(dict) :
 
     # getattr(object, name[, default]) -> value
     # Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
-    # When a default argument is given, it is returned when the attribute doesn't
-    # exist; without it, an exception is raised in that case.
+    # When a default argument is given, it is returned when the attribute doesn't exist; without it, an exception is raised in that case.
     def __getattr__(self, key) : return self.__getitem__(key)
 
     # operator.attrgetter(*attrs)
@@ -351,8 +353,7 @@ class Dict(dict) :
     # NOT IN PLACE
     def dropped_key(self, key_list, /, default = _no_value) : self.copy().drop_key(key_list, default); return self
 
-    # D.popitem() -> (k, v), remove and return some (key, value) pair as a
-    # 2-tuple; but raise KeyError if D is empty.
+    # D.popitem() -> (k, v), remove and return some (key, value) pair as a 2-tuple; but raise KeyError if D is empty.
     # IN PLACE
     # def pop_item(self) : return dict.popitem(self)
 
@@ -365,46 +366,7 @@ class Dict(dict) :
     # IN PLACE
     def clear(self) : dict.clear(self); return self
 
-    def write_to_file(self, file, /, *, indent = True) : file.write_data(self, indent = indent); return self
-
-    # python2
-    # '__class__', '__cmp__', '__contains__', '__delattr__', '__delitem__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__iter__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'clear', 'copy', 'fromkeys', 'get', 'has_key', 'items', 'iteritems', 'iterkeys', 'itervalues', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values', 'viewitems', 'viewkeys', 'viewvalues'
-    # 
-    # python3
-    # '__class__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'clear', 'copy', 'fromkeys', 'get', 'items', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values'
-
-    # ===============================================================
-
-    # __dir__() -> list
-    # default dir() implementation
-    # def __dir__(self) :
-
-    # None
-    # def __hash__(self) :
-
-    # This method is called when a class is subclassed.
-    # The default implementation does nothing. It may be
-    # overridden to extend subclasses.
-    # def __init_subclass__(self) :
-
-    # Create and return a new object.  See help(type) for accurate signature.
-    # def __new__(self) :
-
-    # helper for pickle
-    # def __reduce__(self) :
-
-    # helper for pickle
-    # def __reduce_ex__(self) :
-
-    # D.__sizeof__() -> size of D in memory, in bytes
-    # def __sizeof__(self) :
-
-    # Abstract classes can override this to customize issubclass().
-    # This is invoked early on by abc.ABCMeta.__subclasscheck__().
-    # It should return True, False or NotImplemented.  If it returns
-    # NotImplemented, the normal algorithm is used.  Otherwise, it
-    # overrides the normal algorithm (and the outcome is cached).
-    # def __subclasshook__(self) :
+    def write_to_file(self, file, /, *, indent = True) : file.write_json(self, indent = indent); return self
 
 if __name__ == '__main__':
     # print(hasattr(Dict({'a':'b',3:4}), 'get_multi'))

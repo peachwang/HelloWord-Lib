@@ -25,10 +25,10 @@ class Object :
         elif isinstance(value, set)               : return set([ self._wrap_value(_) for _ in value ])
         else                                      : return value
     
-    # @log_entering()
+    # @log_entering
     def __init__(self) :
         object.__setattr__(self, '_data',          Dict())
-        object.__setattr__(self, '_class',         Str(self.__class__).split('.')[-1][ : -2])
+        object.__setattr__(self, '_class',         Str(f'{self.__class__.__name__!r}')) # Str(self.__class__).split('.')[-1][ : -2])
         object.__setattr__(self, '_property_dict', {})
 
     # def _register_enhanced_property(self, property_config_list, /) :

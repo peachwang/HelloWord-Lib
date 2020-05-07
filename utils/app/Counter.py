@@ -4,6 +4,9 @@ from ..datatypes.Str      import Str
 from ..datatypes.DateTime import DateTime
 from ..datatypes.List     import List
 
+# https://docs.python.org/3/library/collections.html#collections.Counter
+# https://github.com/python/cpython/blob/3.8/Lib/collections/__init__.py#L489
+
 class Counter :
 
     def __init__(self, name, key_list = None) :
@@ -12,6 +15,8 @@ class Counter :
         self._key_to_sum        = {}
         if key_list is not None :
             for key in key_list : self._init(key)
+
+    # __missing__
 
     @cached_prop
     def name(self) -> Str : return Str(self._name)

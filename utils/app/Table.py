@@ -25,7 +25,6 @@ from ..shared import *
 # https://github.com/daradermody/ConsoleTable
 # https://github.com/fmenabe/python-clg-table
 # https://github.com/sarcoma/terminal_table
-# https://github.com/python-tableformatter/tableformatter
 # https://github.com/jquast/wcwidth
 # https://github.com/dslackw/colored
 # https://github.com/python-tableformatter/tableformatter/blob/master/examples/color.py

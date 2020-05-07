@@ -22,14 +22,14 @@ class ObjectId(objectid) :
 
     def json_serialize(self) -> dict : return { '$id' : objectid.__str__(self) }
 
-    # @log_entering()
+    # @log_entering
     def __format__(self, spec) : return f'{objectid.__str__(self):{spec}}' # 不用 objectid.__format__
     
     # Get a hex encoded version of ObjectId o.
-    # @log_entering()
+    # @log_entering
     def __str__(self) : return f'ObjectId("{objectid.__str__(self)}")'
     
-    # @log_entering()
+    # @log_entering
     def __repr__(self) : return f'ObjectId("{objectid.__str__(self)}")'
 
     @cached_prop
