@@ -43,12 +43,12 @@ class List(list) :
         elif isinstance(item, str)                                           : return cls._Str(item)
         elif isinstance(item, dict)                                          : return cls._Dict(item)
         elif isinstance(item, list)                                          : return cls._List(item)
-        elif isinstance(item, tuple)                                         : return tuple([ cls._wrap_item(_) for _ in item ])
+        elif isinstance(item, tuple)                                         : return tuple(cls._wrap_item(_) for _ in item)
         elif isinstance(item, cls._timedelta)                                : return cls._TimeDelta(item)
         elif isinstance(item, cls._date)                                     : return cls._Date(item)
         elif isinstance(item, cls._time)                                     : return cls._Time(item)
         elif isinstance(item, cls._datetime)                                 : return cls._DateTime(item)
-        elif isinstance(item, set)                                           : return set([ cls._wrap_item(_) for _ in item ])
+        elif isinstance(item, set)                                           : return set(cls._wrap_item(_) for _ in item)
         else                                                                 : return item
 
     @staticmethod
@@ -88,7 +88,9 @@ class List(list) :
     # Get an iterator from an object.  In the first form, the argument must
     # supply its own iterator, or be a sequence.
     # In the second form, the callable is called until it returns the sentinel.
-    def iter(self) : return list.__iter__(self)
+    def __iter__(self) : return list.__iter__(self)
+    
+    def iter(self) : return self.__iter__()
     
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
     def _get_data(self) -> list : return [ item for item in self ]
@@ -301,10 +303,10 @@ class List(list) :
     
     # L.extend(iterable) -> None -- extend list by appending elements from the iterable
     # IN PLACE
-    def extend(self, item_list: Optional[list], /) :
-        if isinstance(item_list, Iterable) : list.extend(self, List(item_list)); return self
-        elif item_list is None             : return self
-        else                               : raise CustomTypeError(item_list)
+    def extend(self, iterable: Optional[list], /) :
+        if isinstance(iterable, Iterable) : list.extend(self, iterable); return self
+        elif iterable is None             : return self
+        else                              : raise CustomTypeError(iterable)
 
     # NOT IN PLACE
     def extended(self, item_list, /) : return self.copy().extend(item_list)

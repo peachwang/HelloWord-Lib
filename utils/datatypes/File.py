@@ -19,38 +19,38 @@ class File :
     @anti_duplicate_init
     def __init__(self, file_path, folder = None, /) :
         self._raw_path    = file_path.get_raw() if isinstance(file_path, Str) else file_path
-        self._path        = Str(file_path)
+        self._path        = file_path
         self._folder      = folder
-        self._full_name   = Str(basename(file_path))
-        self._folder_path = Str(dirname(file_path))
-        self._ext         = Str(splitext(file_path)[1][1:])
-        self._name        = Str(basename(file_path)[ : - len(self._ext) - 1])
+        self._full_name   = basename(file_path)
+        self._folder_path = dirname(file_path)
+        self._ext         = splitext(file_path)[1][1:]
+        self._name        = basename(file_path)[ : - len(self._ext) - 1]
+
+    # @cached_prop
+    # def raw_path(self) -> str                       : return self._raw_path
 
     @cached_prop
-    def raw_path(self) -> str                       : return self._raw_path
+    def path(self) -> str                           : return self._path
 
     @cached_prop
-    def path(self) -> Str                           : return self._path
-
-    @cached_prop
-    def abs_path(self) -> Str                       : return Str(realpath(self._raw_path))
+    def abs_path(self) -> str                       : return realpath(self._raw_path)
 
     @cached_prop
     def folder(self)                                : return self._folder
 
     @cached_prop
-    def folder_path(self) -> Str                    : return self._folder_path
+    def folder_path(self) -> str                    : return self._folder_path
 
     @cached_prop
-    def full_name(self) -> Str                      : return self._full_name
+    def full_name(self) -> str                      : return self._full_name
 
     @cached_prop
-    def name(self) -> Str                           : return self._name
+    def name(self) -> str                           : return self._name
 
     @cached_prop
-    def ext(self) -> Str                            : return self._ext
+    def ext(self) -> str                            : return self._ext
 
-    def ext_is(self, ext, /)                        : return self._ext.to_lower() == Str(ext).to_lower()
+    def ext_is(self, ext: str, /)                   : return Str(self._ext).to_lower() == Str(ext).to_lower()
 
     def is_txt(self)                                : return self.ext_is('txt')
 
@@ -101,7 +101,7 @@ class File :
             return self
         else                        : raise CustomTypeError(index)
 
-    def read_raw(self)                              :
+    def read_raw(self) -> Str                       :
         with open(self._raw_path) as f : return Str(''.join(f.readlines()))
 
     def __iter__(self)                              :

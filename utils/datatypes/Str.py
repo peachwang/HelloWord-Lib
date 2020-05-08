@@ -625,11 +625,11 @@ class Str(str) :
         if len(result) == 0 : raise Exception(f'无法 splitWord [{self}]')
         return result
 
-    def to_pascal_case(self) : return Str(''.join([word.to_capitalize() for word in self._split_word_list()]))
+    def to_pascal_case(self) : return Str(''.join(word.to_capitalize() for word in self._split_word_list()))
 
-    def to_camel_case(self) : word_list = self._split_word_list(); return word_list[0].to_lower() + Str(''.join([word.to_capitalize() for word in word_list[1:]]))
+    def to_camel_case(self) : word_list = self._split_word_list(); return word_list[0].to_lower() + Str(''.join(word.to_capitalize() for word in word_list[1:]))
 
-    def to_snake_case(self) : return Str('_'.join([word.to_lower() for word in self._split_word_list()]))
+    def to_snake_case(self) : return Str('_'.join(word.to_lower() for word in self._split_word_list()))
 
     # S.ljust(width[, fillchar]) -> str
     # S.rjust(width[, fillchar]) -> str

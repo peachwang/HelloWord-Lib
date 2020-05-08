@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-  
 from .Color          import R, Y, G, C, B, P, S, W, E
 from .Timer          import Timer
-from .ClassTools     import print_func, add_print_func, anti_duplicate_new, anti_duplicate_init, total_ordering, prop, cls_prop, cached_prop, cls_cached_prop, SingularMetaClass, SingularBaseClass, ABCMeta, ABC, abstractmethod
+from .ClassTools     import (
+    print_func, add_print_func,
+    anti_duplicate_new, anti_duplicate_init,
+    total_ordering,
+    cls_prop, cls_cached_prop,
+    prop, cached_prop,
+    MetaClass, BaseClass, SingularMetaClass, SingularBaseClass,
+    ABCMeta, ABC, abstractmethod)
 from functools       import wraps, lru_cache as cached_func
 from weakref         import ref, WeakValueDictionary
 from inspect         import isclass, isfunction, ismethod, signature

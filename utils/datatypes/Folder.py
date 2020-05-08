@@ -19,8 +19,8 @@ class Folder :
     @anti_duplicate_init
     def __init__(self, folder_path, /, *, auto_build = False) :
         self._raw_path         = folder_path.get_raw() if isinstance(folder_path, Str) else folder_path
-        self._path             = Str(folder_path)
-        self._name             = Str(basename(folder_path))
+        self._path             = folder_path
+        self._name             = basename(folder_path)
         self._auto_build       = auto_build
         self._has_listed       = False
         self._has_built_folder = False
@@ -28,17 +28,17 @@ class Folder :
         if not auto_build : pass
         else              : self._build()
 
-    @cached_prop
-    def raw_path(self) -> str                                 : return self._raw_path
+    # @cached_prop
+    # def raw_path(self) -> str                                 : return self._raw_path
 
     @cached_prop
-    def path(self) -> Str                                     : return self._path
+    def path(self) -> str                                     : return self._path
 
     @cached_prop
-    def abs_path(self) -> Str                                 : return Str(realpath(self._raw_path))
+    def abs_path(self) -> str                                 : return realpath(self._raw_path)
 
     @cached_prop
-    def name(self) -> Str                                     : return self._name
+    def name(self) -> str                                     : return self._name
 
     def mkdir(self, /)                                        : makedirs(self._raw_path, exist_ok = True); return self
 

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-  
 from ..shared             import *
-from ..datatypes.Str      import Str
 from ..datatypes.DateTime import DateTime
 from ..datatypes.List     import List
 
@@ -19,7 +18,7 @@ class Counter :
     # __missing__
 
     @cached_prop
-    def name(self) -> Str : return Str(self._name)
+    def name(self) -> str : return self._name
 
     def _init(self, key, /) :
         self._key_to_value_list[key] = []

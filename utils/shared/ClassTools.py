@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-  
-from .Timer    import Timer
 from abc       import ABCMeta, ABC, abstractmethod
-from functools import wraps, total_ordering, cached_property as cached_prop; prop = property
+from functools import wraps, total_ordering, cached_property
 from weakref   import WeakValueDictionary
 from inspect   import isclass, signature
 
@@ -11,7 +10,7 @@ def print_func(func) :
         content, print_len = func(self, *args)
         content = pattern.format(content)
         if color is not None : content = color(content)
-        if print_timing      : Timer.print_timing(content)
+        if print_timing      : from .Timer import Timer; Timer.print_timing(content)
         else                 : print(content, **kwargs)
         if print_len         : self.print_len(color = color, **kwargs)
         return self
@@ -62,11 +61,26 @@ def anti_duplicate_init(func) :
 # https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
 # https://stackoverflow.com/questions/3203286/how-to-create-a-read-only-class-property-in-python
 # https://stackoverflow.com/questions/4037481/caching-class-attributes-in-python
+
+def _raise_exception(func, name) :
+    @wraps(func)
+    def wrapper(*args, **kwargs) :
+        try :
+            return func(*args, **kwargs)
+        except Exception as e :
+            import traceback, sys
+            from .Color import P
+            print(''.join(traceback.format_exception(*sys.exc_info())))
+            print(f'处理属性 {P(name)} 时出错')
+            print('-' * 50)
+            raise e
+    return wrapper
+
 class _ClassPropertyDescriptorBaseClass :
 
     def __init__(self, fget, name) : self.fget, self.fset, self.fdel, self.name, self.__doc__ = fget, None, None, name, fget.__doc__
 
-    def getter(self, fget)  : self.fget = fget if isinstance(fget, (classmethod, staticmethod)) else classmethod(fget); return self
+    def getter(self, fget)  : self.fget = fget if isinstance(fget, (classmethod, staticmethod)) else classmethod(_raise_exception(fget, self.name)); return self
 
 class _ClassPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
     
@@ -93,9 +107,9 @@ class _ClassPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
         # print(f'self.fdel.__get__(obj, klass)()')
         self.fdel.__get__(obj, klass)()
 
-    def setter(self, fset)  : self.fset = fset if isinstance(fset, (classmethod, staticmethod)) else classmethod(fset); return self
+    def setter(self, fset)  : self.fset = fset if isinstance(fset, (classmethod, staticmethod)) else classmethod(_raise_exception(fset, self.name)); return self
 
-    def deleter(self, fdel) : self.fdel = fdel if isinstance(fdel, (classmethod, staticmethod)) else classmethod(fdel); return self
+    def deleter(self, fdel) : self.fdel = fdel if isinstance(fdel, (classmethod, staticmethod)) else classmethod(_raise_exception(fdel, self.name)); return self
 
 class _ClassCachedPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
 
@@ -104,49 +118,49 @@ class _ClassCachedPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
         if self.fget is None : raise AttributeError(f'类缓存属性 {self.name} 不可读')
         if klass is None : klass = type(obj)
         value = self.fget.__get__(obj, klass)()
-        # print(f'\n_ClassCachedPropertyDescriptor.__get__: {value = }')
-        # print(f'{klass = }, {klass.__mro__ = }')
-        # print(f'{type(klass) = }, {type(klass).__mro__ = }')
+            # print(f'\n_ClassCachedPropertyDescriptor.__get__: {value = }')
+            # print(f'{klass = }, {klass.__mro__ = }')
+            # print(f'{type(klass) = }, {type(klass).__mro__ = }')
 
-        # print(func := super().__setattr__, func.__qualname__, signature(func))
-        # = super(_ClassCachedPropertyDescriptor, self)
-        # <method-wrapper '__setattr__' of _ClassCachedPropertyDescriptor object at 0x106f143a0> object.__setattr__ (name, value, /)
-        
-        # print(func := super(SingularMetaClass).__setattr__, func.__qualname__, signature(func))
-        # <method-wrapper '__setattr__' of super object at 0x106786b40> object.__setattr__ (name, value, /)
-        
-        # print(func := super(SingularBaseClass).__setattr__, func.__qualname__, signature(func))
-        # <method-wrapper '__setattr__' of super object at 0x106ab4100> object.__setattr__ (name, value, /)
-        
-        # print(func := super(SingularMetaClass, klass).__setattr__, func.__qualname__, signature(func))
-        # isinstance(klass, SingularMetaClass) => bound
-        # <method-wrapper '__setattr__' of SingularMetaClass object at 0x7fe1170d8720> type.__setattr__ (name, value, /)
-        
-        # print(func := super(SingularBaseClass, klass).__setattr__, func.__qualname__, signature(func))
-        # issubclass(klass, SingularBaseClass) => unbound
-        # <slot wrapper '__setattr__' of 'object' objects> object.__setattr__ (self, name, value, /)
-        
-        # klass.__setattr__ is SingularMetaClass.__setattr__, which has been overridden
-        # => __setattr__ of parent class of SingularMetaClass should be called to avoid recursion
-        # ABCMeta.__mro__ = (ABCMeta, type, object)
-        # ABC.__mro__     = (ABC, object)
-        # Because: 1. klass is a instance of SingularMetaClass
-        #          2. type(klass).__mro__ = (SingularMetaClass, ABCMeta, type, object)
-        #          3. super(SingularMetaClass, klass) is bound
-        # => super(SingularMetaClass, klass).__setattr__(self.name, value) = type.__setattr__(klass, self.name, value)
-        # print(f'super(SingularMetaClass, klass).__setattr__(self.name, value)')
-        super(SingularMetaClass, klass).__setattr__(self.name, value)
+            # print(func := super().__setattr__, func.__qualname__, signature(func))
+            # = super(_ClassCachedPropertyDescriptor, self)
+            # <method-wrapper '__setattr__' of _ClassCachedPropertyDescriptor object at 0x106f143a0> object.__setattr__ (name, value, /)
+            
+            # print(func := super(SingularMetaClass).__setattr__, func.__qualname__, signature(func))
+            # <method-wrapper '__setattr__' of super object at 0x106786b40> object.__setattr__ (name, value, /)
+            
+            # print(func := super(SingularBaseClass).__setattr__, func.__qualname__, signature(func))
+            # <method-wrapper '__setattr__' of super object at 0x106ab4100> object.__setattr__ (name, value, /)
+            
+            # print(func := super(SingularMetaClass, klass).__setattr__, func.__qualname__, signature(func))
+            # isinstance(klass, SingularMetaClass) => bound
+            # <method-wrapper '__setattr__' of SingularMetaClass object at 0x7fe1170d8720> type.__setattr__ (name, value, /)
+            
+            # print(func := super(SingularBaseClass, klass).__setattr__, func.__qualname__, signature(func))
+            # issubclass(klass, SingularBaseClass) => unbound
+            # <slot wrapper '__setattr__' of 'object' objects> object.__setattr__ (self, name, value, /)
+            
+            # klass.__setattr__ is SingularMetaClass.__setattr__, which has been overridden
+            # => __setattr__ of parent class of SingularMetaClass should be called to avoid recursion
+            # ABCMeta.__mro__ = (ABCMeta, type, object)
+            # ABC.__mro__     = (ABC, object)
+            # Because: 1. klass is a instance of SingularMetaClass
+            #          2. type(klass).__mro__ = (SingularMetaClass, ABCMeta, type, object)
+            #          3. super(SingularMetaClass, klass) is bound
+            # => super(SingularMetaClass, klass).__setattr__(self.name, value) = type.__setattr__(klass, self.name, value)
+            # print(f'super(SingularMetaClass, klass).__setattr__(self.name, value)')
+        type.__setattr__(klass, self.name, value)
         return value
 
     def __set__(self, obj_or_klass, value) :
         if isclass(obj_or_klass) : obj, klass = None, obj_or_klass
         else                     : obj, klass = obj_or_klass, type(obj_or_klass)
-        super(SingularMetaClass, klass).__setattr__(self.name, value)
+        type.__setattr__(klass, self.name, value)
 
     def __delete__(self, obj_or_klass)     :
         if isclass(obj_or_klass) : obj, klass = None, obj_or_klass
         else                     : obj, klass = obj_or_klass, type(obj_or_klass)
-        super(SingularMetaClass, klass).__delattr__(self.name)
+        type.__delattr__(klass, self.name)
 
     def setter(self, fset)  : raise AttributeError(f'类缓存属性 {self.name} 不可设置 setter')
 
@@ -154,13 +168,27 @@ class _ClassCachedPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
 
 def cls_prop(fget) :
     name = fget.__name__
-    if not isinstance(fget, (classmethod, staticmethod)) : fget = classmethod(fget)
+    if not isinstance(fget, (classmethod, staticmethod)) : fget = classmethod(_raise_exception(fget, name))
     return _ClassPropertyDescriptor(fget, name)
 
 def cls_cached_prop(fget) :
     name = fget.__name__
-    if not isinstance(fget, (classmethod, staticmethod)) : fget = classmethod(fget)
+    if not isinstance(fget, (classmethod, staticmethod)) : fget = classmethod(_raise_exception(fget, name))
     return _ClassCachedPropertyDescriptor(fget, name)
+
+class prop(property) :
+
+    def __init__(self, fget, *args, **kwargs) : property.__init__(self, _raise_exception(fget, fget.__name__), *args, **kwargs)
+
+    def getter(self, fget)  : return property.getter(_raise_exception(fget, fget.__name__))
+
+    def setter(self, fset)  : return property.setter(_raise_exception(fset, fset.__name__))
+
+    def deleter(self, fdel) : return property.deleter(_raise_exception(fdel, fdel.__name__))
+
+class cached_prop(cached_property) :
+    
+    def __init__(self, fget, *args, **kwargs) : cached_property.__init__(self, _raise_exception(fget, fget.__name__), *args, **kwargs)
 
 # =====================            cached_property                          =====================
     # https://github.com/python/cpython/blob/3.8/Lib/functools.py#L925
@@ -247,7 +275,7 @@ def cls_cached_prop(fget) :
 # =====================            SingularClass                            =====================
 # https://docs.python.org/3/library/abc.html
 # https://www.python.org/dev/peps/pep-3115/
-class SingularMetaClass(ABCMeta) :
+class MetaClass(ABCMeta) :
 
     @classmethod
     def __prepare__(cls, name, bases, **kwds) :
@@ -301,38 +329,44 @@ class SingularMetaClass(ABCMeta) :
         # assert issubclass(tuple, MyABC)
         # assert isinstance((), MyABC)
 
-    def __call__(self, *args, **kwargs) : raise Exception(f'类 {self} 不支持实例化')
+    def __iter__(self) : return self.__iter__()
+
+    def __getitem__(self, key) : return self.__getitem__(key)
     
     def __setattr__(self, name, value) :
-        # print(f'\nSingularMetaClass.__setattr__({self = }, {name = }, {value = })')
+        # print(f'\MetaClass.__setattr__({self = }, {name = }, {value = })')
         if name in ('__abstractmethods__', '_abc_impl') : type.__setattr__(self, name, value); return
         # print(f'{self = }, {self.__mro__ = }')
         # print(f'{self.__dict__.keys() = }, {self.__dict__.get(name) = }')
         # print(f'{self.__mro__[0].__dict__.keys() = }, {self.__mro__[0].__dict__.get(name) = }')
         for klass in self.__mro__ : # self = class instance of SingularMetaClass
-            if issubclass(SingularBaseClass, klass) : break
+            if issubclass(BaseClass, klass) : break
             obj = klass.__dict__.get(name)
             # print(f'{klass = }, {obj = }')
             if obj is not None :
                 if isinstance(obj, _ClassPropertyDescriptorBaseClass) : obj.__set__(self, value); return # 在 self 或 self 的基类中找到了属性描述器
-        # print(f'super().__setattr__(name, value)')
-        super().__setattr__(name, value) # 常规属性
+        # print(f'type.__setattr__(self, name, value)')
+        type.__setattr__(self, name, value) # 常规属性
 
     def __delattr__(self, name) :
-        # print(f'\nSingularMetaClass.__delattr__({self = }, {name = })')
+        # print(f'\MetaClass.__delattr__({self = }, {name = })')
         for klass in self.__mro__ :
-            if issubclass(SingularBaseClass, klass) : break
+            if issubclass(BaseClass, klass) : break
             obj = klass.__dict__.get(name)
             # print(f'{klass = }, {obj = }')
             if obj is not None :
                 if isinstance(obj, _ClassPropertyDescriptorBaseClass) : obj.__delete__(self); return # 在 self 或 self 的基类中找到了属性描述器
                 elif klass is self                                    :
-                    # print(f'super().__delattr__(name)')
-                    super().__delattr__(name); return # 删除已缓存在 self 中的类缓存属性的值
-        # print(f'super().__delattr__(name)')
-        super().__delattr__(name) # 常规属性
+                    # print(f'type.__delattr__(self, name)')
+                    type.__delattr__(self, name); return # 删除已缓存在 self 中的类缓存属性的值
+        # print(f'type.__delattr__(self, name)')
+        type.__delattr__(self, name) # 常规属性
 
-class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
+class SingularMetaClass(MetaClass) :
+
+    def __call__(self, *args, **kwargs) : raise Exception(f'类 {self} 不支持实例化')
+
+class BaseClass(ABC, metaclass = MetaClass) : pass
 
     # def __init_subclass__(cls, **kwargs) :
         # https://blog.yuo.be/2018/08/16/__init_subclass__-a-simpler-way-to-implement-class-registries-in-python/
@@ -350,24 +384,23 @@ class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
         # For compatibility with other classes using __init_subclass__, one should take out the needed keyword arguments and pass the others over to the base class, as in:
         # 
         # class Philosopher:
-        # 
-        #     @classmethod
-        #     def __init_subclass__(cls, cls, /, default_name, **kwargs):
-        #         super().__init_subclass__(**kwargs)
-        #         cls.default_name = default_name
+        
+            # @classmethod
+            # def __init_subclass__(cls, cls, /, default_name, **kwargs):
+            #     super().__init_subclass__(**kwargs)
+            #     cls.default_name = default_name
 
         # class AustralianPhilosopher(Philosopher, default_name="Bruce"):
-        #     pass
+            # pass
         # 
         # The default implementation object.__init_subclass__ does nothing, but raises an error if it is called with any arguments.
         # 
         # Note: The metaclass hint metaclass is consumed by the rest of the type machinery, and is never passed to __init_subclass__ implementations.
         # The actual metaclass (rather than the explicit hint) can be accessed as type(cls).
         
-        # print(f'\nSingularBaseClass.__init_subclass__({cls = })')
+        # print(f'\BaseClass.__init_subclass__({cls = })')
         # super().__init_subclass__(**kwargs)
-        # from ..datatypes.Str import Str
-        # super(SingularMetaClass, cls).__setattr__('_class', Str(cls).split('.')[-1][ : -2])
+        # super(MetaClass, cls).__setattr__('_class', cls.__name__)
 
     # @classmethod
     # class.__subclasshook__(cls, subclass) :
@@ -382,33 +415,33 @@ class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
         # For a demonstration of these concepts, look at this example ABC definition:
         # 
         # class Foo:
-        #     
-        #     def __getitem__(self, index):
-        #         ...
-        #     
-        #     def __len__(self):
-        #         ...
-        #     
-        #     def get_iterator(self):
-        #         return iter(self)
-        # 
+            
+            # def __getitem__(self, index):
+            #     ...
+            
+            # def __len__(self):
+            #     ...
+            
+            # def get_iterator(self):
+            #     return iter(self)
+        
         # class MyIterable(ABC):
-        #     
-        #     @abstractmethod
-        #     def __iter__(self):
-        #         while False:
-        #             yield None
-        #     
-        #     def get_iterator(self):
-        #         return self.__iter__()
-        #     
-        #     @classmethod
-        #     def __subclasshook__(cls, C):
-        #         if cls is MyIterable:
-        #             if any("__iter__" in B.__dict__ for B in C.__mro__):
-        #                 return True
-        #         return NotImplemented
-        # 
+            
+            # @abstractmethod
+            # def __iter__(self):
+            #     while False:
+            #         yield None
+            
+            # def get_iterator(self):
+            #     return self.__iter__()
+            
+            # @classmethod
+            # def __subclasshook__(cls, C):
+            #     if cls is MyIterable:
+            #         if any("__iter__" in B.__dict__ for B in C.__mro__):
+            #             return True
+            #     return NotImplemented
+        
         # MyIterable.register(Foo)
         # 
         # The ABC MyIterable defines the standard iterable method, __iter__(), as an abstract method. The implementation given here can still be called from subclasses.
@@ -419,7 +452,7 @@ class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
         # (it uses the old-style iterable protocol, defined in terms of __len__() and __getitem__()).
         # Note that this will not make get_iterator available as a method of Foo, so it is provided separately.
 
-    pass
+class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
 # =====================            Special Attributes                       =====================
     # https://docs.python.org/3/library/stdtypes.html
@@ -525,19 +558,19 @@ class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
         # A typical use is to define a managed attribute x:
 
         # class C:
-        #     def __init__(self):
-        #         self._x = None
+            # def __init__(self):
+            #     self._x = None
 
-        #     def getx(self):
-        #         return self._x
+            # def getx(self):
+            #     return self._x
 
-        #     def setx(self, value):
-        #         self._x = value
+            # def setx(self, value):
+            #     self._x = value
 
-        #     def delx(self):
-        #         del self._x
+            # def delx(self):
+            #     del self._x
 
-        #     x = property(getx, setx, delx, "I'm the 'x' property.")
+            # x = property(getx, setx, delx, "I'm the 'x' property.")
         
         # If c is an instance of C, c.x will invoke the getter, c.x = value will invoke the setter and del c.x the deleter.
 
@@ -545,13 +578,13 @@ class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
         # This makes it possible to create read-only properties easily using property() as a decorator:
 
         # class Parrot:
-        #     def __init__(self):
-        #         self._voltage = 100000
+            # def __init__(self):
+            #     self._voltage = 100000
 
-        #     @property
-        #     def voltage(self):
-        #         """Get the current voltage."""
-        #         return self._voltage
+            # @property
+            # def voltage(self):
+            #     """Get the current voltage."""
+            #     return self._voltage
         
         # The @property decorator turns the voltage() method into a “getter” for a read-only attribute with the same name,
         # and it sets the docstring for voltage to “Get the current voltage.”
@@ -561,21 +594,21 @@ class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
         # This is best explained with an example:
 
         # class C:
-        #     def __init__(self):
-        #         self._x = None
+            # def __init__(self):
+            #     self._x = None
 
-        #     @property
-        #     def x(self):
-        #         """I'm the 'x' property."""
-        #         return self._x
+            # @property
+            # def x(self):
+            #     """I'm the 'x' property."""
+            #     return self._x
 
-        #     @x.setter
-        #     def x(self, value):
-        #         self._x = value
+            # @x.setter
+            # def x(self, value):
+            #     self._x = value
 
-        #     @x.deleter
-        #     def x(self):
-        #         del self._x
+            # @x.deleter
+            # def x(self):
+            #     del self._x
         # This code is exactly equivalent to the first example. Be sure to give the additional functions the same name as the original property (x in this case.)
 
         # The returned property object also has the attributes fget, fset, and fdel corresponding to the constructor arguments.
@@ -585,41 +618,41 @@ class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
         # To see how property() is implemented in terms of the descriptor protocol, here is a pure Python equivalent:
 
         # class Property(object):
-        #     "Emulate PyProperty_Type() in Objects/descrobject.c"
+            # "Emulate PyProperty_Type() in Objects/descrobject.c"
 
-        #     def __init__(self, fget=None, fset=None, fdel=None, doc=None):
-        #         self.fget = fget
-        #         self.fset = fset
-        #         self.fdel = fdel
-        #         if doc is None and fget is not None:
-        #             doc = fget.__doc__
-        #         self.__doc__ = doc
+            # def __init__(self, fget=None, fset=None, fdel=None, doc=None):
+            #     self.fget = fget
+            #     self.fset = fset
+            #     self.fdel = fdel
+            #     if doc is None and fget is not None:
+            #         doc = fget.__doc__
+            #     self.__doc__ = doc
 
-        #     def __get__(self, obj, objtype=None):
-        #         if obj is None:
-        #             return self
-        #         if self.fget is None:
-        #             raise AttributeError("unreadable attribute")
-        #         return self.fget(obj)
+            # def __get__(self, obj, objtype=None):
+            #     if obj is None:
+            #         return self
+            #     if self.fget is None:
+            #         raise AttributeError("unreadable attribute")
+            #     return self.fget(obj)
 
-        #     def __set__(self, obj, value):
-        #         if self.fset is None:
-        #             raise AttributeError("can't set attribute")
-        #         self.fset(obj, value)
+            # def __set__(self, obj, value):
+            #     if self.fset is None:
+            #         raise AttributeError("can't set attribute")
+            #     self.fset(obj, value)
 
-        #     def __delete__(self, obj):
-        #         if self.fdel is None:
-        #             raise AttributeError("can't delete attribute")
-        #         self.fdel(obj)
+            # def __delete__(self, obj):
+            #     if self.fdel is None:
+            #         raise AttributeError("can't delete attribute")
+            #     self.fdel(obj)
 
-        #     def getter(self, fget):
-        #         return type(self)(fget, self.fset, self.fdel, self.__doc__)
+            # def getter(self, fget):
+            #     return type(self)(fget, self.fset, self.fdel, self.__doc__)
 
-        #     def setter(self, fset):
-        #         return type(self)(self.fget, fset, self.fdel, self.__doc__)
+            # def setter(self, fset):
+            #     return type(self)(self.fget, fset, self.fdel, self.__doc__)
 
-        #     def deleter(self, fdel):
-        #         return type(self)(self.fget, self.fset, fdel, self.__doc__)
+            # def deleter(self, fdel):
+            #     return type(self)(self.fget, self.fset, fdel, self.__doc__)
         
         # The property() builtin helps whenever a user interface has granted attribute access and then subsequent changes require the intervention of a method.
 
@@ -629,12 +662,12 @@ class SingularBaseClass(ABC, metaclass = SingularMetaClass) :
         # The solution is to wrap access to the value attribute in a property data descriptor:
 
         # class Cell(object):
-        #     . . .
-        #     def getvalue(self):
-        #         "Recalculate the cell before returning value"
-        #         self.recalc()
-        #         return self._value
-        #     value = property(getvalue)
+            # . . .
+            # def getvalue(self):
+            #     "Recalculate the cell before returning value"
+            #     self.recalc()
+            #     return self._value
+            # value = property(getvalue)
 
     # Static Methods and Class Methods
         # Non-data descriptors provide a simple mechanism for variations on the usual patterns of binding functions into methods.

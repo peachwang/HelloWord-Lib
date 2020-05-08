@@ -28,10 +28,10 @@ class _Line :
         else                            : return (self._index, self._raw_line)
 
     @cached_prop
-    def tag_name(self) -> Str : return self._tag_name
+    def tag_name(self) -> str : return str(self._tag_name)
 
     @cached_prop
-    def tag_type(self) -> Str : return self._content.split(' ')[0]
+    def tag_type(self) -> str : return str(self._content.split(' ')[0])
 
     def __format__(self, spec) : return f"{f'index = [{self._index}] tag_name = [{self._tag_name}] content = [{self._content}]':{spec}}"
 
@@ -67,10 +67,10 @@ class LineStream :
 
     def append_line(self, line, /) : self._line_list.append(line); return self
 
-    def set_tag_name(self, tag_name: Str, /) : self._tag_name = tag_name; return self
+    def set_tag_name(self, tag_name: str, /) : self._tag_name = tag_name; return self
 
     @cached_prop
-    def tag_name(self) -> Str :
+    def tag_name(self) -> str :
         if hasattr(self, '_tag_line') : return self._tag_line.tag_name
         else                          : return self._tag_name
 

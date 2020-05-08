@@ -21,14 +21,14 @@ class Object :
         elif isinstance(value, date_class)        : return Date(value)
         elif isinstance(value, time_class)        : return Time(value)
         elif isinstance(value, datetime_class)    : return DateTime(value)
-        elif isinstance(value, tuple)             : return tuple([ self._wrap_value(_) for _ in value ])
-        elif isinstance(value, set)               : return set([ self._wrap_value(_) for _ in value ])
+        elif isinstance(value, tuple)             : return tuple(self._wrap_value(_) for _ in value)
+        elif isinstance(value, set)               : return set(self._wrap_value(_) for _ in value)
         else                                      : return value
     
     # @log_entering
     def __init__(self) :
         object.__setattr__(self, '_data',          Dict())
-        object.__setattr__(self, '_class',         Str(f'{self.__class__.__name__!r}')) # Str(self.__class__).split('.')[-1][ : -2])
+        object.__setattr__(self, '_class',         f'{self.__class__.__name__}')
         object.__setattr__(self, '_property_dict', {})
 
     # def _register_enhanced_property(self, property_config_list, /) :
@@ -49,7 +49,6 @@ class Object :
                     pd[name]['type'] = p_type
                 if p_validator is not None      :
                     if not isinstance(p_validator, (str, tuple)) : raise CustomTypeError(p_validator)
-                    # pd[name]['validator'] = Str(p_validator) if isinstance(p_validator, str) else p_validator
                     pd[name]['validator'] = p_validator
             else                           : raise CustomTypeError(config)
         return self
@@ -149,7 +148,6 @@ class Object :
                     elif existence_2 : name_0 = str(name_2)
                     if prefix in pd[name_0] : return pd[name_0][prefix] # 获取已缓存的方法
                     else                    : pd[name_0][prefix] = partial(self.__getattribute__(f'{prefix}_property'), name_0); return pd[name_0][prefix]
-
         raise Exception(f"Object {P(type(self))} 中无 {P(name)} 属性或方法, 只有这些属性: {P((self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object))))}\n{pd=}")
 
     # def get_property_dict(self, name_list, /) : return self._data.get_multi(name_list, de_underscore = True) # 字段可以不存在

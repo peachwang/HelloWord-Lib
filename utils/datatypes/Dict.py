@@ -42,12 +42,12 @@ class Dict(dict) :
         elif isinstance(value, str)                                           : return cls._Str(value)
         elif isinstance(value, dict)                                          : return cls._Dict(value)
         elif isinstance(value, list)                                          : return cls._List(value)
-        elif isinstance(value, tuple)                                         : return tuple([ cls._wrap_value(_) for _ in value ])
+        elif isinstance(value, tuple)                                         : return tuple(cls._wrap_value(_) for _ in value)
         elif isinstance(value, cls._timedelta)                                : return cls._TimeDelta(value)
         elif isinstance(value, cls._date)                                     : return cls._Date(value)
         elif isinstance(value, cls._time)                                     : return cls._Time(value)
         elif isinstance(value, cls._datetime)                                 : return cls._DateTime(value)
-        elif isinstance(value, set)                                           : return set([ cls._wrap_value(_) for _ in value ])
+        elif isinstance(value, set)                                           : return set(cls._wrap_value(_) for _ in value)
         else                                                                  : return value
 
     @staticmethod
