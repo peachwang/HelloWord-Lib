@@ -3,6 +3,7 @@ from ..shared         import *
 from ..datatypes.Str  import Str
 from ..datatypes.List import List
 from ..datatypes.Dict import Dict
+from ..datatypes.Iter import Iter
 from .Json            import j
 
 # DataStructure Module
@@ -193,7 +194,7 @@ class _Field :
         return result
 
     @cached_func
-    def __format__(self, spec) : return f"{f'{self.path_str!s:80}{self.name:>25} {self.value_inspect}':{spec}}"
+    def __format__(self, spec) : return f'{f"{self.path_str!s:80}{self.name:>25} {self.value_inspect}":{spec}}'
 
 class Inspect :
 
@@ -275,7 +276,7 @@ class _DiffField(_Field) :
         if isinstance(filter_list, list) and (self.path_str, self._status) in filter_list : return List()
         result = List(_.get_different_field_list(filter_list = filter_list) for _ in self._child_diff_field_list).merged()
         if (self._status in (Diff.S_DIFFTYPE, Diff.S_DIFFVALUE, Diff.S_ADDED, Diff.S_DELETED)
-            or self._status in (Diff.S_DIFFLEN, Diff.S_DIFFCHILD) and result.is_not_empty()) :
+            or self._status in (Diff.S_DIFFLEN, Diff.S_DIFFCHILD) and not result.is_empty()) :
             result.prepend(self)
         return result
 

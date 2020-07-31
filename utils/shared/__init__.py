@@ -2,11 +2,12 @@
 from .Color          import R, Y, G, C, B, P, S, W, E
 from .Timer          import Timer
 from .ClassTools     import (
+    log_entering,
     print_func, add_print_func,
     anti_duplicate_new, anti_duplicate_init,
     total_ordering,
     cls_prop, cls_cached_prop,
-    prop, cached_prop,
+    prop, iter_prop, cached_prop
     MetaClass, BaseClass, SingularMetaClass, SingularBaseClass,
     ABCMeta, ABC, abstractmethod)
 from functools       import wraps, lru_cache as cached_func
@@ -15,6 +16,7 @@ from inspect         import isclass, isfunction, ismethod, signature
 from collections.abc import Iterable, Iterator, Generator, Callable
 from typing          import Optional, Union
 from operator        import attrgetter, itemgetter, methodcaller
+identical = lambda _ : _
 # operator.attrgetter(*attrs)
 # Return a callable object that fetches attr from its operand. If more than one attribute is requested, returns a tuple of attributes. The attribute names can also contain dots. For example:
 # attrgetter('name.first', 'name.last')(a) = (a.name.first, a.name.last).
@@ -37,7 +39,7 @@ class CustomTypeError(TypeError) :
         self._value = value
         self._msg   = msg
 
-    def __format__(self, spec) : return f"{f'非法类型 {type(self._value)} {self._msg}: {self._value!s}':{spec}}"
+    def __format__(self, spec) : return f'{f"非法类型 {type(self._value)} {self._msg}: {self._value!s}":{spec}}'
 
     def __str__(self) : return self.__format__('')
 
@@ -56,7 +58,7 @@ def ensure_args_type(func) :
             elif (isinstance(value_type, _GenericAlias)
                 and value_type.__origin__ is Union
                 and isinstance(value, value_type.__args__)) : return
-            raise Exception(f'预期 {value_type=}, 非法 {type(value)=} of {value=}')
+            raise CustomTypeError(value, f'字段 {name} 预期 {value_type}')
         for index, param in enumerate(signature(func).parameters.values()) :
             if param.name == 'self' : continue
             # inspect_object(param.annotation, 'param.annotation', False)
@@ -81,26 +83,6 @@ def ensure_args_type(func) :
         return result
     return wrapper
 
-def log_entering(pattern_or_func) :
-    if isinstance(pattern_or_func, str) : pattern = pattern_or_func
-    else                                : pattern = ''
-    def decorator(func) :
-        @wraps(func)
-        def wrapper(cls_or_self, *args, **kwargs) :
-            # kwargs['self'] = cls_or_self
-            msg = pattern.format(*args, self = cls_or_self, **kwargs)
-            # kwargs.pop('self')
-            if '.' in str(cls_or_self.__class__) : _ = f'id = {id(cls_or_self)} {cls_or_self.__class__.__name__:>15}.{func.__qualname__:30}'
-            else                                 : _ = f'id = {id(cls_or_self)} {func.__qualname__:30}'
-            Timer.print_timing(f'{_} {Y("开始")} {msg}')
-            result = func(cls_or_self, *args, **kwargs)
-            Timer.print_timing(f'{_} {G("结束")} {msg}')
-            return result
-        return wrapper
-    if isinstance(pattern_or_func, str)        : return decorator
-    elif isinstance(pattern_or_func, Callable) : return decorator(pattern_or_func)
-    else                                       : raise CustomTypeError(pattern_or_func)
-
 def bar(num, mod, /, *, char = '-') : return char * (num // mod)
 
 def shell(command) :
@@ -117,7 +99,7 @@ def inspect_object(obj, name = '', print_source = True) :
     print(G(f'{name} = {obj = }'))
     print(f'{type(obj) = }')
     if ((type_str := (str(obj)[8:-2])) in dir(builtins)) and type_str != 'type' : print(B('obj is built-in.')); return
-    if ((type_str := (str(obj.__class__)[8:-2])) in dir(builtins)) and type_str != 'type' : print(B('obj.__class__ is built-in.')); return
+    if ((type_str := (str(type(obj))[8:-2])) in dir(builtins)) and type_str != 'type' : print(B('type(obj) is built-in.')); return
     if str(obj) == "<class 'type'>" : print(B('obj is type.')); return
     def print_source(obj) :
         for line in inspect.getsourcelines(obj)[0] :

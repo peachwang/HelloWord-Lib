@@ -12,7 +12,7 @@ class SingularFile(SingularBaseClass) :
     @cls_cached_prop
     def _file(cls)            :
         file = File(cls._file_path)
-        if file.not_exists() : file.write_json(cls._initial_data)
+        if not file.exists() : file.write_json(cls._initial_data)
         return file
 
     @cls_cached_prop

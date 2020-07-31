@@ -3,7 +3,7 @@
 # https://github.com/tartley/colorama
 # https://github.com/dslackw/colored
 # from bcolors import OKMSG as OK, ERRMSG as ERROR, WAITMSG as WAIT
-prop = property
+from .ClassTools import wraps, total_ordering, prop
 
 END            = f'\x1b[0m'
 FG_BOLD        = f'\x1b[1m'
@@ -57,6 +57,7 @@ BG_WHITE       = f'\x1b[107m'
 
 NONE = '#NONE#'
 
+@total_ordering
 class _Color :
 
     def __init__(self, value = NONE) :
@@ -91,8 +92,8 @@ class _Color :
             if self._evaluated : _ = f'{FG_WHITE}{self._value}{END}' # 已求值
             else               : _ = f'{self._color}{self._value}{END}' # 未求值
         from wcwidth import wcswidth
-        len_value = len(f"{self._value}")
-        len_wcs   = wcswidth(f"{self._value}")
+        len_value = len(f'{self._value}')
+        len_wcs   = wcswidth(f'{self._value}')
         len_total = len(_)
         len_color = len_total - len_value
         from ..datatypes.Str import Str
@@ -104,13 +105,12 @@ class _Color :
     def __str__(self) : return self.__format__('')
         # return f'{self._now_color}{self._colored=} {self._evaluated=}{END} {self._color}{self._value=}{END}'
     
-    def _wrapper(func) :
-        from functools import wraps
+    def _wrap(func) :
         @wraps(func)
         def wrapper(self, *args, **kwargs) :
             if self._evaluated and self._colored :
                 print(f'{self._value=} {self._colored=} {self._evaluated=}')
-                raise Exception('已被求值且染色')
+                raise RuntimeError('已被求值且染色')
             if func(self, *args, **kwargs) :
                 self._colored   = True
                 self._now_color = self._color
@@ -118,20 +118,11 @@ class _Color :
             return self
         return wrapper
 
-    @_wrapper
-    def __eq__(self, other) : return self._value == other
-
-    @_wrapper
+    @_wrap
     def __lt__(self, other) : return self._value < other
 
-    @_wrapper
-    def __le__(self, other) : return self._value <= other
-
-    @_wrapper
-    def __gt__(self, other) : return self._value > other
-
-    @_wrapper
-    def __ge__(self, other) : return self._value >= other
+    @_wrap
+    def __eq__(self, other) : return self._value == other
 
 class R(_Color) : _color = FG_RED
 class Y(_Color) : _color = FG_YELLOW

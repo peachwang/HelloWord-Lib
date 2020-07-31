@@ -27,10 +27,10 @@ class ObjectId(objectid) :
     
     # Get a hex encoded version of ObjectId o.
     # @log_entering
-    def __str__(self)                           : return f'ObjectId("{objectid.__str__(self)}")'
+    def __str__(self)                           : return f'{type(self).__name__}("{objectid.__str__(self)}")'
     
     # @log_entering
-    def __repr__(self)                          : return f'ObjectId("{objectid.__str__(self)}")'
+    def __repr__(self)                          : return f'{type(self).__name__}("{objectid.__str__(self)}")'
 
     @cached_prop
     def str(self) -> str                        : return objectid.__str__(self)

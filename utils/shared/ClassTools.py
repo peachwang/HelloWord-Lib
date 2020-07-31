@@ -1,8 +1,29 @@
 # -*- coding: utf-8 -*-  
-from abc       import ABCMeta, ABC, abstractmethod
-from functools import wraps, total_ordering, cached_property
-from weakref   import WeakValueDictionary
-from inspect   import isclass, signature
+from abc             import ABCMeta, ABC, abstractmethod
+from collections.abc import Callable
+from functools       import wraps, total_ordering, cached_property
+from weakref         import WeakValueDictionary
+from inspect         import isclass, signature
+
+def log_entering(pattern_or_func) :
+    if isinstance(pattern_or_func, str) : pattern = pattern_or_func
+    else                                : pattern = ''
+    def decorator(func) :
+        @wraps(func)
+        def wrapper(cls_or_self, *args, **kwargs) :
+            # kwargs['self'] = cls_or_self
+            msg = pattern.format(*args, self = cls_or_self, **kwargs)
+            # kwargs.pop('self')
+            if '.' in (name := type(cls_or_self).__name__) : _ = f'id = {id(cls_or_self)} {name:>15}.{func.__qualname__:30}'
+            else                                           : _ = f'id = {id(cls_or_self)} {func.__qualname__:30}'
+            Timer.print_timing(f'{_} {Y("开始")} {msg}')
+            result = func(cls_or_self, *args, **kwargs)
+            Timer.print_timing(f'{_} {G("结束")} {msg}')
+            return result
+        return wrapper
+    if isinstance(pattern_or_func, str)        : return decorator
+    elif isinstance(pattern_or_func, Callable) : return decorator(pattern_or_func)
+    else                                       : raise CustomTypeError(pattern_or_func)
 
 def print_func(func) :
     @wraps(func)
@@ -57,23 +78,23 @@ def anti_duplicate_init(func) :
         object.__setattr__(self, '_has_init', True)
     return wrapper
 
-# =====================            ClassPropertyDescriptor                  =====================
+# =====================            PropertyDescriptor                  =====================
 # https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
 # https://stackoverflow.com/questions/3203286/how-to-create-a-read-only-class-property-in-python
 # https://stackoverflow.com/questions/4037481/caching-class-attributes-in-python
 
 def _raise_exception(func, name) :
     @wraps(func)
-    def wrapper(*args, **kwargs) :
-        try :
-            return func(*args, **kwargs)
-        except Exception as e :
+    def wrapper(self, *args, **kwargs) :
+        try              :
+            return func(self, *args, **kwargs)
+        except Exception :
             import traceback, sys
             from .Color import P
             print(''.join(traceback.format_exception(*sys.exc_info())))
             print(f'处理属性 {P(name)} 时出错')
             print('-' * 50)
-            raise e
+            raise
     return wrapper
 
 class _ClassPropertyDescriptorBaseClass :
@@ -81,6 +102,144 @@ class _ClassPropertyDescriptorBaseClass :
     def __init__(self, fget, name) : self.fget, self.fset, self.fdel, self.name, self.__doc__ = fget, None, None, name, fget.__doc__
 
     def getter(self, fget)  : self.fget = fget if isinstance(fget, (classmethod, staticmethod)) else classmethod(_raise_exception(fget, self.name)); return self
+
+# =====================            property                          =====================
+# class property(fget=None, fset=None, fdel=None, doc=None)
+    # Return a property attribute.
+    # fget is a function for getting an attribute value.
+    # fset is a function for setting an attribute value.
+    # fdel is a function for deleting an attribute value.
+    # And doc creates a docstring for the attribute.
+
+    # A typical use is to define a managed attribute x:
+    # class C:
+        # def __init__(self):
+            # self._x = None
+        # def getx(self):
+            # return self._x
+        # def setx(self, value):
+            # self._x = value
+        # def delx(self):
+            # del self._x
+        # x = property(getx, setx, delx, "I'm the 'x' property.")
+    
+    # If c is an instance of C, c.x will invoke the getter, c.x = value will invoke the setter and del c.x the deleter.
+
+    # If given, doc will be the docstring of the property attribute.
+    # Otherwise, the property will copy fget’s docstring (if it exists).
+    # This makes it possible to create read-only properties easily using property() as a decorator:
+    # class Parrot:
+        # def __init__(self):
+            # self._voltage = 100000
+        # @property
+        # def voltage(self):
+            # """Get the current voltage."""
+            # return self._voltage
+    
+    # The @property decorator turns the voltage() method into a “getter” for a read-only attribute with the same name,
+    # and it sets the docstring for voltage to “Get the current voltage.”
+
+    # A property object has getter, setter, and deleter methods usable as decorators that create a copy of the property
+    # with the corresponding accessor function set to the decorated function.
+    # This is best explained with an example:
+    # class C:
+        # def __init__(self):
+            # self._x = None
+        # @property
+        # def x(self):
+            # """I'm the 'x' property."""
+            # return self._x
+        # @x.setter
+        # def x(self, value):
+            # self._x = value
+        # @x.deleter
+        # def x(self):
+            # del self._x
+    
+    # This code is exactly equivalent to the first example.
+    # Be sure to give the additional functions the same name as the original property (x in this case.)
+    # The returned property object also has the attributes fget, fset, and fdel corresponding to the constructor arguments.
+    # Changed in version 3.5: The docstrings of property objects are now writeable.
+    
+    # class property(object)
+        # property(fget=None, fset=None, fdel=None, doc=None)
+        # Property attribute.
+          # fget function to be used for getting an attribute value
+          # fset function to be used for setting an attribute value
+          # fdel function to be used for del'ing an attribute
+          # doc docstring
+        # Typical use is to define a managed attribute x:
+        # class C(object):
+            # def getx(self): return self._x
+            # def setx(self, value): self._x = value
+            # def delx(self): del self._x
+            # x = property(getx, setx, delx, "I'm the 'x' property.")
+        # Decorators make defining new properties or modifying existing ones easy:
+        # class C(object):
+            # @property
+            # def x(self):
+                # "I am the 'x' property."
+                # return self._x
+            # @x.setter
+            # def x(self, value):
+                # self._x = value
+            # @x.deleter
+            # def x(self):
+                # del self._x
+
+    # To see how property() is implemented in terms of the descriptor protocol, here is a pure Python equivalent:
+    # class Property(object):
+        # "Emulate PyProperty_Type() in Objects/descrobject.c"
+        # def __init__(self, fget=None, fset=None, fdel=None, doc=None):
+            # self.fget = fget
+            # self.fset = fset
+            # self.fdel = fdel
+            # if doc is None and fget is not None:
+                # doc = fget.__doc__
+            # self.__doc__ = doc
+        # def __get__(self, obj, objtype=None):
+            # if obj is None:
+                # return self
+            # if self.fget is None:
+                # raise AttributeError("unreadable attribute")
+            # return self.fget(obj)
+        # def __set__(self, obj, value):
+            # if self.fset is None:
+                # raise AttributeError("can't set attribute")
+            # self.fset(obj, value)
+        # def __delete__(self, obj):
+            # if self.fdel is None:
+                # raise AttributeError("can't delete attribute")
+            # self.fdel(obj)
+        # def getter(self, fget):
+            # return type(self)(fget, self.fset, self.fdel, self.__doc__)
+        # def setter(self, fset):
+            # return type(self)(self.fget, fset, self.fdel, self.__doc__)
+        # def deleter(self, fdel):
+            # return type(self)(self.fget, self.fset, fdel, self.__doc__)
+    
+    # The property() builtin helps whenever a user interface has granted attribute access and then subsequent changes require the intervention of a method.
+
+    # For instance, a spreadsheet class may grant access to a cell value through Cell('b10').value.
+    # Subsequent improvements to the program require the cell to be recalculated on every access;
+    # however, the programmer does not want to affect existing client code accessing the attribute directly.
+    # The solution is to wrap access to the value attribute in a property data descriptor:
+    # class Cell(object):
+        # def getvalue(self):
+            # "Recalculate the cell before returning value"
+            # self.recalc()
+            # return self._value
+        # value = property(getvalue)
+
+class prop(property) :
+
+    def __init__(self, fget, *args, **kwargs) : property.__init__(self, _raise_exception(fget, fget.__name__), *args, **kwargs)
+
+    def getter(self, fget)  : return property.getter(self, _raise_exception(fget, fget.__name__))
+
+    def setter(self, fset)  : return property.setter(self, _raise_exception(fset, fset.__name__))
+
+    def deleter(self, fdel) : return property.deleter(self, _raise_exception(fdel, fdel.__name__))
 
 class _ClassPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
     
@@ -110,6 +269,82 @@ class _ClassPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
     def setter(self, fset)  : self.fset = fset if isinstance(fset, (classmethod, staticmethod)) else classmethod(_raise_exception(fset, self.name)); return self
 
     def deleter(self, fdel) : self.fdel = fdel if isinstance(fdel, (classmethod, staticmethod)) else classmethod(_raise_exception(fdel, self.name)); return self
+
+def cls_prop(fget) :
+    name = fget.__name__
+    if not isinstance(fget, (classmethod, staticmethod)) : fget = classmethod(_raise_exception(fget, name))
+    return _ClassPropertyDescriptor(fget, name)
+
+# =====================            iterator_property                          =====================
+def _iter_wrap(func) :
+    from ..datatypes.Iter import Iter
+    @wraps(func)
+    def wrapper(*args, **kwargs) : return Iter(func(*args, **kwargs))
+    return wrapper
+
+class iter_prop(prop) :
+
+    def __init__(self, fget, *args, **kwargs) : prop.__init__(self, _iter_wrap(fget), *args, **kwargs)
+
+    def getter(self, fget)  : return prop.getter(self, _iter_wrap(fget))
+
+    setter = deleter = None
+
+# =====================            cached_property                          =====================
+# class cached_property:
+    # https://github.com/python/cpython/blob/3.8/Lib/functools.py#L925
+    # _NOT_FOUND = object()
+    # computed once per instance, cached as attribute
+    # 
+    # def __init__(self, func):
+        # self.func = func
+        # self.attrname = None
+        # self.__doc__ = func.__doc__
+        # self.lock = RLock()
+
+    # def __set_name__(self, owner, name):
+        # if self.attrname is None:
+        #     self.attrname = name
+        # elif name != self.attrname:
+        #     raise TypeError(
+        #         "Cannot assign the same cached_property to two different names "
+        #         f"({self.attrname!r} and {name!r})."
+        #     )
+
+    # def __get__(self, instance, owner=None):
+        # if instance is None:
+        #     return self
+        # if self.attrname is None:
+        #     raise TypeError(
+        #         "Cannot use cached_property instance without calling __set_name__ on it.")
+        # try:
+        #     cache = instance.__dict__
+        # except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
+        #     msg = (
+        #         f"No '__dict__' attribute on {type(instance).__name__!r} "
+        #         f"instance to cache {self.attrname!r} property."
+        #     )
+        #     raise TypeError(msg) from None
+        # val = cache.get(self.attrname, _NOT_FOUND)
+        # if val is _NOT_FOUND:
+        #     with self.lock:
+        #         # check if another thread filled cache while we awaited lock
+        #         val = cache.get(self.attrname, _NOT_FOUND)
+        #         if val is _NOT_FOUND:
+        #             val = self.func(instance)
+        #             try:
+        #                 cache[self.attrname] = val
+        #             except TypeError:
+        #                 msg = (
+        #                     f"The '__dict__' attribute on {type(instance).__name__!r} instance "
+        #                     f"does not support item assignment for caching {self.attrname!r} property."
+        #                 )
+        #                 raise TypeError(msg) from None
+        # return val
+
+class cached_prop(cached_property) :
+    
+    def __init__(self, fget, *args, **kwargs) : cached_property.__init__(self, _raise_exception(fget, fget.__name__), *args, **kwargs)
 
 class _ClassCachedPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
 
@@ -166,81 +401,10 @@ class _ClassCachedPropertyDescriptor(_ClassPropertyDescriptorBaseClass) :
 
     def deleter(self, fdel) : raise AttributeError(f'类缓存属性 {self.name} 不可设置 deleter')
 
-def cls_prop(fget) :
-    name = fget.__name__
-    if not isinstance(fget, (classmethod, staticmethod)) : fget = classmethod(_raise_exception(fget, name))
-    return _ClassPropertyDescriptor(fget, name)
-
 def cls_cached_prop(fget) :
     name = fget.__name__
     if not isinstance(fget, (classmethod, staticmethod)) : fget = classmethod(_raise_exception(fget, name))
     return _ClassCachedPropertyDescriptor(fget, name)
-
-class prop(property) :
-
-    def __init__(self, fget, *args, **kwargs) : property.__init__(self, _raise_exception(fget, fget.__name__), *args, **kwargs)
-
-    def getter(self, fget)  : return property.getter(_raise_exception(fget, fget.__name__))
-
-    def setter(self, fset)  : return property.setter(_raise_exception(fset, fset.__name__))
-
-    def deleter(self, fdel) : return property.deleter(_raise_exception(fdel, fdel.__name__))
-
-class cached_prop(cached_property) :
-    
-    def __init__(self, fget, *args, **kwargs) : cached_property.__init__(self, _raise_exception(fget, fget.__name__), *args, **kwargs)
-
-# =====================            cached_property                          =====================
-    # https://github.com/python/cpython/blob/3.8/Lib/functools.py#L925
-    # _NOT_FOUND = object()
-    # class cached_property:
-        # computed once per instance, cached as attribute
-        # 
-        # def __init__(self, func):
-        #     self.func = func
-        #     self.attrname = None
-        #     self.__doc__ = func.__doc__
-        #     self.lock = RLock()
-
-        # def __set_name__(self, owner, name):
-        #     if self.attrname is None:
-        #         self.attrname = name
-        #     elif name != self.attrname:
-        #         raise TypeError(
-        #             "Cannot assign the same cached_property to two different names "
-        #             f"({self.attrname!r} and {name!r})."
-        #         )
-
-        # def __get__(self, instance, owner=None):
-        #     if instance is None:
-        #         return self
-        #     if self.attrname is None:
-        #         raise TypeError(
-        #             "Cannot use cached_property instance without calling __set_name__ on it.")
-        #     try:
-        #         cache = instance.__dict__
-        #     except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
-        #         msg = (
-        #             f"No '__dict__' attribute on {type(instance).__name__!r} "
-        #             f"instance to cache {self.attrname!r} property."
-        #         )
-        #         raise TypeError(msg) from None
-        #     val = cache.get(self.attrname, _NOT_FOUND)
-        #     if val is _NOT_FOUND:
-        #         with self.lock:
-        #             # check if another thread filled cache while we awaited lock
-        #             val = cache.get(self.attrname, _NOT_FOUND)
-        #             if val is _NOT_FOUND:
-        #                 val = self.func(instance)
-        #                 try:
-        #                     cache[self.attrname] = val
-        #                 except TypeError:
-        #                     msg = (
-        #                         f"The '__dict__' attribute on {type(instance).__name__!r} instance "
-        #                         f"does not support item assignment for caching {self.attrname!r} property."
-        #                     )
-        #                     raise TypeError(msg) from None
-        #     return val
 
 # =====================            DynamicClassAttribute                    =====================
     # https://docs.python.org/3/library/types.html#types.DynamicClassAttribute
@@ -252,90 +416,78 @@ class cached_prop(cached_property) :
         # this is done by raising AttributeError.
 
         # This allows one to have properties active on an instance, and have virtual attributes on the class with the same name (see Enum for an example).
-        # 
         # def __init__(self, fget=None, fset=None, fdel=None, doc=None):
-        #     self.fget = fget
-        #     self.fset = fset
-        #     self.fdel = fdel
-        #     # next two lines make DynamicClassAttribute act the same as property
-        #     self.__doc__ = doc or fget.__doc__
-        #     self.overwrite_doc = doc is None
-        #     # support for abstract methods
-        #     self.__isabstractmethod__ = bool(getattr(fget, '__isabstractmethod__', False))
+            # self.fget = fget
+            # self.fset = fset
+            # self.fdel = fdel
+            # # next two lines make DynamicClassAttribute act the same as property
+            # self.__doc__ = doc or fget.__doc__
+            # self.overwrite_doc = doc is None
+            # # support for abstract methods
+            # self.__isabstractmethod__ = bool(getattr(fget, '__isabstractmethod__', False))
 
         # def __get__(self, instance, ownerclass=None):
-        #     if instance is None:
-        #         if self.__isabstractmethod__:
-        #             return self
-        #         raise AttributeError()
-        #     elif self.fget is None:
-        #         raise AttributeError("unreadable attribute")
-        #     return self.fget(instance)
+            # if instance is None:
+            #     if self.__isabstractmethod__:
+            #         return self
+            #     raise AttributeError()
+            # elif self.fget is None:
+            #     raise AttributeError("unreadable attribute")
+            # return self.fget(instance)
 
 # =====================            SingularClass                            =====================
 # https://docs.python.org/3/library/abc.html
 # https://www.python.org/dev/peps/pep-3115/
+# ContainerMetaClass
 class MetaClass(ABCMeta) :
 
-    @classmethod
-    def __prepare__(cls, name, bases, **kwds) :
+    # class.__prepare__(cls, name, bases, **kwds)
         # Once the appropriate metaclass has been identified, then the class namespace is prepared.
         # If the metaclass has a __prepare__ attribute, it is called as namespace = metaclass.__prepare__(name, bases, **kwds)
         # (where the additional keyword arguments, if any, come from the class definition).
         # The __prepare__ method should be implemented as a classmethod().
         # The namespace returned by __prepare__ is passed in to __new__, but when the final class object is created the namespace is copied into a new dict.
         # If the metaclass has no __prepare__ attribute, then the class namespace is initialised as an empty ordered mapping.
-        # 
+        
         # def prepare_class(name, *bases, metaclass=None, **kwargs):
-        #     if metaclass is None:
-        #         metaclass = compute_default_metaclass(bases)
-        #     prepare = getattr(metaclass, '__prepare__', None)
-        #     if prepare is not None:
-        #         return prepare(name, bases, **kwargs)
-        #     else:
-        #         return dict()
-        return { '_class' : name }
-    
+            # if metaclass is None:
+            #     metaclass = compute_default_metaclass(bases)
+            # prepare = getattr(metaclass, '__prepare__', None)
+            # if prepare is not None:
+            #     return prepare(name, bases, **kwargs)
+            # else:
+            #     return dict()
+    @classmethod
+    def __prepare__(cls, name, bases, **kwds) : return { '_class' : name }
+
     # class.mro(self)
         # This method can be overridden by a metaclass to customize the method resolution order for its instances.
         # It is called at class instantiation, and its result is stored in __mro__.
         # All classes created by metaclass contain this method, while instances of these classes do not.
-    
-    # The following methods are used to override the default behavior of the isinstance() and issubclass() built-in functions.
-        # In particular, the metaclass abc.ABCMeta implements these methods in order to allow the addition of Abstract Base Classes (ABCs)
-        # as “virtual base classes” to any class or type (including built-in types), including other ABCs.
-    
-        # class.__instancecheck__(self, instance)
-            # Return true if instance should be considered a (direct or indirect) instance of class.
-            # If defined, called to implement isinstance(instance, class).
-
-        # class.__subclasscheck__(self, subclass)
-            # Return true if subclass should be considered a (direct or indirect) subclass of class.
-            # If defined, called to implement issubclass(subclass, class).
         
-        # Note that these methods are looked up on the type (metaclass) of a class. They cannot be defined as class methods in the actual class.
-        # This is consistent with the lookup of special methods that are called on instances, only in this case the instance is itself a class.
+    # class.__instancecheck__(self, instance)
+        # Return true if instance should be considered a (direct or indirect) instance of class.
+        # If defined, called to implement isinstance(instance, class).
 
-        # See also
-        # PEP 3119 - Introducing Abstract Base Classes
-        # Includes the specification for customizing isinstance() and issubclass() behavior through __instancecheck__() and __subclasscheck__(),
-        # with motivation for this functionality in the context of adding Abstract Base Classes (see the abc module) to the language.
+    # class.__subclasscheck__(self, subclass)
+        # Return true if subclass should be considered a (direct or indirect) subclass of class.
+        # If defined, called to implement issubclass(subclass, class).
     
     # class.register(self, subclass)
         # Register subclass as a “virtual subclass” of this ABC.
         # Example:
-        # class MyABC(ABC): pass
-        # MyABC.register(tuple)
-        # assert issubclass(tuple, MyABC)
-        # assert isinstance((), MyABC)
+        # >>> class MyABC(ABC): pass
+        # >>> MyABC.register(tuple)
+        # >>> assert issubclass(tuple, MyABC)
+        # >>> assert isinstance((), MyABC)
 
-    def __iter__(self) : return self.__iter__()
+    def __iter__(self)                 : return self.__iter__()
 
-    def __getitem__(self, key) : return self.__getitem__(key)
+    def __getitem__(self, key)         : return self.__getitem__(key)
     
     def __setattr__(self, name, value) :
-        # print(f'\MetaClass.__setattr__({self = }, {name = }, {value = })')
         if name in ('__abstractmethods__', '_abc_impl') : type.__setattr__(self, name, value); return
+        # print(f'\nMetaClass.__setattr__({self = }, {name = }, {value = !s})')
         # print(f'{self = }, {self.__mro__ = }')
         # print(f'{self.__dict__.keys() = }, {self.__dict__.get(name) = }')
         # print(f'{self.__mro__[0].__dict__.keys() = }, {self.__mro__[0].__dict__.get(name) = }')
@@ -348,7 +500,7 @@ class MetaClass(ABCMeta) :
         # print(f'type.__setattr__(self, name, value)')
         type.__setattr__(self, name, value) # 常规属性
 
-    def __delattr__(self, name) :
+    def __delattr__(self, name)        :
         # print(f'\MetaClass.__delattr__({self = }, {name = })')
         for klass in self.__mro__ :
             if issubclass(BaseClass, klass) : break
@@ -364,8 +516,9 @@ class MetaClass(ABCMeta) :
 
 class SingularMetaClass(MetaClass) :
 
-    def __call__(self, *args, **kwargs) : raise Exception(f'类 {self} 不支持实例化')
+    def __call__(self, *args, **kwargs) : raise RuntimeError(f'类 {self} 不支持实例化')
 
+# ContainerBaseClass
 class BaseClass(ABC, metaclass = MetaClass) : pass
 
     # def __init_subclass__(cls, **kwargs) :
@@ -415,32 +568,27 @@ class BaseClass(ABC, metaclass = MetaClass) : pass
         # For a demonstration of these concepts, look at this example ABC definition:
         # 
         # class Foo:
-            
             # def __getitem__(self, index):
-            #     ...
-            
+                # ...
             # def __len__(self):
-            #     ...
-            
+                # ...
             # def get_iterator(self):
-            #     return iter(self)
+                # return iter(self)
         
         # class MyIterable(ABC):
             
             # @abstractmethod
             # def __iter__(self):
-            #     while False:
-            #         yield None
-            
+                # while False:
+                #     yield None
             # def get_iterator(self):
-            #     return self.__iter__()
-            
+                # return self.__iter__()
             # @classmethod
             # def __subclasshook__(cls, C):
-            #     if cls is MyIterable:
-            #         if any("__iter__" in B.__dict__ for B in C.__mro__):
-            #             return True
-            #     return NotImplemented
+                # if cls is MyIterable:
+                    # if any("__iter__" in B.__dict__ for B in C.__mro__):
+                        # return True
+                # return NotImplemented
         
         # MyIterable.register(Foo)
         # 
@@ -547,128 +695,6 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # >>> d.f.__class__
         # <class 'method'>
 
-    # class property(fget=None, fset=None, fdel=None, doc=None)
-        # Return a property attribute.
-
-        # fget is a function for getting an attribute value.
-        # fset is a function for setting an attribute value.
-        # fdel is a function for deleting an attribute value.
-        # And doc creates a docstring for the attribute.
-
-        # A typical use is to define a managed attribute x:
-
-        # class C:
-            # def __init__(self):
-            #     self._x = None
-
-            # def getx(self):
-            #     return self._x
-
-            # def setx(self, value):
-            #     self._x = value
-
-            # def delx(self):
-            #     del self._x
-
-            # x = property(getx, setx, delx, "I'm the 'x' property.")
-        
-        # If c is an instance of C, c.x will invoke the getter, c.x = value will invoke the setter and del c.x the deleter.
-
-        # If given, doc will be the docstring of the property attribute. Otherwise, the property will copy fget’s docstring (if it exists).
-        # This makes it possible to create read-only properties easily using property() as a decorator:
-
-        # class Parrot:
-            # def __init__(self):
-            #     self._voltage = 100000
-
-            # @property
-            # def voltage(self):
-            #     """Get the current voltage."""
-            #     return self._voltage
-        
-        # The @property decorator turns the voltage() method into a “getter” for a read-only attribute with the same name,
-        # and it sets the docstring for voltage to “Get the current voltage.”
-
-        # A property object has getter, setter, and deleter methods usable as decorators that create a copy of the property
-        # with the corresponding accessor function set to the decorated function.
-        # This is best explained with an example:
-
-        # class C:
-            # def __init__(self):
-            #     self._x = None
-
-            # @property
-            # def x(self):
-            #     """I'm the 'x' property."""
-            #     return self._x
-
-            # @x.setter
-            # def x(self, value):
-            #     self._x = value
-
-            # @x.deleter
-            # def x(self):
-            #     del self._x
-        # This code is exactly equivalent to the first example. Be sure to give the additional functions the same name as the original property (x in this case.)
-
-        # The returned property object also has the attributes fget, fset, and fdel corresponding to the constructor arguments.
-
-        # Changed in version 3.5: The docstrings of property objects are now writeable.
-
-        # To see how property() is implemented in terms of the descriptor protocol, here is a pure Python equivalent:
-
-        # class Property(object):
-            # "Emulate PyProperty_Type() in Objects/descrobject.c"
-
-            # def __init__(self, fget=None, fset=None, fdel=None, doc=None):
-            #     self.fget = fget
-            #     self.fset = fset
-            #     self.fdel = fdel
-            #     if doc is None and fget is not None:
-            #         doc = fget.__doc__
-            #     self.__doc__ = doc
-
-            # def __get__(self, obj, objtype=None):
-            #     if obj is None:
-            #         return self
-            #     if self.fget is None:
-            #         raise AttributeError("unreadable attribute")
-            #     return self.fget(obj)
-
-            # def __set__(self, obj, value):
-            #     if self.fset is None:
-            #         raise AttributeError("can't set attribute")
-            #     self.fset(obj, value)
-
-            # def __delete__(self, obj):
-            #     if self.fdel is None:
-            #         raise AttributeError("can't delete attribute")
-            #     self.fdel(obj)
-
-            # def getter(self, fget):
-            #     return type(self)(fget, self.fset, self.fdel, self.__doc__)
-
-            # def setter(self, fset):
-            #     return type(self)(self.fget, fset, self.fdel, self.__doc__)
-
-            # def deleter(self, fdel):
-            #     return type(self)(self.fget, self.fset, fdel, self.__doc__)
-        
-        # The property() builtin helps whenever a user interface has granted attribute access and then subsequent changes require the intervention of a method.
-
-        # For instance, a spreadsheet class may grant access to a cell value through Cell('b10').value.
-        # Subsequent improvements to the program require the cell to be recalculated on every access;
-        # however, the programmer does not want to affect existing client code accessing the attribute directly.
-        # The solution is to wrap access to the value attribute in a property data descriptor:
-
-        # class Cell(object):
-            # . . .
-            # def getvalue(self):
-            #     "Recalculate the cell before returning value"
-            #     self.recalc()
-            #     return self._value
-            # value = property(getvalue)
-
     # Static Methods and Class Methods
         # Non-data descriptors provide a simple mechanism for variations on the usual patterns of binding functions into methods.
 
@@ -684,27 +710,37 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
     # class staticmethod :
         # Transform a method into a static method.
-
         # A static method does not receive an implicit first argument. To declare a static method, use this idiom:
-
         # class C:
         #     @staticmethod
         #     def f(arg1, arg2, ...): ...
-
         # The @staticmethod form is a function decorator – see Function definitions for details.
-
         # A static method can be called either on the class (such as C.f()) or on an instance (such as C().f()).
 
-        # Static methods in Python are similar to those found in Java or C++. Also see classmethod() for a variant that is useful for creating alternate class constructors.
+        # Static methods in Python are similar to those found in Java or C++.
+        # Also see classmethod() for a variant that is useful for creating alternate class constructors.
 
         # Like all decorators, it is also possible to call staticmethod as a regular function and do something with its result.
         # This is needed in some cases where you need a reference to a function from a class body and you want to avoid the automatic transformation to instance method.
         # For these cases, use this idiom:
-
         # class C:
         #     builtin_open = staticmethod(open)
 
         # For more information on static methods, see The standard type hierarchy.
+        
+        # class staticmethod(object)
+            # staticmethod(function) -> method
+            # Convert a function to be a static method.
+            # A static method does not receive an implicit first argument.
+            # To declare a static method, use this idiom:
+                 # class C:
+                     # @staticmethod
+                     # def f(arg1, arg2, ...):
+                         # ...
+            # It can be called either on the class (e.g. C.f()) or on an instance (e.g. C().f()).
+            # Both the class and the instance are ignored, and neither is passed implicitly as the first argument to the method.
+            # Static methods in Python are similar to those found in Java or C++.
+            # For a more advanced concept, see the classmethod builtin.
         
         # Static methods return the underlying function without changes.
         # Calling either c.f or C.f is the equivalent of a direct lookup into object.__getattribute__(c, "f") or object.__getattribute__(C, "f").
@@ -719,96 +755,99 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # It can be called either from an object or the class: s.erf(1.5) --> .9332 or Sample.erf(1.5) --> .9332.
 
         # Since staticmethods return the underlying function with no changes, the example calls are unexciting:
-
         # >>> class E(object):
         # ...     def f(x):
         # ...         print(x)
         # ...     f = staticmethod(f)
-        # ...
         # >>> E.f(3)
         # 3
         # >>> E().f(3)
         # 3
         
         # Using the non-data descriptor protocol, a pure Python version of staticmethod() would look like this:
-        
         # class StaticMethod(object):
-        #     "Emulate PyStaticMethod_Type() in Objects/funcobject.c"
-
-        #     def __init__(self, f):
-        #         self.f = f
-
-        #     def __get__(self, obj, objtype=None):
-        #         return self.f
+            # "Emulate PyStaticMethod_Type() in Objects/funcobject.c"
+            # def __init__(self, f):
+                # self.f = f
+            # def __get__(self, obj, objtype=None):
+                # return self.f
 
     # class classmethod :
         # Transform a method into a class method.
-        
-        # A class method receives the class as implicit first argument, just like an instance method receives the instance. To declare a class method, use this idiom:
-        
+        # A class method receives the class as implicit first argument, just like an instance method receives the instance.
+        # To declare a class method, use this idiom:
         # class C:
         #     @classmethod
         #     def f(cls, arg1, arg2, ...): ...
-        
         # The @classmethod form is a function decorator – see Function definitions for details.
-        
-        # A class method can be called either on the class (such as C.f()) or on an instance (such as C().f()). The instance is ignored except for its class.
+        # A class method can be called either on the class (such as C.f()) or on an instance (such as C().f()).
+        # The instance is ignored except for its class.
         # If a class method is called for a derived class, the derived class object is passed as the implied first argument.
         
-        # Class methods are different than C++ or Java static methods. If you want those, see staticmethod().
+        # Class methods are different than C++ or Java static methods.
+        # If you want those, see staticmethod().
         
         # For more information on class methods, see The standard type hierarchy.
         
+        # class classmethod(object)
+            # classmethod(function) -> method
+            # Convert a function to be a class method.
+            # A class method receives the class as implicit first argument, just like an instance method receives the instance.
+            # To declare a class method, use this idiom:
+            #   class C:
+            #       @classmethod
+            #       def f(cls, arg1, arg2, ...):
+            #           ...
+            # It can be called either on the class (e.g. C.f()) or on an instance (e.g. C().f()).  The instance is ignored except for its class.
+            # If a class method is called for a derived class, the derived class object is passed as the implied first argument.
+            
+            # Class methods are different than C++ or Java static methods.
+            # If you want those, see the staticmethod builtin.
+
         # Unlike static methods, class methods prepend the class reference to the argument list before calling the function.
         # This format is the same for whether the caller is an object or a class:
-
         # >>> class E(object):
         # ...     def f(klass, x):
         # ...         return klass.__name__, x
         # ...     f = classmethod(f)
-        # ...
         # >>> print(E.f(3))
         # ('E', 3)
         # >>> print(E().f(3))
         # ('E', 3)
         
         # This behavior is useful whenever the function only needs to have a class reference and does not care about any underlying data.
-        # One use for classmethods is to create alternate class constructors. In Python 2.3, the classmethod dict.fromkeys() creates a new dictionary from a list of keys.
+        # One use for classmethods is to create alternate class constructors.
+        # In Python 2.3, the classmethod dict.fromkeys() creates a new dictionary from a list of keys.
         # The pure Python equivalent is:
-
         # class Dict(object):
-        #     . . .
-        #     def fromkeys(klass, iterable, value=None):
-        #         "Emulate dict_fromkeys() in Objects/dictobject.c"
-        #         d = klass()
-        #         for key in iterable:
-        #             d[key] = value
-        #         return d
-        #     fromkeys = classmethod(fromkeys)
+            # def fromkeys(klass, iterable, value=None):
+                # "Emulate dict_fromkeys() in Objects/dictobject.c"
+                # d = klass()
+                # for key in iterable:
+                #     d[key] = value
+                # return d
+            # fromkeys = classmethod(fromkeys)
         
         # Now a new dictionary of unique keys can be constructed like this:
-
         # >>> Dict.fromkeys('abracadabra')
         # {'a': None, 'r': None, 'b': None, 'c': None, 'd': None}
         
         # Using the non-data descriptor protocol, a pure Python version of classmethod() would look like this:
-        
         # class ClassMethod(object):
-        #     "Emulate PyClassMethod_Type() in Objects/funcobject.c"
-
-        #     def __init__(self, f):
-        #         self.f = f
-
-        #     def __get__(self, obj, klass=None):
-        #         if klass is None:
-        #             klass = type(obj)
-        #         def newfunc(*args):
-        #             return self.f(klass, *args)
-        #         return newfunc
+            # "Emulate PyClassMethod_Type() in Objects/funcobject.c"
+            # def __init__(self, f):
+            #     self.f = f
+            # def __get__(self, obj, klass=None):
+                # if klass is None:
+                #     klass = type(obj)
+                # def newfunc(*args):
+                #     return self.f(klass, *args)
+                # return newfunc
 
     # class type(object)
     # class type(name, bases, dict)
-        # With one argument, return the type of an object. The return value is a type object and generally the same object as returned by object.__class__.
+        # With one argument, return the type of an object.
+        # The return value is a type object and generally the same object as returned by object.__class__.
         
         # The isinstance() built-in function is recommended for testing the type of an object, because it takes subclasses into account.
         
@@ -817,55 +856,26 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # the bases tuple itemizes the base classes and becomes the __bases__ attribute;
         # and the dict dictionary is the namespace containing definitions for class body and is copied to a standard dictionary to become the __dict__ attribute.
         # For example, the following two statements create identical type objects:
-
-        # >>>
-        # class X:
-        #     a = 1
-
-        # X = type('X', (object,), dict(a=1))
+        # >>> class X:
+        # >>> a = 1
+        # >>> X = type('X', (object,), dict(a=1))
         # See also Type Objects.
 
         # Changed in version 3.6: Subclasses of type which don’t override type.__new__ may no longer use the one-argument form to get the type of an object.
+        # class type(object)
+            # type(object_or_name, bases, dict)
+            # type(object) -> the object's type
+            # type(name, bases, dict) -> a new type
 
     # class object()
-        # Return a new featureless object. object is a base for all classes. It has the methods that are common to all instances of Python classes.
+        # Return a new featureless object. object is a base for all classes.
+        # It has the methods that are common to all instances of Python classes.
         # This function does not accept any arguments.
-
         # Note: object does not have a __dict__, so you can’t assign arbitrary attributes to an instance of the object class.
-
-    # isinstance(object, classinfo)
-        # Return True if the object argument is an instance of the classinfo argument, or of a (direct, indirect or virtual) subclass thereof.
-        # If object is not an object of the given type, the function always returns False.
-        # If classinfo is a tuple of type objects (or recursively, other such tuples), return True if object is an instance of any of the types.
-        # If classinfo is not a type or tuple of types and such tuples, a TypeError exception is raised.
-
-    # issubclass(class, classinfo)
-        # Return True if class is a subclass (direct, indirect or virtual) of classinfo.
-        # A class is considered a subclass of itself.
-        # classinfo may be a tuple of class objects, in which case every entry in classinfo will be checked.
-        # In any other case, a TypeError exception is raised.
-
-    # hasattr(object, name)
-        # The arguments are an object and a string. The result is True if the string is the name of one of the object’s attributes, False if not.
-        # (This is implemented by calling getattr(object, name) and seeing whether it raises an AttributeError or not.)
-
-    # getattr(object, name[, default])
-        # Return the value of the named attribute of object. name must be a string.
-        # If the string is the name of one of the object’s attributes, the result is the value of that attribute.
-        # For example, getattr(x, 'foobar') is equivalent to x.foobar.
-        # If the named attribute does not exist, default is returned if provided, otherwise AttributeError is raised.
-
-    # setattr(object, name, value)
-        # This is the counterpart of getattr(). The arguments are an object, a string and an arbitrary value.
-        # The string may name an existing attribute or a new attribute.
-        # The function assigns the value to the attribute, provided the object allows it.
-        # For example, setattr(x, 'foobar', 123) is equivalent to x.foobar = 123.
-
-    # delattr(object, name)
-        # This is a relative of setattr(). The arguments are an object and a string.
-        # The string must be the name of one of the object’s attributes.
-        # The function deletes the named attribute, provided the object allows it.
-        # For example, delattr(x, 'foobar') is equivalent to del x.foobar.
+        # class object
+            # The base class of the class hierarchy.
+            # When called, it accepts no arguments and returns a new featureless
+            # instance that has no instance attributes and cannot be given any.
 
     # https://www.python.org/dev/peps/pep-3135/
     # https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
@@ -876,8 +886,7 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # The object-or-type determines the method resolution order to be searched.
         # The search starts from the class right after the type.
 
-        # For example, if __mro__ of object-or-type is D -> B -> C -> A -> object
-        # and the value of type is B, then super() searches C -> A -> object.
+        # For example, if __mro__ of object-or-type is D -> B -> C -> A -> object and the value of type is B, then super() searches C -> A -> object.
 
         # The __mro__ attribute of the object-or-type lists the method resolution search order used by both getattr() and super().
         # The attribute is dynamic and can change whenever the inheritance hierarchy is updated.
@@ -886,8 +895,9 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # If the second argument is an object, isinstance(obj, type) must be true.
         # If the second argument is a type, issubclass(type2, type) must be true (this is useful for classmethods).
 
-        # There are two typical use cases for super. In a class hierarchy with single inheritance,
-        # super can be used to refer to parent classes without naming them explicitly, thus making the code more maintainable.
+        # There are two typical use cases for super.
+        # In a class hierarchy with single inheritance, super can be used to refer to parent classes without naming them explicitly,
+        # thus making the code more maintainable.
         # This use closely parallels the use of super in other programming languages.
 
         # The second use case is to support cooperative multiple inheritance in a dynamic execution environment.
@@ -898,11 +908,9 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # and because that order can include sibling classes that are unknown prior to runtime).
 
         # For both use cases, a typical superclass call looks like this:
-
         # class C(B):
-        #     def method(self, arg):
-        #         super().method(arg)    # This does the same thing as:
-        #                                # super(C, self).method(arg)
+            # def method(self, arg):
+                # super().method(arg)    # This does the same thing as: super(C, self).method(arg)
 
         # In addition to method lookups, super() also works for attribute lookups.
         # One possible use case for this is calling descriptors in a parent or sibling class.
@@ -917,42 +925,30 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # as well as accessing the current instance for ordinary methods.
 
         # For practical suggestions on how to design cooperative classes using super(), see guide to using super().
+        # class super(object)
+            # super() -> same as super(__class__, <first argument>)
+            # super(type) -> unbound super object
+            # super(type, obj) -> bound super object; requires isinstance(obj, type)
+            # super(type, type2) -> bound super object; requires issubclass(type2, type)
+            # Typical use to call a cooperative superclass method:
+            # class C(B):
+                # def meth(self, arg):
+                    # super().meth(arg)
+            # This works for class methods too:
+            # class C(B):
+                # @classmethod
+                # def cmeth(cls, arg):
+                    # super().cmeth(arg)
 
-    # dir([object])
-        # Without arguments, return the list of names in the current local scope.
-        # With an argument, attempt to return a list of valid attributes for that object.
-
-        # If the object has a method named __dir__(), this method will be called and must return the list of attributes.
-        # This allows objects that implement a custom __getattr__() or __getattribute__() function to customize the way dir() reports their attributes.
-
-        # If the object does not provide __dir__(), the function tries its best to gather information from the object’s __dict__ attribute,if defined, and from its type object.
-        # The resulting list is not necessarily complete, and may be inaccurate when the object has a custom __getattr__().
-
-        # The default dir() mechanism behaves differently with different types of objects, as it attempts to produce the most relevant, rather than complete, information:
-        # If the object is a module object, the list contains the names of the module’s attributes.
-        # If the object is a type or class object, the list contains the names of its attributes, and recursively of the attributes of its bases.
-        # Otherwise, the list contains the object’s attributes’ names, the names of its class’s attributes, and recursively of the attributes of its class’s base classes.
-
-        # The resulting list is sorted alphabetically. For example:
-
-        # >>>
-        # import struct
-        # dir()   # show the names in the module namespace  
-        # ['__builtins__', '__name__', 'struct']
-        # dir(struct)   # show the names in the struct module 
-        # ['Struct', '__all__', '__builtins__', '__cached__', '__doc__', '__file__',
-        #  '__initializing__', '__loader__', '__name__', '__package__',
-        #  '_clearcache', 'calcsize', 'error', 'pack', 'pack_into',
-        #  'unpack', 'unpack_from']
-        # class Shape:
-        #     def __dir__(self):
-        #         return ['area', 'perimeter', 'location']
-        # s = Shape()
-        # dir(s)
-        # ['area', 'location', 'perimeter']
-        # Note: Because dir() is supplied primarily as a convenience for use at an interactive prompt, it tries to supply an interesting set of names more than
-        # it tries to supply a rigorously or consistently defined set of names, and its detailed behavior may change across releases.
-        # For example, metaclass attributes are not in the result list when the argument is a class.
+    # id(object)
+        # Return the “identity” of an object.
+        # This is an integer which is guaranteed to be unique and constant for this object during its lifetime.
+        # Two objects with non-overlapping lifetimes may have the same id() value.
+        # CPython implementation detail: This is the address of the object in memory.
+        # id(obj, /)
+            # Return the identity of an object.
+            # This is guaranteed to be unique among simultaneously existing objects.
+            # (CPython uses the object's memory address.)
 
     # vars([object])
         # Return the __dict__ attribute for a module, class, instance, or any other object with a __dict__ attribute.
@@ -961,11 +957,14 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # however, other objects may have write restrictions on their __dict__ attributes
         # (for example, classes use a types.MappingProxyType to prevent direct dictionary updates).
 
-        # Without an argument, vars() acts like locals(). Note, the locals dictionary is only useful for reads since updates to the locals dictionary are ignored.
+        # Without an argument, vars() acts like locals().
+        # Note, the locals dictionary is only useful for reads since updates to the locals dictionary are ignored.
+        # vars([object]) -> dictionary
+            # Without arguments, equivalent to locals().
+            # With an argument, equivalent to object.__dict__.
 
 # ===================== 3.3.       Special method names                     =====================
     # https://docs.python.org/3/reference/datamodel.html
-    # 
 
 # ===================== 3.3.1.     Basic customization                      =====================
 
@@ -1032,6 +1031,26 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # As a consequence, the global variables it needs to access (including other modules) may already have been deleted or set to None.
         # Python guarantees that globals whose name begins with a single underscore are deleted from their module before other globals are deleted;
         # if no other references to such globals exist, this may help in assuring that imported modules are still available at the time when the __del__() method is called.
+    
+    # ascii(object)
+        # As repr(), return a string containing a printable representation of an object,
+        # but escape the non-ASCII characters in the string returned by repr() using \x, \u or \U escapes.
+        # This generates a string similar to that returned by repr() in Python 2.
+        # ascii(obj, /)
+            # Return an ASCII-only representation of an object.
+            # As repr(), return a string containing a printable representation of an object,
+            # but escape the non-ASCII characters in the string returned by repr() using \\x, \\u or \\U escapes.
+            # This generates a string similar to that returned by repr() in Python 2.
+
+    # repr(object)
+        # Return a string containing a printable representation of an object.
+        # For many types, this function makes an attempt to return a string that would yield an object with the same value when passed to eval(),
+        # otherwise the representation is a string enclosed in angle brackets that contains the name of the type of the object
+        # together with additional information often including the name and address of the object.
+        # A class can control what this function returns for its instances by defining a __repr__() method.
+        # repr(obj, /)
+            # Return the canonical string representation of the object.
+            # For many object types, including most builtins, eval(repr(obj)) == obj.
 
     # object.__repr__(self)
         # Called by the repr() built-in function to compute the “official” string representation of an object.
@@ -1041,6 +1060,21 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
         # This is typically used for debugging, so it is important that the representation is information-rich and unambiguous.
 
+    # class str(object='')
+    # class str(object=b'', encoding='utf-8', errors='strict')
+        # Return a str version of object.
+        # See str() for details.
+        # str is the built-in string class.
+        # For general information about strings, see Text Sequence Type — str.
+        # class str(object)
+            # str(object='') -> str
+            # str(bytes_or_buffer[, encoding[, errors]]) -> str
+            # Create a new string object from the given object.
+            # If encoding or errors is specified, then the object must expose a data buffer that will be decoded using the given encoding and error handler.
+            # Otherwise, returns the result of object.__str__() (if defined) or repr(object).
+            # encoding defaults to sys.getdefaultencoding().
+            # errors defaults to 'strict'.
+
     # object.__str__(self)
         # Called by str(object) and the built-in functions format() and print() to compute the “informal” or nicely printable string representation of an object.
         # The return value must be a string object.
@@ -1049,9 +1083,76 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # a more convenient or concise representation can be used.
 
         # The default implementation defined by the built-in type object calls object.__repr__().
+    
+    # class bytes([source[, encoding[, errors]]])
+        # Return a new “bytes” object, which is an immutable sequence of integers in the range 0 <= x < 256.
+        # bytes is an immutable version of bytearray – it has the same non-mutating methods and the same indexing and slicing behavior.
+        # Accordingly, constructor arguments are interpreted as for bytearray().
+        # Bytes objects can also be created with literals, see String and Bytes literals.
+        # See also Binary Sequence Types — bytes, bytearray, memoryview, Bytes Objects, and Bytes and Bytearray Operations.
+        
+        # class bytes(object)
+            # bytes(iterable_of_ints) -> bytes
+            # bytes(string, encoding[, errors]) -> bytes
+            # bytes(bytes_or_buffer) -> immutable copy of bytes_or_buffer
+            # bytes(int) -> bytes object of size given by the parameter initialized with null bytes
+            # bytes() -> empty bytes object
+            
+            # Construct an immutable array of bytes from:
+            #   - an iterable yielding integers in range(256)
+            #   - a text string encoded using the specified encoding
+            #   - any object implementing the buffer API.
+            #   - an integer
+
+    # class bytearray([source[, encoding[, errors]]])
+        # Return a new array of bytes.
+        # The bytearray class is a mutable sequence of integers in the range 0 <= x < 256.
+        # It has most of the usual methods of mutable sequences, described in Mutable Sequence Types,
+        # as well as most methods that the bytes type has, see Bytes and Bytearray Operations.
+
+        # The optional source parameter can be used to initialize the array in a few different ways:
+        # If it is a string, you must also give the encoding (and optionally, errors) parameters; bytearray() then converts the string to bytes using str.encode().
+        # If it is an integer, the array will have that size and will be initialized with null bytes.
+        # If it is an object conforming to the buffer interface, a read-only buffer of the object will be used to initialize the bytes array.
+        # If it is an iterable, it must be an iterable of integers in the range 0 <= x < 256, which are used as the initial contents of the array.
+        # Without an argument, an array of size 0 is created.
+
+        # See also Binary Sequence Types — bytes, bytearray, memoryview and Bytearray Objects.
+        # class bytearray(object)
+            # bytearray(iterable_of_ints) -> bytearray
+            # bytearray(string, encoding[, errors]) -> bytearray
+            # bytearray(bytes_or_buffer) -> mutable copy of bytes_or_buffer
+            # bytearray(int) -> bytes array of size given by the parameter initialized with null bytes
+            # bytearray() -> empty bytes array
+            # 
+            # Construct a mutable bytearray object from:
+              # - an iterable yielding integers in range(256)
+              # - a text string encoded using the specified encoding
+              # - a bytes or a buffer object
+              # - any object implementing the buffer API.
+              # - an integer
 
     # object.__bytes__(self)
-        # Called by bytes to compute a byte-string representation of an object. This should return a bytes object.
+        # Called by bytes to compute a byte-string representation of an object.
+        # This should return a bytes object.
+
+    # format(value[, format_spec])
+        # Convert a value to a “formatted” representation, as controlled by format_spec.
+        # The interpretation of format_spec will depend on the type of the value argument,
+        # however there is a standard formatting syntax that is used by most built-in types: Format Specification Mini-Language.
+
+        # The default format_spec is an empty string which usually gives the same effect as calling str(value).
+
+        # A call to format(value, format_spec) is translated to type(value).__format__(value, format_spec)
+        # which bypasses the instance dictionary when searching for the value’s __format__() method.
+        # A TypeError exception is raised if the method search reaches object and the format_spec is non-empty,
+        # or if either the format_spec or the return value are not strings.
+        # format(value, format_spec='', /)
+            # Return value.__format__(format_spec)
+            # format_spec defaults to the empty string.
+            # See the Format Specification Mini-Language section of help('FORMATTING') for details.
+
+        # Changed in version 3.4: object().__format__(format_spec) raises TypeError if format_spec is not an empty string.
 
     # object.__format__(self, format_spec)
         # Called by the format() built-in function, and by extension, evaluation of formatted string literals and the str.format() method,
@@ -1088,6 +1189,19 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # See the paragraph on __hash__() for some important notes on creating hashable objects which support custom comparison operations and are usable as dictionary keys.
 
         # There are no swapped-argument versions of these methods (to be used when the left argument does not support the operation but the right argument does); rather, __lt__() and __gt__() are each other’s reflection, __le__() and __ge__() are each other’s reflection, and __eq__() and __ne__() are their own reflection. If the operands are of different types, and right operand’s type is a direct or indirect subclass of the left operand’s type, the reflected method of the right operand has priority, otherwise the left operand’s method has priority. Virtual subclassing is not considered.
+
+    # hash(object)
+        # Return the hash value of the object (if it has one).
+        # Hash values are integers.
+        # They are used to quickly compare dictionary keys during a dictionary lookup.
+        # Numeric values that compare equal have the same hash value (even if they are of different types, as is the case for 1 and 1.0).
+
+        # Note For objects with custom __hash__() methods, note that hash() truncates the return value based on the bit width of the host machine.
+        # See __hash__() for details.
+        
+        # hash(obj, /)
+            # Return the hash value for the given object.
+            # Two objects that compare equal must also have the same hash value, but the reverse is not necessarily true.
 
     # object.__hash__(self)
         # Called by built-in function hash() and for operations on members of hashed collections including set, frozenset, and dict.
@@ -1131,6 +1245,19 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
         # Changed in version 3.3: Hash randomization is enabled by default.
 
+    # class bool([x])
+        # Return a Boolean value, i.e. one of True or False.
+        # x is converted using the standard truth testing procedure.
+        # If x is false or omitted, this returns False; otherwise it returns True.
+        # The bool class is a subclass of int (see Numeric Types — int, float, complex).
+        # It cannot be subclassed further.
+        # Its only instances are False and True (see Boolean Values).
+        # class bool(int)
+            # bool(x) -> bool
+            # Returns True when the argument x is true, False otherwise.
+            # The builtins True and False are the only two instances of the class bool.
+            # The class bool is a subclass of the class int, and cannot be subclassed.
+
     # object.__bool__(self)
         # Called to implement truth value testing and the built-in operation bool(); should return False or True.
         # When this method is not defined, __len__() is called, if it is defined, and the object is considered true if its result is nonzero.
@@ -1138,6 +1265,23 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
 # ===================== 3.3.2.     Customizing attribute access             =====================
     # The following methods can be defined to customize the meaning of attribute access (use of, assignment to, or deletion of x.name) for class instances.
+
+    # hasattr(object, name)
+        # The arguments are an object and a string.
+        # The result is True if the string is the name of one of the object’s attributes, False if not.
+        # (This is implemented by calling getattr(object, name) and seeing whether it raises an AttributeError or not.)
+        # hasattr(obj, name, /)
+            # Return whether the object has an attribute with the given name.
+            # This is done by calling getattr(obj, name) and catching AttributeError.
+
+    # getattr(object, name[, default])
+        # Return the value of the named attribute of object. name must be a string.
+        # If the string is the name of one of the object’s attributes, the result is the value of that attribute.
+        # For example, getattr(x, 'foobar') is equivalent to x.foobar.
+        # If the named attribute does not exist, default is returned if provided, otherwise AttributeError is raised.
+        # getattr(object, name[, default]) -> value
+            # Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
+            # When a default argument is given, it is returned when the attribute doesn't exist; without it, an exception is raised in that case.
 
     # object.__getattr__(self, name)
         # Called when the default attribute access fails with an AttributeError
@@ -1161,15 +1305,72 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # Note: This method may still be bypassed when looking up special methods as the result of implicit invocation via language syntax or built-in functions.
         # See Special method lookup.
 
+    # setattr(object, name, value)
+        # This is the counterpart of getattr(). The arguments are an object, a string and an arbitrary value.
+        # The string may name an existing attribute or a new attribute.
+        # The function assigns the value to the attribute, provided the object allows it.
+        # For example, setattr(x, 'foobar', 123) is equivalent to x.foobar = 123.
+        # setattr(obj, name, value, /)
+            # Sets the named attribute on the given object to the specified value.
+            # setattr(x, 'y', v) is equivalent to ``x.y = v''
+
     # object.__setattr__(self, name, value)
-        # Called when an attribute assignment is attempted. This is called instead of the normal mechanism (i.e. store the value in the instance dictionary).
+        # Called when an attribute assignment is attempted.
+        # This is called instead of the normal mechanism (i.e. store the value in the instance dictionary).
         # name is the attribute name, value is the value to be assigned to it.
 
         # If __setattr__() wants to assign to an instance attribute, it should call the base class method with the same name,
         # for example, object.__setattr__(self, name, value).
+    
+    # delattr(object, name)
+        # This is a relative of setattr().
+        # The arguments are an object and a string.
+        # The string must be the name of one of the object’s attributes.
+        # The function deletes the named attribute, provided the object allows it.
+        # For example, delattr(x, 'foobar') is equivalent to del x.foobar.
+        # delattr(obj, name, /)
+            # Deletes the named attribute from the given object.
+            # delattr(x, 'y') is equivalent to ``del x.y''
 
     # object.__delattr__(self, name)
-        # Like __setattr__() but for attribute deletion instead of assignment. This should only be implemented if del obj.name is meaningful for the object.
+        # Like __setattr__() but for attribute deletion instead of assignment.
+        # This should only be implemented if del obj.name is meaningful for the object.
+
+    # dir([object])
+        # Without arguments, return the list of names in the current local scope.
+        # With an argument, attempt to return a list of valid attributes for that object.
+
+        # If the object has a method named __dir__(), this method will be called and must return the list of attributes.
+        # This allows objects that implement a custom __getattr__() or __getattribute__() function to customize the way dir() reports their attributes.
+
+        # If the object does not provide __dir__(), the function tries its best to gather information from the object’s __dict__ attribute,if defined, and from its type object.
+        # The resulting list is not necessarily complete, and may be inaccurate when the object has a custom __getattr__().
+
+        # The default dir() mechanism behaves differently with different types of objects, as it attempts to produce the most relevant, rather than complete, information:
+        # If the object is a module object, the list contains the names of the module’s attributes.
+        # If the object is a type or class object, the list contains the names of its attributes, and recursively of the attributes of its bases.
+        # Otherwise, the list contains the object’s attributes’ names, the names of its class’s attributes, and recursively of the attributes of its class’s base classes.
+
+        # The resulting list is sorted alphabetically. For example:
+
+        # >>>
+        # import struct
+        # dir()   # show the names in the module namespace  
+        # ['__builtins__', '__name__', 'struct']
+        # dir(struct)   # show the names in the struct module 
+        # ['Struct', '__all__', '__builtins__', '__cached__', '__doc__', '__file__',
+        #  '__initializing__', '__loader__', '__name__', '__package__',
+        #  '_clearcache', 'calcsize', 'error', 'pack', 'pack_into',
+        #  'unpack', 'unpack_from']
+        # class Shape:
+        #     def __dir__(self):
+        #         return ['area', 'perimeter', 'location']
+        # s = Shape()
+        # dir(s)
+        # ['area', 'location', 'perimeter']
+        # Note: Because dir() is supplied primarily as a convenience for use at an interactive prompt, it tries to supply an interesting set of names more than
+        # it tries to supply a rigorously or consistently defined set of names, and its detailed behavior may change across releases.
+        # For example, metaclass attributes are not in the result list when the argument is a class.
 
     # object.__dir__(self)
         # Called when dir() is called on the object. A sequence must be returned.
@@ -1304,7 +1505,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # __slots__ allow us to explicitly declare data members (like properties) and deny the creation of __dict__ and __weakref__
     # (unless explicitly declared in __slots__ or available in a parent.)
 
-    # The space saved over using __dict__ can be significant. Attribute lookup speed can be significantly improved as well.
+    # The space saved over using __dict__ can be significant.
+    # Attribute lookup speed can be significantly improved as well.
 
     # object.__slots__
         # This class variable can be assigned a string, iterable, or sequence of strings with variable names used by instances.
@@ -1481,13 +1683,36 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # In particular, the metaclass abc.ABCMeta implements these methods in order to allow the addition of Abstract Base Classes (ABCs) as “virtual base classes”
     # to any class or type (including built-in types), including other ABCs.
 
+    # isinstance(object, classinfo)
+        # Return True if the object argument is an instance of the classinfo argument, or of a (direct, indirect or virtual) subclass thereof.
+        # If object is not an object of the given type, the function always returns False.
+        # If classinfo is a tuple of type objects (or recursively, other such tuples), return True if object is an instance of any of the types.
+        # If classinfo is not a type or tuple of types and such tuples, a TypeError exception is raised.
+        # isinstance(obj, class_or_tuple, /)
+            # Return whether an object is an instance of a class or of a subclass thereof.
+            # A tuple, as in ``isinstance(x, (A, B, ...))``, may be given as the target to check against.
+            # This is equivalent to ``isinstance(x, A) or isinstance(x, B) or ...`` etc.
+
     # class.__instancecheck__(self, instance)
-        # Return true if instance should be considered a (direct or indirect) instance of class. If defined, called to implement isinstance(instance, class).
+        # Return true if instance should be considered a (direct or indirect) instance of class.
+        # If defined, called to implement isinstance(instance, class).
+
+    # issubclass(class, classinfo)
+        # Return True if class is a subclass (direct, indirect or virtual) of classinfo.
+        # A class is considered a subclass of itself.
+        # classinfo may be a tuple of class objects, in which case every entry in classinfo will be checked.
+        # In any other case, a TypeError exception is raised.
+        # issubclass(cls, class_or_tuple, /)
+            # Return whether 'cls' is a derived from another class or is the same class.
+            # A tuple, as in ``issubclass(x, (A, B, ...))``, may be given as the target to check against.
+            # This is equivalent to ``issubclass(x, A) or issubclass(x, B) or ...`` etc.
 
     # class.__subclasscheck__(self, subclass)
-        # Return true if subclass should be considered a (direct or indirect) subclass of class. If defined, called to implement issubclass(subclass, class).
+        # Return true if subclass should be considered a (direct or indirect) subclass of class.
+        # If defined, called to implement issubclass(subclass, class).
 
-    # Note that these methods are looked up on the type (metaclass) of a class. They cannot be defined as class methods in the actual class.
+    # Note that these methods are looked up on the type (metaclass) of a class.
+    # They cannot be defined as class methods in the actual class.
     # This is consistent with the lookup of special methods that are called on instances, only in this case the instance is itself a class.
 
     # See also
@@ -1507,6 +1732,14 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # See also PEP 560 - Core support for typing module and generic types
 
 # ===================== 3.3.6.     Emulating callable objects               =====================
+    # callable(object)
+        # Return True if the object argument appears callable, False if not.
+        # If this returns True, it is still possible that a call fails, but if it is False, calling object will never succeed.
+        # Note that classes are callable (calling a class returns a new instance); instances are callable if their class has a __call__() method.
+        # callable(obj, /)
+            # Return whether the object is callable (i.e., some kind of function).
+            # Note that classes are callable, as are instances of classes with a __call__() method.
+
     # object.__call__(self[, args...])
         # Called when the instance is “called” as a function; if this method is defined, x(arg1, arg2, ...) is a shorthand for x.__call__(arg1, arg2, ...).
 
@@ -1522,7 +1755,47 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # object.__truediv__(self, other)
     # object.__floordiv__(self, other)
     # object.__mod__(self, other)
+    
+    # divmod(a, b)
+        # Take two (non complex) numbers as arguments and return a pair of numbers consisting of their quotient and remainder when using integer division.
+        # With mixed operand types, the rules for binary arithmetic operators apply.
+        # For integers, the result is the same as (a // b, a % b).
+        # For floating point numbers the result is (q, a % b), where q is usually math.floor(a / b) but may be 1 less than that.
+        # In any case q * b + a % b is very close to a, if a % b is non-zero it has the same sign as b, and 0 <= abs(a % b) < abs(b).
+        # divmod(x, y, /)
+            # Return the tuple (x//y, x%y).
+            # Invariant: div*y + mod == x.
+
     # object.__divmod__(self, other)
+
+    # pow(base, exp[, mod])
+        # Return base to the power exp; if mod is present, return base to the power exp, modulo mod (computed more efficiently than pow(base, exp) % mod).
+        # The two-argument form pow(base, exp) is equivalent to using the power operator: base**exp.
+
+        # The arguments must have numeric types.
+        # With mixed operand types, the coercion rules for binary arithmetic operators apply.
+        # For int operands, the result has the same type as the operands (after coercion) unless the second argument is negative;
+        # in that case, all arguments are converted to float and a float result is delivered.
+        # For example, 10**2 returns 100, but 10**-2 returns 0.01.
+
+        # For int operands base and exp, if mod is present, mod must also be of integer type and mod must be nonzero.
+        # If mod is present and exp is negative, base must be relatively prime to mod.
+        # In that case, pow(inv_base, -exp, mod) is returned, where inv_base is an inverse to base modulo mod.
+
+        # Here’s an example of computing an inverse for 38 modulo 97:
+        # >>> pow(38, -1, mod=97)
+        # 23
+        # >>> 23 * 38 % 97 == 1
+        # True
+        # Changed in version 3.8: For int operands, the three-argument form of pow now allows the second argument to be negative,
+        # permitting computation of modular inverses.
+        # Changed in version 3.8: Allow keyword arguments.
+        # Formerly, only positional arguments were supported.
+
+        # pow(base, exp, mod=None)
+            # Equivalent to base**exp with 2 arguments or base**exp % mod with 3 arguments
+            # Some types, such as ints, are able to use a more efficient algorithm when invoked using the three argument form.
+
     # object.__pow__(self, other[, modulo])
     # object.__lshift__(self, other)
     # object.__rshift__(self, other)
@@ -1583,21 +1856,227 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
     # object.__neg__(self)
     # object.__pos__(self)
+    
+    # abs(x)
+        # Return the absolute value of a number.
+        # The argument may be an integer or a floating point number.
+        # If the argument is a complex number, its magnitude is returned.
+        # If x defines __abs__(), abs(x) returns x.__abs__().
+        # abs(x, /)
+            # Return the absolute value of the argument.
+    
     # object.__abs__(self)
     # object.__invert__(self)
         # Called to implement the unary arithmetic operations (-, +, abs() and ~).
 
+    # class complex([real[, imag]])
+        # Return a complex number with the value real + imag*1j or convert a string or number to a complex number.
+        # If the first parameter is a string, it will be interpreted as a complex number and the function must be called without a second parameter.
+        # The second parameter can never be a string.
+        # Each argument may be any numeric type (including complex).
+        # If imag is omitted, it defaults to zero and the constructor serves as a numeric conversion like int and float.
+        # If both arguments are omitted, returns 0j.
+
+        # For a general Python object x, complex(x) delegates to x.__complex__().
+        # If __complex__() is not defined then it falls back to __float__().
+        # If __float__() is not defined then it falls back to __index__().
+
+        # Note When converting from a string, the string must not contain whitespace around the central + or - operator. For example, complex('1+2j') is fine, but complex('1 + 2j') raises ValueError.
+        # The complex type is described in Numeric Types — int, float, complex.
+        
+        # Changed in version 3.6: Grouping digits with underscores as in code literals is allowed.
+        # Changed in version 3.8: Falls back to __index__() if __complex__() and __float__() are not defined.
+        
+        # class complex(object)
+            # complex(real=0, imag=0)
+            # Create a complex number from a real part and an optional imaginary part.
+            # This is equivalent to (real + imag*1j) where imag defaults to 0.
+
     # object.__complex__(self)
+    
+    # class int([x])
+    # class int(x, base=10)
+        # Return an integer object constructed from a number or string x, or return 0 if no arguments are given.
+        # If x defines __int__(), int(x) returns x.__int__().
+        # If x defines __index__(), it returns x.__index__().
+        # If x defines __trunc__(), it returns x.__trunc__().
+        # For floating point numbers, this truncates towards zero.
+
+        # If x is not a number or if base is given, then x must be a string, bytes, or bytearray instance representing an integer literal in radix base.
+        # Optionally, the literal can be preceded by + or - (with no space in between) and surrounded by whitespace.
+        # A base-n literal consists of the digits 0 to n-1, with a to z (or A to Z) having values 10 to 35.
+        # The default base is 10.
+        # The allowed values are 0 and 2–36.
+        # Base-2, -8, and -16 literals can be optionally prefixed with 0b/0B, 0o/0O, or 0x/0X, as with integer literals in code.
+        # Base 0 means to interpret exactly as a code literal, so that the actual base is 2, 8, 10, or 16,
+        # and so that int('010', 0) is not legal, while int('010') is, as well as int('010', 8).
+
+        # The integer type is described in Numeric Types — int, float, complex.
+
+        # Changed in version 3.4: If base is not an instance of int and the base object has a base.__index__ method,
+        # that method is called to obtain an integer for the base.
+        # Previous versions used base.__int__ instead of base.__index__.
+        # Changed in version 3.6: Grouping digits with underscores as in code literals is allowed.
+        # Changed in version 3.7: x is now a positional-only parameter.
+        # Changed in version 3.8: Falls back to __index__() if __int__() is not defined.
+
+        # class int(object)
+            # int([x]) -> integer
+            # int(x, base=10) -> integer
+            # Convert a number or string to an integer, or return 0 if no arguments are given.
+            # If x is a number, return x.__int__().
+            # For floating point numbers, this truncates towards zero.
+            # If x is not a number or if base is given, then x must be a string, bytes, or bytearray instance representing an integer literal in the given base.
+            # The literal can be preceded by '+' or '-' and be surrounded by whitespace.
+            # The base defaults to 10.
+            # Valid bases are 0 and 2-36.
+            # Base 0 means to interpret the base from the string as an integer literal.
+            # >>> int('0b100', base=0)
+            # 4
+
     # object.__int__(self)
+    
+    # class float([x])
+        # Return a floating point number constructed from a number or string x.
+
+        # If the argument is a string, it should contain a decimal number, optionally preceded by a sign, and optionally embedded in whitespace.
+        # The optional sign may be '+' or '-'; a '+' sign has no effect on the value produced.
+        # The argument may also be a string representing a NaN (not-a-number), or a positive or negative infinity.
+        # More precisely, the input must conform to the following grammar after leading and trailing whitespace characters are removed:
+        # sign           ::=  "+" | "-"
+        # infinity       ::=  "Infinity" | "inf"
+        # nan            ::=  "nan"
+        # numeric_value  ::=  floatnumber | infinity | nan
+        # numeric_string ::=  [sign] numeric_value
+        # Here floatnumber is the form of a Python floating-point literal, described in Floating point literals.
+        # Case is not significant, so, for example, “inf”, “Inf”, “INFINITY” and “iNfINity” are all acceptable spellings for positive infinity.
+
+        # Otherwise, if the argument is an integer or a floating point number,
+        # a floating point number with the same value (within Python’s floating point precision) is returned.
+        # If the argument is outside the range of a Python float, an OverflowError will be raised.
+
+        # For a general Python object x, float(x) delegates to x.__float__().
+        # If __float__() is not defined then it falls back to __index__().
+
+        # If no argument is given, 0.0 is returned.
+        # Examples:
+        # >>>
+        # >>> float('+1.23')
+        # 1.23
+        # >>> float('   -12345\n')
+        # -12345.0
+        # >>> float('1e-003')
+        # 0.001
+        # >>> float('+1E6')
+        # 1000000.0
+        # >>> float('-Infinity')
+        # -inf
+        # The float type is described in Numeric Types — int, float, complex.
+
+        # Changed in version 3.6: Grouping digits with underscores as in code literals is allowed.
+        # Changed in version 3.7: x is now a positional-only parameter.
+        # Changed in version 3.8: Falls back to __index__() if __float__() is not defined.
+        
+        # class float(object)
+            # float(x=0, /)
+            # Convert a string or number to a floating point number, if possible.
+
     # object.__float__(self)
-        # Called to implement the built-in functions complex(), int() and float(). Should return a value of the appropriate type.
+        # Called to implement the built-in functions complex(), int() and float().
+        # Should return a value of the appropriate type.
+    
+    # bin(x)
+        # Convert an integer number to a binary string prefixed with “0b”.
+        # The result is a valid Python expression.
+        # If x is not a Python int object, it has to define an __index__() method that returns an integer.
+        # Some examples:
+        # >>> bin(3)
+        # '0b11'
+        # >>> bin(-10)
+        # '-0b1010'
+        # If prefix “0b” is desired or not, you can use either of the following ways.
+        # >>> format(14, '#b'), format(14, 'b')
+        # ('0b1110', '1110')
+        # >>> f'{14:#b}', f'{14:b}'
+        # ('0b1110', '1110')
+        # See also format() for more information.
+        # bin(number, /)
+            # Return the binary representation of an integer.
+            # >>> bin(2796202)
+            # '0b1010101010101010101010'
+
+    # oct(x)
+        # Convert an integer number to an octal string prefixed with “0o”.
+        # The result is a valid Python expression.
+        # If x is not a Python int object, it has to define an __index__() method that returns an integer. For example:
+        # >>> oct(8)
+        # '0o10'
+        # >>> oct(-56)
+        # '-0o70'
+        # If you want to convert an integer number to octal string either with prefix “0o” or not, you can use either of the following ways.
+        # >>> '%#o' % 10, '%o' % 10
+        # ('0o12', '12')
+        # >>> format(10, '#o'), format(10, 'o')
+        # ('0o12', '12')
+        # >>> f'{10:#o}', f'{10:o}'
+        # ('0o12', '12')
+        # See also format() for more information.
+        # oct(number, /)
+            # Return the octal representation of an integer.
+            # >>> oct(342391)
+            # '0o1234567'
+
+    # hex(x)
+        # Convert an integer number to a lowercase hexadecimal string prefixed with “0x”.
+        # If x is not a Python int object, it has to define an __index__() method that returns an integer.
+        # Some examples:
+        # >>> hex(255)
+        # '0xff'
+        # >>> hex(-42)
+        # '-0x2a'
+        # If you want to convert an integer number to an uppercase or lower hexadecimal string with prefix or not, you can use either of the following ways:
+        # >>> '%#x' % 255, '%x' % 255, '%X' % 255
+        # ('0xff', 'ff', 'FF')
+        # >>> format(255, '#x'), format(255, 'x'), format(255, 'X')
+        # ('0xff', 'ff', 'FF')
+        # >>> f'{255:#x}', f'{255:x}', f'{255:X}'
+        # ('0xff', 'ff', 'FF')
+        # See also format() for more information.
+        # See also int() for converting a hexadecimal string to an integer using a base of 16.
+        # Note: To obtain a hexadecimal string representation for a float, use the float.hex() method.
+        # hex(number, /)
+            # Return the hexadecimal representation of an integer.
+            # >>> hex(12648430)
+            # '0xc0ffee'
 
     # object.__index__(self)
         # Called to implement operator.index(), and whenever Python needs to losslessly convert the numeric object to an integer object
         # (such as in slicing, or in the built-in bin(), hex() and oct() functions).
-        # Presence of this method indicates that the numeric object is an integer type. Must return an integer.
+        # Presence of this method indicates that the numeric object is an integer type.
+        # Must return an integer.
 
         # If __int__(), __float__() and __complex__() are not defined then corresponding built-in functions int(), float() and complex() fall back to __index__().
+
+    # round(number[, ndigits])
+        # Return number rounded to ndigits precision after the decimal point.
+        # If ndigits is omitted or is None, it returns the nearest integer to its input.
+
+        # For the built-in types supporting round(), values are rounded to the closest multiple of 10 to the power minus ndigits;
+        # if two multiples are equally close, rounding is done toward the even choice (so, for example, both round(0.5) and round(-0.5) are 0, and round(1.5) is 2).
+        # Any integer value is valid for ndigits (positive, zero, or negative).
+        # The return value is an integer if ndigits is omitted or None.
+        # Otherwise the return value has the same type as number.
+
+        # For a general Python object number, round delegates to number.__round__.
+
+        # Note: The behavior of round() for floats can be surprising: for example, round(2.675, 2) gives 2.67 instead of the expected 2.68.
+        # This is not a bug: it’s a result of the fact that most decimal fractions can’t be represented exactly as a float.
+        # See Floating Point Arithmetic: Issues and Limitations for more information.
+        # round(number, ndigits=None)
+            # Round a number to a given precision in decimal digits.
+            # The return value is an integer if ndigits is omitted or None.
+            # Otherwise the return value has the same type as the number.
+            # ndigits may be negative.
 
     # object.__round__(self[, ndigits])
     # object.__trunc__(self)

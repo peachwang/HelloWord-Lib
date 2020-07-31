@@ -5,6 +5,7 @@ from ..shared  import *
 from .Str      import Str
 from .DateTime import DateTime
 from .List     import List
+from .Iter     import Iter
 from .File     import File, basename, realpath, exists, getatime, getmtime
 
 @add_print_func
@@ -17,16 +18,11 @@ class Folder :
     def __new__(cls, folder_path, *args, **kwargs)            : return realpath(folder_path)
 
     @anti_duplicate_init
-    def __init__(self, folder_path, /, *, auto_build = False) :
+    def __init__(self, folder_path, /) :
         self._raw_path         = folder_path.get_raw() if isinstance(folder_path, Str) else folder_path
         self._path             = folder_path
         self._name             = basename(folder_path)
-        self._auto_build       = auto_build
         self._has_listed       = False
-        self._has_built_folder = False
-        self._has_built_file   = False
-        if not auto_build : pass
-        else              : self._build()
 
     # @cached_prop
     # def raw_path(self) -> str                                 : return self._raw_path
@@ -40,14 +36,15 @@ class Folder :
     @cached_prop
     def name(self) -> str                                     : return self._name
 
-    def mkdir(self, /)                                        : makedirs(self._raw_path, exist_ok = True); return self
+    def mkdir(self, *, exist_ok = True)                       : makedirs(self._raw_path, exist_ok = exist_ok); return self
 
-    def exists(self, /)                                       : return exists(self._raw_path)
+    def exists(self)                                          : return exists(self._raw_path)
 
-    def not_exists(self, /)                                   : return not self.exists()
+    def ensure_exists(self)                                   :
+        if not self.exists() : raise FileNotFoundError(f'{self} 不存在')
+        return self
 
-    @prop
-    def size(self)                                            : return self.flat_sub_file_list.size.sum()
+    def mkdir_if_not_exists(self)                             : return self.mkdir() if not self.exists() else self
 
     @prop
     def last_access_dt(self) -> DateTime                      : return DateTime(getatime(self._raw_path))
@@ -59,109 +56,102 @@ class Folder :
     # Remove (delete) the directory path. If the directory does not exist or is not empty,
     # an FileNotFoundError or an OSError is raised respectively.
     # In order to remove whole directory trees, shutil.rmtree() can be used.
-    def delete(self, /)                                       :
-        if self.has_no_flat_sub_file() :
+    def delete(self)                                          :
+        if not self.has_flat_sub_file() :
             for folder in self.flat_sub_folder_list.reversed() :
                 if folder.exists() : folder.delete()
             if self.exists() :
                 rmdir(self._raw_path)
                 Timer.print_timing(f'{self} 已删除', color = R)
-        else                           : raise Exception(f'无法删除 {self}，其下有未删除的文件')
+        else                           : raise FileExistsError(f'无法删除 {self}，其下有未删除的文件')
         return self
 
-    def json_serialize(self, /) -> str                        : return self._raw_path
+    def json_serialize(self) -> str                           : return self._raw_path
 
     def __eq__(self, other)                                   : return self.abs_path == other.abs_path
 
     def __ne__(self, other)                                   : return not self.__eq__(other)
 
-    def __format__(self, spec)                                : return f"{f'Folder({self.abs_path})':{spec}}"
+    def __format__(self, spec)                                : return f'{f"{type(self).__name__}({self.abs_path})":{spec}}'
 
     def __str__(self)                                         : return self.__format__('')
 
-    def __repr__(self)                                        : return f'Folder({self._raw_path!r})'
+    def __repr__(self)                                        : return f'{type(self).__name__}({self._raw_path!r})'
 
     # @log_entering('{self}')
-    def _listdir(self, /)                                     :
-        if self.not_exists() : raise Exception(f'{self} 不存在')
+    def _listdir(self)                                        :
+        self.ensure_exists()
+        if self._has_listed  : return self
         try                   :
             self._sub_folder_name_list = List()
             self._sub_file_name_list   = List()
             for name in listdir(self._raw_path) :
                 if isdir(join(self.path, name)) : self._sub_folder_name_list.append(name)
                 elif name != '.DS_Store'        : self._sub_file_name_list.append(name)
-        except Exception as e : raise Exception(f'Fail to list folder path: {self._path} = {self.abs_path}')
+        except Exception as e : raise RuntimeError(f'遍历目录失败: {self._raw_path} = {self.abs_path}') from e
         self._has_listed = True
         return self
 
-    # @log_entering('{self}')
-    def _build_folder(self, /)                                :
-        if not self._has_listed : self._listdir()
-        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(join(self._raw_path, folder_name.get_raw()), auto_build = self._auto_build))
-        self._has_built_folder = True
-        return self
-    
-    # @log_entering('{self}')
-    def _build_file(self, /)                                  :
-        if not self._has_listed : self._listdir()
-        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(join(self._raw_path, file_name.get_raw()), self))#.print_format(pattern = f'{index + 1} {{}}', print_timing = True))
-        self._has_built_file = True
-        return self
+    @prop
+    def sub_folder_name_iter(self)                            : return self._listdir()._sub_folder_name_list.iter()
 
-    # @log_entering('{self}')
-    def _build(self, /)                                       :
-        return self._build_folder()._build_file()
+    def has_sub_folder(self) -> bool                          : return not self.sub_folder_name_iter.is_empty()
 
     @cached_prop
-    def sub_folder_name_list(self)                            :
-        if not self._has_listed : self._listdir()
-        return self._sub_folder_name_list.copy()
-    
-    @cached_prop
-    def sub_folder_list(self)                                 :
-        if not self._has_built_folder : self._build_folder()
-        return self._sub_folder_list.copy()
+    def sub_folder_name_list(self)                            : return List(self.sub_folder_name_iter)
+
+    @prop
+    def sub_folder_iter(self)                                 :
+        return self.sub_folder_name_iter.map(lambda folder_name : Folder(join(self._raw_path, folder_name.get_raw())))
 
     @cached_prop
-    def flat_sub_folder_list(self)                            :
-        if hasattr(self, '_flat_sub_folder_list') : return self._flat_sub_folder_list
-        if not self._has_built_folder : self._build_folder()
-        
-        self._flat_sub_folder_list = self._sub_folder_list.copy()
-        for folder in self._sub_folder_list : self._flat_sub_folder_list.extend(folder.flat_sub_folder_list)
-        return self._flat_sub_folder_list
-    
+    def sub_folder_list(self)                                 : return List(self.sub_folder_iter)
+
+    @iter_prop
+    def flat_sub_folder_iter(self)                            :
+        for sub_folder in self.sub_folder_iter :
+            yield sub_folder
+            for flat_sub_folder in sub_folder.flat_sub_folder_iter :
+                yield flat_sub_folder
+
     @cached_prop
-    def sub_file_name_list(self)                              :
-        if not self._has_listed : self._listdir()
-        return self._sub_file_name_list.copy()
-    
+    def flat_sub_folder_list(self)                            : return List(self.flat_sub_folder_iter)
+
+    @prop
+    def sub_file_name_iter(self)                              : return self._listdir()._sub_file_name_list.iter()
+
+    def has_sub_file(self) -> bool                            : return not self.sub_file_name_iter.is_empty()
+
     @cached_prop
-    def sub_file_list(self)                                   :
-        if not self._has_built_file : self._build_file()
-        return self._sub_file_list.copy()
+    def sub_file_name_list(self)                              : return List(self.sub_file_name_iter)
+
+    @prop
+    def sub_file_iter(self)                                   :
+        return self.sub_file_name_iter.map(lambda file_name : File(join(self._raw_path, file_name.get_raw()), self))
+
+    @cached_prop
+    def sub_file_list(self)                                   : return List(self.sub_file_iter)
 
     def get_one_sub_file(self, *, name_contains)              : return self.sub_file_list.filter_one(lambda file : file.name.has(name_contains))
 
+    @iter_prop
+    def flat_sub_file_iter(self)                              :
+        for sub_file in self.sub_file_iter : yield sub_file
+        for sub_folder in self.sub_folder_iter :
+            for flat_sub_file in sub_folder.flat_sub_file_iter :
+                yield flat_sub_file
+
+    def has_flat_sub_file(self) -> bool                       : return not self.flat_sub_file_iter.is_empty()
+
     @cached_prop
-    def flat_sub_file_list(self)                              :
-        if hasattr(self, '_flat_sub_file_list') : return self._flat_sub_file_list
-        if not self._has_built_folder : self._build_folder()
-        if not self._has_built_file   : self._build_file()
-        
-        self._flat_sub_file_list = self._sub_file_list.copy()
-        for folder in self._sub_folder_list : self._flat_sub_file_list.extend(folder.flat_sub_file_list)
-        return self._flat_sub_file_list
+    def flat_sub_file_list(self)                              : return List(self.flat_sub_file_iter)
 
     def get_one_flat_sub_file(self, *, name_contains)         : return self.flat_sub_file_list.filter_one(lambda file : file.name.has(name_contains))
 
-    # 空目录，无子孙文件
-    def has_no_flat_sub_file(self, /)                         :
-        if self.sub_file_list.is_not_empty()   : return False
-        if self.sub_folder_list.is_not_empty() : return all(self.sub_folder_list.value_list('has_no_flat_sub_file'))
-        return True
+    def print_flat_sub_file_path_list(self)                   : List(self.flat_sub_file_iter.path).print_line(); return self
 
-    def print_flat_sub_file_path_list(self, /)                : self.flat_sub_file_list.path.print_line(); return self
+    @prop
+    def size(self)                                            : return self.flat_sub_file_iter.size.sum()
 
 if __name__ == '__main__':
     print(Folder('.').sub_file_name_list)
