@@ -25,11 +25,13 @@ class Counter :
         self._key_to_sum[key]        = 0
         return self
 
+    def __contains__(self, key, /) : return key in self._key_to_sum
+    
     def __getitem__(self, key, /) : return self._key_to_sum[key]
 
     def __getattr__(self, key, /) : return self.__getitem__(key)
 
-    def __format__(self, spec) : return f"{f'Counter(name = {self._name}, key_to_sum = {self._key_to_sum})':{spec}}"
+    def __format__(self, spec) : return f"{f'Counter(name = {self._name}, total_sum = {self.total_sum}, key_to_sum = {self._key_to_sum})':{spec}}"
 
     def value_list(self, key, /) : return self._key_to_value_list[key]
 
@@ -40,6 +42,9 @@ class Counter :
     def iter(self) : return self.__iter__()
     
     def items(self) : return List(list(self._key_to_sum.items()))
+
+    @prop
+    def total_sum(self) : return sum(self._key_to_sum.values())
 
     # def __add__
     # def __iadd__
