@@ -90,10 +90,13 @@ def main_func(kwarg_to_type_or_func) :
                 for index, line in line_list.enum() :
                     line_list[index] = line.strip('\n')
                     if line.has('HelloWord-Lib') or line.has('Python.framework') : flag = False
-                    elif not flag and (line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.has_no('HelloWord-Lib') and line.has_no('Python.framework')) :
-                        line_list[index] = f'{B(line_list[index])}'
-                        # if index >= 1 and line_list[index - 1].has('HelloWord-Lib') : line_list[index - 1] = f'{Y(line_list[index - 1])}'
-                        if index > 0 : flag = True
+                    elif line.has(r'File "[A-Za-z_\-]+\.py"', re_mode = True) or line.has_no('HelloWord-Lib') and line.has_no('Python.framework') :
+                        if not flag :
+                            line_list[index] = f'{B(line_list[index])}'
+                            if index >= 1 and line_list[index - 1].has('HelloWord-Lib') : line_list[index - 1] = f'{Y(line_list[index - 1])}'
+                            if index > 0 : flag = True
+                        else :
+                            line_list[index] = f'{Y(line_list[index])}'
                 line_list.reverse().for_each(lambda line : print(line))
                 Timer.print_timing('失败', color = R)
         return wrapper

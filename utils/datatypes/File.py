@@ -121,7 +121,7 @@ class File :
                 else                                           : yield Str(line.strip('\n\r'))
 
     def _read_line_list(self, **kwargs) -> Union[list, List]                              :
-        return (list if raw else List)(self.read_line_iter(**kwargs))
+        return (list if kwargs['raw'] else List)(self.read_line_iter(**kwargs))
 
     def read_field_list(self, *, index, sep = '\t') -> List                               :
         return self._read_line_list(filter_white_lines = True).map(lambda line : line.split(sep)[index])
