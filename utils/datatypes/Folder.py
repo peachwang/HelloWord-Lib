@@ -57,7 +57,7 @@ class Folder :
     # In order to remove whole directory trees, shutil.rmtree() can be used.
     def delete(self)                                          :
         if not self.has_flat_sub_file() :
-            for folder in self.flat_sub_folder_list.reversed() :
+            for folder in self.flat_sub_folder_iter.reversed() :
                 if folder.exists() : folder.delete()
             if self.exists() :
                 rmdir(self._raw_path)
@@ -101,7 +101,8 @@ class Folder :
 
     @prop
     def sub_folder_iter(self)                                 :
-        return self.sub_folder_name_iter.map(lambda folder_name : Folder(join(self._raw_path, folder_name.get_raw())))
+        # return self.sub_folder_name_iter.map(lambda folder_name : Folder(join(self._raw_path, folder_name.get_raw())))
+        return self.sub_folder_name_list.map(lambda folder_name : Folder(join(self._raw_path, folder_name.get_raw())))
 
     @cached_prop
     def sub_folder_list(self)                                 : return List(self.sub_folder_iter)
@@ -126,12 +127,13 @@ class Folder :
 
     @prop
     def sub_file_iter(self)                                   :
-        return self.sub_file_name_iter.map(lambda file_name : File(join(self._raw_path, file_name.get_raw()), self))
+        # return self.sub_file_name_iter.map(lambda file_name : File(join(self._raw_path, file_name.get_raw()), self))
+        return self.sub_file_name_list.map(lambda file_name : File(join(self._raw_path, file_name.get_raw()), self))
 
     @cached_prop
     def sub_file_list(self)                                   : return List(self.sub_file_iter)
 
-    def get_one_sub_file(self, *, name_contains)              : return self.sub_file_list.filter_one(lambda file : file.name.has(name_contains))
+    def get_one_sub_file(self, *, name_contains)              : return self.sub_file_iter.filter_one(lambda file : file.name.has(name_contains))
 
     @iter_prop
     def flat_sub_file_iter(self)                              :
@@ -145,9 +147,9 @@ class Folder :
     @cached_prop
     def flat_sub_file_list(self)                              : return List(self.flat_sub_file_iter)
 
-    def get_one_flat_sub_file(self, *, name_contains)         : return self.flat_sub_file_list.filter_one(lambda file : file.name.has(name_contains))
+    def get_one_flat_sub_file(self, *, name_contains)         : return self.flat_sub_file_iter.filter_one(lambda file : file.name.has(name_contains))
 
-    def print_flat_sub_file_path_list(self)                   : List(self.flat_sub_file_iter.path).print_line(); return self
+    def print_flat_sub_file_path_list(self)                   : self.flat_sub_file_iter.path.print_line(); return self
 
     @prop
     def size(self)                                            : return self.flat_sub_file_iter.size.sum()
