@@ -96,7 +96,7 @@ class Folder :
 
     def has_sub_folder(self) -> bool                          : return not self.sub_folder_name_iter.is_empty()
 
-    @cached_prop
+    @prop
     def sub_folder_name_list(self)                            : return List(self.sub_folder_name_iter)
 
     @prop
@@ -104,7 +104,7 @@ class Folder :
         # return self.sub_folder_name_iter.map(lambda folder_name : Folder(join(self._raw_path, folder_name.get_raw())))
         return self.sub_folder_name_list.map(lambda folder_name : Folder(join(self._raw_path, folder_name.get_raw())))
 
-    @cached_prop
+    @prop
     def sub_folder_list(self)                                 : return List(self.sub_folder_iter)
 
     @iter_prop
@@ -114,7 +114,7 @@ class Folder :
             for flat_sub_folder in sub_folder.flat_sub_folder_iter :
                 yield flat_sub_folder
 
-    @cached_prop
+    @prop
     def flat_sub_folder_list(self)                            : return List(self.flat_sub_folder_iter)
 
     @prop
@@ -122,7 +122,7 @@ class Folder :
 
     def has_sub_file(self) -> bool                            : return not self.sub_file_name_iter.is_empty()
 
-    @cached_prop
+    @prop
     def sub_file_name_list(self)                              : return List(self.sub_file_name_iter)
 
     @prop
@@ -130,7 +130,7 @@ class Folder :
         # return self.sub_file_name_iter.map(lambda file_name : File(join(self._raw_path, file_name.get_raw()), self))
         return self.sub_file_name_list.map(lambda file_name : File(join(self._raw_path, file_name.get_raw()), self))
 
-    @cached_prop
+    @prop
     def sub_file_list(self)                                   : return List(self.sub_file_iter)
 
     def get_one_sub_file(self, *, name_contains)              : return self.sub_file_iter.filter_one(lambda file : file.name.has(name_contains))
@@ -144,7 +144,7 @@ class Folder :
 
     def has_flat_sub_file(self) -> bool                       : return not self.flat_sub_file_iter.is_empty()
 
-    @cached_prop
+    @prop
     def flat_sub_file_list(self)                              : return List(self.flat_sub_file_iter)
 
     def get_one_flat_sub_file(self, *, name_contains)         : return self.flat_sub_file_iter.filter_one(lambda file : file.name.has(name_contains))

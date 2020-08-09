@@ -496,7 +496,9 @@ class List(list) :
 
     # Merge items of the items of self
     # IN PLACE
-    def merge(self) : return self.clear().extend(self.reduce(lambda result, item : result.extend(item), List()))
+    def merge(self) :
+        result = self.reduce(lambda result, item : result.extend(item), List())
+        return self.clear().extend(result)
 
     # NOT IN PLACE
     def merged(self) : return self.copy().merge()
@@ -563,7 +565,12 @@ class List(list) :
 
     # IN PLACE
     # O(??)
-    def unique(self) : return self.clear().extend(list(set(self)))
+    def unique(self) :
+        copy = self.copy()
+        self.clear()
+        for item in copy :
+            if item not in self : self.append(item)
+        return self
 
     # NOT IN PLACE
     def uniqued(self) : return self.copy().unique()

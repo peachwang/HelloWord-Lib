@@ -573,6 +573,9 @@ class DateRange(DateList) :
     def json_serialize(self) -> list :
         if not isinstance(self, (Year, Month, Week)) : return [ self.first_date, self.last_date + 1 ]
         else                                         : return list(self.tuple)
+
+    @cached_prop
+    def related_week_list(self)                      : from .List import List; return List(Week(date.year, date.month, date.day) for date in self).unique()
     
     def __eq__(self, other)          : return self.first_date == other.first_date and self.last_date == other.last_date
 
@@ -653,7 +656,7 @@ class Week(DateRange) :
         self._year  = start.year
         self._month = start.month
         self._day   = start.day
-        DateRange.__init__(self, start, start + 6)
+        DateRange.__init__(self, start, start + 7)
 
     @cached_prop
     def year(self) -> int : return self._year
