@@ -4,6 +4,7 @@ from .Str      import Str
 from .DateTime import timedelta_class, TimeDelta, date_class, Date, time_class, Time, datetime_class, DateTime
 from .List     import List
 from .Dict     import Dict
+from .Iter     import Iter
 
 @add_print_func
 class Object :
@@ -28,7 +29,7 @@ class Object :
     # @log_entering
     def __init__(self) :
         object.__setattr__(self, '_data',          Dict())
-        object.__setattr__(self, '_class',         f'{self.__class__.__name__}')
+        object.__setattr__(self, '_class',         f'{type(self).__name__}')
         object.__setattr__(self, '_property_dict', {})
 
     # def _register_enhanced_property(self, property_config_list, /) :
@@ -58,7 +59,7 @@ class Object :
     def _has_no_property(self, name, /) : return not self.has_property(name)
 
     def ensure_has_property(self, name, /) :
-        if self._has_no_property(name) : raise Exception(f'{self} 必须拥有属性 {name}')
+        if self._has_no_property(name) : raise RuntimeError(f'{self} 必须拥有属性 {name}')
         return self
 
     def get_property(self, name, /, default = None) : return self._data.get(name, self._wrap_value(default))
@@ -66,7 +67,7 @@ class Object :
     def set_property(self, name, value, /) : self._data[name] = self._wrap_value(value); return self
 
     def __setattr__(self, name, value) :
-        if name[0] != '_' : raise Exception(f'{name =} 应包含下划线前缀')
+        if name[0] != '_' : raise ValueError(f'{name =} 应包含下划线前缀')
         self._data[name[1:]] = self._wrap_value(value)
         return value
 
@@ -92,7 +93,7 @@ class Object :
         pd = self.__getattribute__('_property_dict')
         for name, value in mapping.items() :
             if name in pd : self.set_property(name, value)
-            else          : raise Exception(f'{name} 非注册属性')
+            else          : raise ValueError(f'{name} 非注册属性')
         return self
 
     # 支持：
@@ -148,7 +149,11 @@ class Object :
                     elif existence_2 : name_0 = str(name_2)
                     if prefix in pd[name_0] : return pd[name_0][prefix] # 获取已缓存的方法
                     else                    : pd[name_0][prefix] = partial(self.__getattribute__(f'{prefix}_property'), name_0); return pd[name_0][prefix]
-        raise Exception(f"Object {P(type(self))} 中无 {P(name)} 属性或方法, 只有这些属性: {P((self._data.keys() + dir(self)).filter(lambda name : name not in (['_property_dict', '_data'] + dir(Object))))}\n{pd=}")
+        raise AttributeError(
+            f'Object {P(type(self))} 中无 {P(name)} 属性或方法, 只有这些属性: '
+            f'{P((self._data.keys() + dir(self)).filter(lambda name : name not in (["_property_dict", "_data"] + dir(Object))))}\n'
+            f'{pd=}'
+        )
 
     # def get_property_dict(self, name_list, /) : return self._data.get_multi(name_list, de_underscore = True) # 字段可以不存在
 
@@ -176,16 +181,16 @@ class Object :
                     value = self._data[name]
                     
                     if name[-4:] in ('list', 'List') and not isinstance(value, list)                           :
-                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不是列表\n{self}\n')
+                        raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n不是列表\n{self}\n')
                     elif name[-4:] not in ('list', 'List') and isinstance(value, list)                         :
-                        raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是List/list\n{self}\n')
+                        raise RuntimeError(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是List/list\n{self}\n')
                     elif isinstance(value, list) and len(value) > 0 and hasattr(value[0], 'validate_property') :
                         for idx, item in value.enum() : item.validate_property(idx + 1)
                     
                     if name[-4:] in ('dict', 'Dict') and not isinstance(value, dict)                           :
-                        raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不是字典\n{self}\n')
+                        raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n不是字典\n{self}\n')
                     elif name[-4:] not in ('dict', 'Dict') and isinstance(value, dict)                         :
-                        raise Exception(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是Dict/dict\n{self}\n')
+                        raise RuntimeError(f'{prefix} 值为\n[{value}]\n的属性 {name} 后缀不是Dict/dict\n{self}\n')
                     elif isinstance(value, dict)                                                               :
                         for v in value.values() :
                             if hasattr(v, 'validate_property') : v.validate_property()
@@ -199,23 +204,23 @@ class Object :
                         if isinstance(value, list) :
                             if isinstance(pt, type)    :
                                 func = lambda item : isinstance(item, pt)
-                                if not all(list(map(func, value))) : raise Exception(f'{prefix} 属性 {name} 的列表值\n[{value}]\n中有值不匹配类型 {pt}\n{self}\n')
+                                if not all(list(map(func, value))) : raise RuntimeError(f'{prefix} 属性 {name} 的列表值\n[{value}]\n中有值不匹配类型 {pt}\n{self}\n')
                             else                       : raise CustomTypeError(pt)
                         else                       :
                             if isinstance(pt, type)    :
-                                if not isinstance(value, pt)       : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
+                                if not isinstance(value, pt)       : raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
                             elif isinstance(pt, tuple) :
                                 func = lambda t : ((t is None or t is type(None)) and value is None) or (isinstance(value, t))
-                                if not any(list(map(func, pt)))    : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
+                                if not any(list(map(func, pt)))    : raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
                             else                       : raise CustomTypeError(pt)
 
                     type_tuple = (int, float, bool, bytes, range, tuple, set, list, dict, timedelta_class, date_class, time_class, datetime_class)
                     if isinstance(pv, tuple)                                   :
-                        if value not in pv                                                  : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不属于: \n{pv}\n{self}\n')
+                        if value not in pv                                                  : raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n不属于: \n{pv}\n{self}\n')
                     elif isinstance(pv, str) and isinstance(value, type_tuple) :
-                        if eval(Str(pv).replace('#', 'value', re_mode = False)) is not True : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不合法: [{pv}]\n{self}\n')
+                        if eval(Str(pv).replace('#', 'value', re_mode = False)) is not True : raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n不合法: [{pv}]\n{self}\n')
                     elif isinstance(pv, str) and isinstance(value, str)        :
-                        if not value.full_match(pv)                                          : raise Exception(f'{prefix} 属性 {name} 的值\n[{value}]\n不匹配: \n[{pv}]\n[{self}]\n')
+                        if not value.full_match(pv)                                          : raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n不匹配: \n[{pv}]\n[{self}]\n')
         except Exception as e    :
             # print(self.j())
             print(e)
@@ -238,7 +243,7 @@ class Object :
     def json_serialize(self) -> dict : return self._data.json_serialize()
 
     @_anti_loop
-    def __format__(self, spec) : return f"{f'<{self._class} at {self.get_id()}>._data={self._data}':{spec}}"
+    def __format__(self, spec) : return f'{f"<{self._class} at {self.get_id()}>._data={self._data}":{spec}}'
 
     @_anti_loop
     def __str__(self) : return f'<{self._class} at {self.get_id()}>._data={self._data!s}'

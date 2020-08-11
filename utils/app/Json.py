@@ -22,7 +22,7 @@ class CustomDecoder(json.JSONDecoder) :
             if dct['__type__'] == 'Folder'                                           : return Folder(dct['__data__'])
             if dct['__type__'] == 'range'                                            : return range(*dct['__data__'])
             if dct['__type__'] == 'type'                                             : return eval(dct['__data__'])
-            raise Exception(f'无法解析 {dct =}')
+            raise RuntimeError(f'无法解析 {dct =}')
         return dct
 
     def decode(self, string) :
@@ -66,7 +66,7 @@ class CustomEncoder(json.JSONEncoder) :
         if hasattr(obj, 'json_serialize')                            : return wrap_dct(obj, obj.json_serialize())
         if isinstance(obj, range)                                    : return wrap_dct(obj, [obj.start, obj.stop, obj.step])
         if isinstance(obj, type)                                     : return wrap_dct(obj, type_to_str(obj))
-        if isinstance(obj, (zip, slice))                             : raise TypeError('无法序列化 zip, slice')
+        if isinstance(obj, (zip, slice))                             : raise CustomTypeError(obj, '无法序列化 zip, slice')
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
 

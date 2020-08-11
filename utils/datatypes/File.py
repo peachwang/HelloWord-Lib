@@ -6,6 +6,7 @@ from .Str      import Str
 from .DateTime import DateTime
 from .List     import List
 from .Dict     import Dict
+from .Iter     import Iter
 
 @add_print_func
 class File :
@@ -58,7 +59,9 @@ class File :
 
     def exists(self)                                : return exists(self._raw_path)
 
-    def not_exists(self)                            : return not self.exists()
+    def ensure_exists(self)                         :
+        if not self.exists() : raise FileNotFoundError(f'{self} 不存在')
+        return self
 
     @prop
     def range(self)                                 : return self._range
@@ -87,16 +90,16 @@ class File :
     def __ne__(self, other)                         : return not self.__eq__(other)
 
     # @log_entering
-    def __format__(self, spec)                      : return f"{f'File({self.abs_path})':{spec}}"
+    def __format__(self, spec)                      : return f'{f"{type(self).__name__}({self.abs_path})":{spec}}'
 
     def __str__(self)                               : return self.__format__('')
     
     # @log_entering
-    def __repr__(self)                              : return f'File({self._raw_path!r})'
+    def __repr__(self)                              : return f'{type(self).__name__}({self._raw_path!r})'
 
     def __getitem__(self, index)                    :
         if isinstance(index, slice) :
-            if index.step is not None : raise Exception(f'{index =} 不可以有step')
+            if index.step is not None : raise ValueError(f'{index =} 不可以有step')
             self._range = index
             return self
         else                        : raise CustomTypeError(index)
@@ -136,15 +139,15 @@ class File :
             else                       : return data
         elif isinstance(data, dict) :
             if not raw                 : data = Dict(data)
-            if hasattr(self, '_range') : raise Exception('Dict 类 File 不可以有 range')
+            if hasattr(self, '_range') : raise RuntimeError('Dict 类 File 不可以有 range')
             else                       : return data
         else                        : raise CustomTypeError(data)
 
     def load_data(self, **kwargs)                                                         :
-        if self.not_exists() : raise Exception(f'{self} 不存在')
+        self.ensure_exists()
         if self.is_txt()     : return self._read_line_list(**kwargs)
         elif self.is_json()  : return self._load_json(**kwargs)
-        else                 : raise Exception(f'不支持的后缀名：{self._ext=}')
+        else                 : raise RuntimeError(f'不支持的后缀名：{self._ext=}')
 
     def clear(self)                                                                       :
         with open(self._raw_path, 'w') as f :

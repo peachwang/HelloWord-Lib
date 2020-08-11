@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-  
 from ..shared import *
+from .Iter    import Iter
 
 @add_print_func
+@total_ordering
 class Dict(dict) :
 
     _has_imported_types = False
@@ -38,6 +40,7 @@ class Dict(dict) :
     # @Timer.timeit_total('_wrap_value')
     @classmethod
     def _wrap_value(cls, value, /) :
+        cls._import_types()
         if isinstance(value, (cls._ObjectId, cls._Str, cls._List, cls._Dict)) : return value
         elif isinstance(value, str)                                           : return cls._Str(value)
         elif isinstance(value, dict)                                          : return cls._Dict(value)
@@ -66,7 +69,8 @@ class Dict(dict) :
     #     d = {}
     #     for k, v in iterable:
     #         d[k] = v
-    # dict(**kwargs) -> new dictionary initialized with the name=value pairs in the keyword argument list.  For example:  dict(one=1, two=2)
+    # dict(**kwargs) -> new dictionary initialized with the name=value pairs in the keyword argument list.
+    # For example:  dict(one=1, two=2)
     def __init__(self, *args, **kwargs) :
         self._import_types()
         if len(args) == 0   : dict.__init__(self, {})
@@ -89,14 +93,16 @@ class Dict(dict) :
     def fromkeys(self, key_list: list, value = None, /) :
         if isinstance(value, list) :
             if len(value) == len(key_list) : self.__init__(zip(key_list, value)); return self
-            else                           : raise Exception(f'key_list 和 value 长度不匹配\n{key_list=}\n{value=}')
+            else                           : raise ValueError(f'key_list 和 value 长度不匹配\n{key_list=}\n{value=}')
         else                       : self.__init__(zip(key_list, [value] * len(key_list))); return self
 
     # D.copy() -> a shallow copy of D
     def copy(self) : return Dict(self)
 
     # id(object) -> integer
-    # Return the identity of an object.  This is guaranteed to be unique among simultaneously existing objects.  (Hint: it's the object's memory address.)
+    # Return the identity of an object.
+    # This is guaranteed to be unique among simultaneously existing objects.
+    # (Hint: it's the object's memory address.)
     def get_id(self) -> int : return hex(id(self))
 
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
@@ -112,7 +118,7 @@ class Dict(dict) :
     def print_len(self) : return f'{self.len()}个键值', False
 
     @print_func
-    def print_line(self) : return self.keys().mapped(lambda key, index : f'{index + 1} {Dict._wrap_str(key, format)}: {Dict._wrap_str(self[key], format)}').join('\n'), True
+    def print_line(self) : return self.keys().mapped(lambda key, index : f'{index + 1:>3} {Dict._wrap_str(key, format)}: {Dict._wrap_str(self[key], format)}').join('\n'), True
 
     # default object formatter
     def __format__(self, spec) : return "{{ {} }}".format(self.keys().map(lambda key : '{} : {}'.format(Dict._wrap_str(key, format), Dict._wrap_str(self[key], format))).join(', '), spec)
@@ -121,13 +127,13 @@ class Dict(dict) :
     def print_format(self) : return self.keys().mapped(lambda key : f'{Dict._wrap_str(key, format)}: {Dict._wrap_str(self[key], format)}').join('\n'), True
 
     # Return str(self).
-    def __str__(self) : return 'Dict{{ {} }}'.format(self.keys().map(lambda key : '{} : {}'.format(Dict._wrap_str(key, str), Dict._wrap_str(self[key], str))).join(', '))
+    def __str__(self) : return f'{type(self).__name__}{{{{ {{}} }}}}'.format(self.keys().map(lambda key : '{} : {}'.format(Dict._wrap_str(key, str), Dict._wrap_str(self[key], str))).join(', '))
 
     @print_func
     def print_str(self) : return self.keys().mapped(lambda key : f'{Dict._wrap_str(key, str)}: {Dict._wrap_str(self[key], str)}').join('\n'), True
 
     # Return repr(self).
-    def __repr__(self) : return 'Dict({{ {} }})'.format(self.keys().map(lambda key : '{} : {}'.format(Dict._wrap_str_or_type(key, repr), Dict._wrap_str_or_type(self[key], repr))).join(', '))
+    def __repr__(self) : return f'{type(self).__name__}({{{{ {{}} }}}})'.format(self.keys().map(lambda key : '{} : {}'.format(Dict._wrap_str_or_type(key, repr), Dict._wrap_str_or_type(self[key], repr))).join(', '))
 
     @print_func
     def print_j(self) : return self.j(), True
@@ -148,25 +154,13 @@ class Dict(dict) :
 
     def is_dict(self) : return True
 
+    # Return self<value.
+    __lt__ = None
+
     # Return self==value.
     def __eq__(self, other) :
-        if not isinstance(other, Dict) or self.len() != other.len() : return False
-        return self.j() == other.j()
-
-    # Return self!=value.
-    def __ne__(self, other) : return not self.__eq__(other)
-
-    # Return self>=value.
-    def __ge__(self, other) : raise NotImplementedError
-
-    # Return self>value.
-    def __gt__(self, other) : raise NotImplementedError
-
-    # Return self<=value.
-    def __le__(self, other) : raise NotImplementedError
-
-    # Return self<value.
-    def __lt__(self, other) : raise NotImplementedError
+        if not isinstance(other, dict) or self.len() != len(other) : return False
+        return self.j() == (other.j() if isinstance(other, Dict) else j(other))
 
     # Return len(self).
     def __len__(self) : return dict.__len__(self)
@@ -175,15 +169,13 @@ class Dict(dict) :
 
     def is_empty(self) : return self.len() == 0
 
-    def is_not_empty(self) : return not self.is_empty()
-
     # D.__contains__(k) -> True if D has a key k, else False.
     def __contains__(self, key, /) : return dict.__contains__(self, key)
 
     def has(self, key_list, /) :
         if isinstance(key_list, self._raw_type_tuple)  : return dict.__contains__(self, key_list)
         elif isinstance(key_list, list)                :
-            if len(key_list) == 0 : raise Exception(f'非法{key_list=}')
+            if len(key_list) == 0 : raise ValueError(f'非法{key_list=}')
             now = self
             for key in key_list :
                 if not dict.__contains__(now, key) : return False
@@ -193,11 +185,11 @@ class Dict(dict) :
 
     def has_no(self, key_list, /) : return not self.has(key_list)
 
-    def has_any_of(self, key_list_list, /) : return any(self.has(key_list) for key_list in key_list_list)
+    def has_any_of(self, *key_list_iterable) : return any(self.has(key_list) for key_list in key_list_iterable)
 
-    def has_all_of(self, key_list_list, /) : return all(self.has(key_list) for key_list in key_list_list)
+    def has_all_of(self, *key_list_iterable) : return all(self.has(key_list) for key_list in key_list_iterable)
 
-    def has_none_of(self, key_list_list, /) : return all(self.has_no(key_list) for key_list in key_list_list)
+    def has_none_of(self, *key_list_iterable) : return all(self.has_no(key_list) for key_list in key_list_iterable)
 
     # D.keys() -> a set-like object providing a view on D's keys
     def keys(self) : return self._List(list(dict.keys(self)))
@@ -211,11 +203,13 @@ class Dict(dict) :
     # Implement iter(self).
     # iter(iterable) -> iterator
     # iter(callable, sentinel) -> iterator
-    # Get an iterator from an object.  In the first form, the argument must supply its own iterator, or be a sequence.
+    # Get an iterator from an object.
+    # In the first form, the argument must supply its own iterator, or be a sequence.
     # In the second form, the callable is called until it returns the sentinel.
-    def __iter__(self) : return self.keys().iter()
+    def __iter__(self) : return iter(self.keys())
 
-    def iter(self) : return self.__iter__()
+    @prop
+    def iter(self) -> Iter : return Iter(self)
 
     # Return getattr(self, name).
     # def __getattribute__(self, key) :
@@ -225,11 +219,11 @@ class Dict(dict) :
     # D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.
     def get(self, key_list, /, default = None) :
         if isinstance(key_list, self._raw_type_tuple)  :
-            if default == self._no_value and not dict.__contains__(self, key_list) : raise Exception(f'键 {key_list} 不能为空\n{self.keys()=}')
+            if default == self._no_value and not dict.__contains__(self, key_list) : raise AttributeError(f'键 {key_list} 不能为空\n{self.keys()=}')
             return dict.get(self, key_list, self._wrap_value(default))
         elif isinstance(key_list, list)                :
             if self.has_no(key_list) :
-                if default == self._no_value : raise Exception(f'键 {key_list} 不能为空\n{self=}')
+                if default == self._no_value : raise AttributeError(f'键 {key_list} 不能为空\n{self=}')
                 return self._wrap_value(default)
             else                     :
                 now = self
@@ -257,7 +251,7 @@ class Dict(dict) :
         result = Dict()
         for key in key_list :
             if isinstance(key, tuple) :
-                if len(key) not in (1, 2) : raise Exception(f'非法{key_list=}')
+                if len(key) not in (1, 2) : raise ValueError(f'非法{key_list=}')
                 elif len(key) == 1        :
                     if self.has(key[0]) : result[deUnderscoure(key[0])] = self[key[0]]
                 elif len(key) == 2        :
@@ -282,7 +276,7 @@ class Dict(dict) :
     def set(self, key_list, value, /) :
         if isinstance(key_list, self._raw_type_tuple)  : self[key_list] = value
         elif isinstance(key_list, list)                :
-            if len(key_list) == 0 : raise Exception(f'非法{key_list=}')
+            if len(key_list) == 0 : raise ValueError(f'非法{key_list=}')
             now = self
             for index, key in enumerate(key_list) :
                 if key in now : now = now[key]
@@ -327,7 +321,7 @@ class Dict(dict) :
     def __delattr__(self, key) : return self.__delitem__(key)
 
     # D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
-    # If key is not found, d is returned if given, otherwise KeyError is raised
+    # If key is not found, d is returned if given, otherwise KeyError is raised.
     # IN PLACE
     def pop_key(self, key_list, /, default = _no_value) :
         if isinstance(key_list, self._raw_type_tuple)  :
@@ -354,6 +348,9 @@ class Dict(dict) :
     def dropped_key(self, key_list, /, default = _no_value) : self.copy().drop_key(key_list, default); return self
 
     # D.popitem() -> (k, v), remove and return some (key, value) pair as a 2-tuple; but raise KeyError if D is empty.
+    # Remove and return a (key, value) pair as a 2-tuple.
+    # Pairs are returned in LIFO (last-in, first-out) order.
+    # Raises KeyError if the dict is empty.
     # IN PLACE
     # def pop_item(self) : return dict.popitem(self)
 
