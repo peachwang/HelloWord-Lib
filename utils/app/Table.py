@@ -38,7 +38,7 @@ class Table :
         self.primaryFieldNames = None
 
     def import_from_txt(self, filename, cast = None, seperator = '\t') :
-        fin = open(filename, 'r')
+        fin = open(filename, 'r', encoding = 'utf-8')
         self.fieldNames = fin.readline().strip('\n').split(seperator)
         tableData = load_txt(fin, fields = self.fieldNames, cast = cast, sep = seperator)
         for rowData in tableData :
@@ -118,7 +118,7 @@ class Table :
             pass
 
     def export_to_txt(self, filename, seperator = '\t', defaultValue = '') :
-        fout = open(filename, 'w')
+        fout = open(filename, 'w', encoding = 'utf-8')
         fieldNames = self.get_field_names()
         lines = [seperator.join(fieldNames)]
         for tableRow in self.tableData :

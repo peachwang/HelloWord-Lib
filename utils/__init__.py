@@ -57,7 +57,7 @@ def main_func(kwarg_to_type = Dict(), /) :
                     )
                     Folder.mkdir('trace/')
                     temp = sys.stdout
-                    sys.stdout = open('trace/trace.txt', 'w')
+                    sys.stdout = open('trace/trace.txt', 'w', encoding = 'utf-8')
 
                     tracer.runctx('result = func(kwargs)', globals = {'result' : result}, locals = {'func' : func, 'kwargs' : kwargs})
                     

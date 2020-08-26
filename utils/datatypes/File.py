@@ -13,7 +13,7 @@ class File :
     def is_file(file_path) : return isfile(folder_path)
 
     @anti_duplicate_new
-    def __new__(cls, file_path, *args, **kwargs) : return realpath(file_path)
+    def __new__(cls, file_path, *args, **kwargs) : return realpath(str(file_path))
 
     @anti_duplicate_init
     def __init__(self, file_path, folder = None, /) :
@@ -32,7 +32,7 @@ class File :
     def path(self) -> Str : return self._path
 
     @cached_prop
-    def abs_path(self) -> Str : return Str(realpath(self._path))
+    def abs_path(self) -> Str : return Str(realpath(self._raw_path))
 
     @cached_prop
     def folder(self) : return self._folder
@@ -101,10 +101,10 @@ class File :
         else                        : raise CustomTypeError(index)
 
     def read_raw(self) :
-        with open(self._path) as f : return Str(''.join(f.readlines()))
+        with open(self._path, 'r', encoding = 'utf-8') as f : return Str(''.join(f.readlines()))
 
     def __iter__(self) :
-        with open(self._path) as f :
+        with open(self._path, 'r', encoding = 'utf-8') as f :
             for line in f : yield Str(line)
 
     def read_line_iter(self, *, raw = False, filter_white_lines = False, replace_abnormal_char = True) -> Union[list, List] :
@@ -128,8 +128,8 @@ class File :
 
     def _load_json(self, *, raw = False) -> Union[list, dict, List, Dict] :
         from ..app.Json import raw_load_json_file
-        with open(self._path) as f :
-            data = raw_load_json_file(open(self._path))
+        with open(self._path, 'r', encoding = 'utf-8') as f :
+            data = raw_load_json_file(f)
         if isinstance(data, list)   :
             if not raw                 : data = List(data)
             if hasattr(self, '_range') : return data[self._range]
@@ -147,7 +147,7 @@ class File :
         else                : raise Exception(f'不支持的后缀名：{self._ext=}')
 
     def write_string(self, string, /, *, append = False, ensure_not_exists = False) :
-        with open(self._path, 'x' if ensure_not_exists else ('a' if append else 'w')) as f :
+        with open(self._path, 'x' if ensure_not_exists else ('a' if append else 'w'), encoding = 'utf-8') as f :
             f.write(string)
         return self
 
@@ -162,7 +162,7 @@ class File :
 
     def _dump_json(self, obj, /, *, indent = True, ensure_not_exists = False) :
         from ..app.Json import raw_dump_json_file
-        with open(self._path, 'x' if ensure_not_exists else 'w') as f :
+        with open(self._path, 'x' if ensure_not_exists else 'w', encoding = 'utf-8') as f :
             raw_dump_json_file(obj, f, indent = indent) # raw_dump_json_file 内部可以处理 List, Dict 类型
         return self
 

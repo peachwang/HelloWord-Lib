@@ -19,11 +19,11 @@ class Folder :
     def is_folder(folder_path) : return isdir(folder_path)
 
     @anti_duplicate_new
-    def __new__(cls, folder_path, *args, **kwargs) : return realpath(folder_path)
+    def __new__(cls, folder_path, *args, **kwargs) : return realpath(str(folder_path))
 
     @anti_duplicate_init
     def __init__(self, folder_path, /, *, auto_build = True) :
-        if Folder.not_exists(folder_path) : raise Exception(f'Folder({folder_path} = {realpath(folder_path)}) 不存在')
+        if Folder.not_exists(folder_path) : raise Exception(f'Folder({folder_path} = {realpath(str(folder_path))}) 不存在')
         self._raw_path         = folder_path
         self._path             = Str(folder_path)
         self._name             = Str(basename(folder_path))
@@ -41,7 +41,7 @@ class Folder :
     def path(self) -> Str : return self._path
 
     @cached_prop
-    def abs_path(self) -> Str : return Str(realpath(self._path))
+    def abs_path(self) -> Str : return Str(realpath(self._raw_path))
 
     @cached_prop
     def name(self) -> Str : return self._name
@@ -51,8 +51,8 @@ class Folder :
         try                   :
             self._sub_folder_name_list = List()
             self._sub_file_name_list   = List()
-            for name in listdir(self._path) :
-                if isdir(join(self.path, name)) : self._sub_folder_name_list.append(name)
+            for name in listdir(self._raw_path) :
+                if isdir(join(self._raw_path, str(name))) : self._sub_folder_name_list.append(name)
                 elif name != '.DS_Store'        : self._sub_file_name_list.append(name)
         except Exception as e : raise Exception(f'Fail to list folder path: {self._path} = {self.abs_path}')
         self._has_listed = True
@@ -61,14 +61,14 @@ class Folder :
     # @log_entering('{self}')
     def _build_folder(self) :
         if not self._has_listed : self._listdir()
-        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(join(self._path, folder_name), auto_build = self._auto_build))
+        self._sub_folder_list = self._sub_folder_name_list.mapped(lambda folder_name : Folder(join(self._raw_path, str(folder_name)), auto_build = self._auto_build))
         self._has_built_folder = True
         return self
     
     # @log_entering('{self}')
     def _build_file(self) :
         if not self._has_listed : self._listdir()
-        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(join(self._path, file_name), self))#.print_format(pattern = f'{index + 1} {{}}', print_timing = True))
+        self._sub_file_list   = self._sub_file_name_list.mapped(lambda file_name, index : File(join(self._raw_path, str(file_name)), self))#.print_format(pattern = f'{index + 1} {{}}', print_timing = True))
         self._has_built_file = True
         return self
 
