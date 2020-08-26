@@ -40,8 +40,8 @@ class List(list) :
     def _wrap_item(self, item, /) :
         if isinstance(item, (self._ObjectId, self._Str, self._List, self._Dict)) : return item
         elif isinstance(item, str)                                               : return self._Str(item)
-        elif isinstance(item, dict)                                              : return self._Dict(item)
-        elif isinstance(item, list)                                              : return self._List(item)
+        elif type(item) == dict                                                  : return self._Dict(item)
+        elif type(item) == list                                                  : return self._List(item)
         elif isinstance(item, tuple)                                             : return tuple([ self._wrap_item(_) for _ in item ])
         elif isinstance(item, self._timedelta)                                   : return self._TimeDelta(item)
         elif isinstance(item, self._date)                                        : return self._Date(item)
@@ -63,14 +63,14 @@ class List(list) :
         if len(args) == 0   : list.__init__(self, [])
         elif len(args) == 1 :
             if isinstance(args[0], List)       : list.__init__(self, args[0]._get_data())
-            elif isinstance(args[0], list)     :
+            elif type(args[0]) == list         :
                 for item in args[0] : list.append(self, self._wrap_item(item))
             elif isinstance(args[0], Iterable) : self.__init__(list(args[0]))
             else                               : self.__init__(list(args))
         else                : self.__init__(list(args))
 
     # L.copy() -> list -- a shallow copy of L
-    def copy(self) : return List(self)
+    def copy(self) : return type(self)(self)
 
     # id(object) -> integer
     # Return the identity of an object.  This is guaranteed to be unique among
@@ -100,7 +100,7 @@ class List(list) :
     @print_func
     def print_line(self, pattern = None, /) :
         if pattern is None : return self.mapped(lambda item, index : f'{index + 1} {self._wrap_str(item, format)}').join('\n'), True
-        else               : return self.mapped(lambda item, index : pattern.format(self._wrap_str(item, format), index)).join('\n'), True
+        else               : return self.mapped(lambda item, index : pattern.format(item, index)).join('\n'), True
 
     # default object formatter
     # @log_entering()
@@ -109,18 +109,18 @@ class List(list) :
     @print_func
     def print_format(self, pattern = None, /) :
         if pattern is None : return self.mapped(lambda item : self._wrap_str(item, format)).join('\n'), True
-        else               : return self.mapped(lambda item, index : pattern.format(self._wrap_str(item, format), index)).join('\n'), True
+        else               : return self.mapped(lambda item, index : pattern.format(item, index)).join('\n'), True
 
     # Return str(self).
     # @log_entering()
-    def __str__(self) : return 'List[ {} ]'.format(self.mapped(lambda item : self._wrap_str(item, str)).join(', '))
+    def __str__(self) : return f'{type(self).__name__}[ {{}} ]'.format(self.mapped(lambda item : self._wrap_str(item, str)).join(', '))
 
     @print_func
     def print_str(self) : return self.mapped(lambda item : self._wrap_str(item, str)).join('\n'), True
 
     # Return repr(self).
     # @log_entering()
-    def __repr__(self) : return 'List( {} )'.format(self.mapped(lambda item : self._wrap_str_or_type(item, repr)).join(', '))
+    def __repr__(self) : return f'{type(self).__name__}( {{}} )'.format(self.mapped(lambda item : self._wrap_str_or_type(item, repr)).join(', '))
 
     @print_func
     def print_j(self) : return self.j(), True
@@ -143,7 +143,7 @@ class List(list) :
 
     # Return self==value.
     def __eq__(self, other) :
-        if not isinstance(other, List) or self.len() != other.len() : return False
+        if type(self) != type(other) or self.len() != other.len() : return False
         return self.j() == other.j()
 
     # Return self!=value.
@@ -219,7 +219,7 @@ class List(list) :
         if isinstance(index, int)     : return list.__getitem__(self, index)
         elif isinstance(index, slice) :
             if (index.start is None or isinstance(index.start, int)) and (index.stop is None or isinstance(index.stop, int)) :
-                return List(list.__getitem__(self, index))
+                return type(self)(list.__getitem__(self, index))
             else :
                 start, end = None, None
                 for idx, item in self.enum() :
@@ -286,31 +286,31 @@ class List(list) :
 
     # Return self+value.
     # NOT IN PLACE
-    # item_list: Union[list, List]
-    def __add__(self, item_list) : return List(list.__add__(self, List(item_list)))
+    # item_list: subclass of list
+    def __add__(self, item_list: list) : return type(self)(list.__add__(self, type(self)(item_list)))
 
     # Implement self+=value.
     # IN PLACE
-    # item_list: Union[list, List]
-    def __iadd__(self, item_list) : return list.__iadd__(self, List(item_list))
+    # item_list: subclass of list
+    def __iadd__(self, item_list: list) : return list.__iadd__(self, type(self)(item_list))
     
     # L.extend(iterable) -> None -- extend list by appending elements from the iterable
     # IN PLACE
-    def extend(self, item_list: Optional[list], /) :
-        if isinstance(item_list, Iterable) : list.extend(self, List(item_list)); return self
-        elif item_list is None             : return self
-        else                               : raise CustomTypeError(item_list)
+    def extend(self, iterable, /) :
+        if isinstance(item_list, Iterable) : list.extend(self, type(self)(iterable)); return self
+        elif iterable is None              : return self
+        else                               : raise CustomTypeError(iterable)
 
     # NOT IN PLACE
     def extended(self, item_list, /) : return self.copy().extend(item_list)
 
     # Return self*value
     # NOT IN PLACE
-    def __mul__(self, value: int) : return List(list.__mul__(self, value))
+    def __mul__(self, value: int) : return type(self)(list.__mul__(self, value))
     
     # Return value*self.
     # NOT IN PLACE
-    def __rmul__(self, value: int) : return List(list.__rmul__(self, value))
+    def __rmul__(self, value: int) : return type(self)(list.__rmul__(self, value))
 
     # Implement self*=value.
     # IN PLACE
@@ -489,17 +489,19 @@ class List(list) :
 
     # Merge items of the items of self
     # IN PLACE
-    def merge(self) : return self.clear().extend(self.reduce(lambda result, item : result.extend(item), List()))
+    def merge(self) :
+        if self.is_empty() == 0 : return self
+        return self.clear().extend(self.reduce(lambda result, item : result.extend(item), type(self[0])()))
 
     # NOT IN PLACE
     def merged(self) : return self.copy().merge()
 
-    def group_by(self, key_func = None, /, *, value_func = None) :
+    def group_by(self, key_func = None, group_func = None, /) :
         from itertools import groupby
         result = self._Dict()
-        for k, g in groupby(self.sorted(key_func or (lambda _ : f'{_}' if _ is not None else '')), key = key_func) :
-            if value_func is None : result[k] = List(g)
-            else                  : result[k] = List(value_func(item) for item in g)
+        for k, g in groupby(self.sorted(key_func), key = key_func) :
+            if group_func is None : result[k] = type(self)(g)
+            else                  : result[k] = group_func(type(self)(g))
         return result
     
     def count_by(self, key_func = None, /) : return self._Dict((k, g.len()) for k, g in self.group_by(key_func).items())
@@ -556,7 +558,7 @@ class List(list) :
 
     # IN PLACE
     # O(??)
-    def unique(self) : return self.clear().extend(list(set(self)))
+    def unique(self) : return self.clear().extend(set(self))
 
     # NOT IN PLACE
     def uniqued(self) : return self.copy().unique()
@@ -568,8 +570,8 @@ class List(list) :
     # IN PLACE
     # O(N^2)???
     def intersect(self, item_list: list, /) :
-        if not isinstance(item_list, list) : raise CustomTypeError(item_list)
-        return self.filter(lambda item, item_list : item in item_list, List(item_list))
+        if type(self) != type(item_list) : raise CustomTypeError(item_list)
+        return self.filter(lambda item, item_list : item in item_list, item_list)
 
     # NOT IN PLACE
     def intersected(self, item_list, /) : return self.copy().intersect(item_list)
@@ -582,8 +584,8 @@ class List(list) :
     # IN PLACE
     # O(N^2)???
     def difference(self, item_list: list, /) :
-        if not isinstance(item_list, list) : raise CustomTypeError(item_list)
-        return self.filter(lambda item, item_list : item not in item_list, List(item_list))
+        if type(self) != type(item_list) : raise CustomTypeError(item_list)
+        return self.filter(lambda item, item_list : item not in item_list, item_list)
 
     # NOT IN PLACE
     def differenced(self, item_list, /) : return self.copy().difference(item_list)
@@ -596,8 +598,8 @@ class List(list) :
     # IN PLACE
     # O(N^2)???
     def union(self, item_list: list, /) :
-        if not isinstance(item_list, list) : raise CustomTypeError(item_list)
-        return self.extend(List(item_list).difference(self))
+        if type(self) != type(item_list) : raise CustomTypeError(item_list)
+        return self.extend(item_list.difference(self))
 
     # NOT IN PLACE
     def unioned(self, item_list, /) : return self.copy().union(item_list)
@@ -622,7 +624,7 @@ class List(list) :
 
     # Report whether this set contains another set.
     # O(N^2)???
-    def is_superset_of(self, item_list, /) : return (List(item_list) - self).len() == 0
+    def is_superset_of(self, item_list, /) : return (item_list - self).len() == 0
 
     # Return self>=value.
     def __ge__(self, other) : return self.is_superset_of(other)

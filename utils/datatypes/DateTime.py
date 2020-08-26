@@ -170,13 +170,18 @@ class TimeDelta :
         return self._timedelta.__eq__(other.get_raw())
 
     def __format__(self, spec) :
-        if spec == '时'       : return (f'{self.days * 24 + self.hours + self.minutes / 60:>2.1f}小时' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ')
-        elif spec == '时分'   : return (f'{self.days * 24 + self.hours:>2}小时' if self.days > 0 or self.hours > 0 else '    ') + (f'{self.minutes + self.seconds / 60:>2.1f}分钟' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ')
-        elif spec == '时分秒' : return (f'{self.days * 24 + self.hours:>2}时' if self.days > 0 or self.hours > 0 else '    ') + (f'{self.minutes:>2}分' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ') + f'{self.seconds:>2}秒'
-        elif spec == '分'     : return (f'{self.days * 24 * 60 + self.hours * 60 + self.minutes + self.seconds / 60:>2.1f}分钟' if self.days > 0 or self.hours > 0 or self.minutes > 0 or self.seconds > 0 else '    ')
-        elif spec == '分秒'   : return (f'{self.days * 1440 + self.hours * 60 + self.minutes:>2}分钟' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ') + f'{self.seconds:>2}秒'
-        elif spec == '秒'    : return f'{self.days * 86400 + self.hours * 3600 + self.minutes * 60 + self.seconds:>2}秒'
-        else                 : return f'{self._timedelta:{spec}}'
+        if ':' in spec : spec = spec.split(':')
+        else           : spec = (spec, )
+        if spec[0] == '时'       : result = (f'{self.days * 24 + self.hours + self.minutes / 60:>2.1f}小时' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ')
+        elif spec[0] == '时分'   : result = (f'{self.days * 24 + self.hours:>2}小时' if self.days > 0 or self.hours > 0 else '    ') + (f'{self.minutes + self.seconds / 60:>2.1f}分钟' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ')
+        elif spec[0] == '时分秒' : result = (f'{self.days * 24 + self.hours:>2}时' if self.days > 0 or self.hours > 0 else '    ') + (f'{self.minutes:>2}分' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ') + f'{self.seconds:>2}秒'
+        elif spec[0] == '分'     : result = (f'{self.days * 24 * 60 + self.hours * 60 + self.minutes + self.seconds / 60:>2.1f}分钟' if self.days > 0 or self.hours > 0 or self.minutes > 0 or self.seconds > 0 else '    ')
+        elif spec[0] == '分秒'   : result = (f'{self.days * 1440 + self.hours * 60 + self.minutes:>2}分钟' if self.days > 0 or self.hours > 0 or self.minutes > 0 else '    ') + f'{self.seconds:>2}秒'
+        elif spec[0] == '秒'    : result = f'{self.days * 86400 + self.hours * 3600 + self.minutes * 60 + self.seconds:>2}秒'
+        else                    : result = f'{self._timedelta:{spec[0]}}'
+        if len(spec) > 1 : return f'{result:{spec[1]}}'
+        else             : return result
+
 
     def __str__(self) : return f'TimeDelta({self._timedelta!s})'
     

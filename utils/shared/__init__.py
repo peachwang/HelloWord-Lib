@@ -103,18 +103,18 @@ def add_print_func(cls) :
 
     @print_func
     def print_format(self) : return self.__format__(''), False
-    cls.print_format = print_format
+    if not hasattr(cls, 'print_format') : cls.print_format = print_format
 
     @print_func
     def print_str(self) : return self.__str__(), False
-    cls.print_str = print_str
+    if not hasattr(cls, 'print_str')    : cls.print_str = print_str
 
     def j(self, *, indent = True) : from ..app.Json import j; return j(self.json_serialize(), indent = indent)
-    cls.j = j
+    if not hasattr(cls, 'j')            : cls.j = j
 
     @print_func
     def print_j(self) : return self.j(), False
-    cls.print_j = print_j
+    if not hasattr(cls, 'print_j')      : cls.print_j = print_j
 
     return cls
 

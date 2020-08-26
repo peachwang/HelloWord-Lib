@@ -39,8 +39,8 @@ class Dict(dict) :
     def _wrap_value(self, value, /) :
         if isinstance(value, (self._ObjectId, self._Str, self._List, self._Dict)) : return value
         elif isinstance(value, str)                                               : return self._Str(value)
-        elif isinstance(value, dict)                                              : return self._Dict(value)
-        elif isinstance(value, list)                                              : return self._List(value)
+        elif type(value) == list                                                  : return self._List(value)
+        elif type(value) == dict                                                  : return self._Dict(value)
         elif isinstance(value, tuple)                                             : return tuple([ self._wrap_value(_) for _ in value ])
         elif isinstance(value, self._timedelta)                                   : return self._TimeDelta(value)
         elif isinstance(value, self._date)                                        : return self._Date(value)
@@ -146,7 +146,7 @@ class Dict(dict) :
 
     # Return self==value.
     def __eq__(self, other) :
-        if not isinstance(other, Dict) or self.len() != other.len() : return False
+        if type(self) != type(other) or self.len() != other.len() : return False
         return self.j() == other.j()
 
     # Return self!=value.
