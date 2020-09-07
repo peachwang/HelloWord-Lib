@@ -10,5 +10,5 @@ class Iter :
 
     def __next__(self) : return next(self.iterator)
 
-    # def map(self)
+    def map(self, func) : return Iter(map(func, self))
     # def filter(self)

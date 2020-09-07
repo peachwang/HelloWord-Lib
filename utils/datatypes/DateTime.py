@@ -598,7 +598,7 @@ class DateRange(DateList) : # Immutable
 
     def __iter__(self)                   :
         date = self._start_date
-        while date < self._end_date : yield date; date = date + step_days
+        while date < self._end_date : yield date; date = date + self._step_days
 
     def iter(self)                       : return Iter(self)
 
@@ -618,8 +618,8 @@ class DateRange(DateList) : # Immutable
 
     @cached_prop
     def related_week_list(self)          :
-        from .List import List, ImmutableList
-        return ImmutableList(List(Week(date.year, date.month, date.day) for date in self).unique())
+        from .List import List
+        return List(Week(date.year, date.month, date.day) for date in self).unique()
 
     def __lt__(self, other)              :
         if type(self) != DateRange and type(self) == type(other) : return self.tuple < other.tuple

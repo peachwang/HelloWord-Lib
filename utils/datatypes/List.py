@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-  
 from ..shared import *
+from .Iter import Iter
 
 # ListDiff: 以 item 作为最小比较单元。降维后可用于StrDiff
 
@@ -90,7 +91,7 @@ class List(list) :
     # In the second form, the callable is called until it returns the sentinel.
     def __iter__(self) : return list.__iter__(self)
     
-    def iter(self) : return self.__iter__()
+    def iter(self) : return Iter(self)
     
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
     def _get_data(self) -> list : return [ item for item in self ]

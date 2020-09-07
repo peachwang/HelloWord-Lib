@@ -4,7 +4,7 @@ from os.path   import isdir, join
 from ..shared  import *
 from .Str      import Str
 from .DateTime import DateTime
-from .List     import List, ImmutableList
+from .List     import List
 from .Iter     import Iter
 from .File     import File, basename, realpath, exists, getatime, getmtime
 
@@ -104,7 +104,7 @@ class Folder :
     def sub_folder_iter(self)                         : return self.sub_folder_name_iter.map(lambda folder_name : Folder(join(self._raw_path, folder_name.get_raw())))
 
     @cached_prop
-    def sub_folder_list(self)                         : return ImmutableList(self.sub_folder_iter)
+    def sub_folder_list(self)                         : return List(self.sub_folder_iter)
 
     @iter_prop
     def flat_sub_folder_iter(self)                    :
@@ -122,7 +122,7 @@ class Folder :
     def has_sub_file(self) -> bool                    : return not self.sub_file_name_iter.is_empty()
 
     @cached_prop
-    def sub_file_name_list(self)                      : return ImmutableList(self.sub_file_name_iter)
+    def sub_file_name_list(self)                      : return List(self.sub_file_name_iter)
 
     @prop
     def sub_file_iter(self)                           : return self.sub_file_name_iter.map(lambda file_name : File(join(self._raw_path, file_name.get_raw()), self))
