@@ -3,7 +3,7 @@ from bson.objectid import ObjectId as objectid
 from ..shared import *
 
 # https://api.mongodb.com/python/current/api/bson/objectid.html
-@add_print_func
+@printable
 class ObjectId(objectid) :
 
     # Checks if a oid string is valid or not.
@@ -16,7 +16,7 @@ class ObjectId(objectid) :
         elif (isinstance(str_or_id_or_dct, dict)
             and len(str_or_id_or_dct) == 1
             and '$id' in str_or_id_or_dct)          : objectid.__init__(self, str_or_id_or_dct['$id'])
-        else                                        : raise CustomTypeError(str_or_id_or_dct)
+        else                                        : raise TypeError(str_or_id_or_dct)
 
     def get_raw(self)                           : return objectid(objectid.__str__(self))
 
@@ -36,7 +36,8 @@ class ObjectId(objectid) :
     def str(self) -> str                        : return objectid.__str__(self)
 
     # A datetime.datetime instance representing the time of generation for this ObjectId.
-    # The datetime.datetime is timezone aware, and represents the generation time in UTC. It is precise to the second.
+    # The datetime.datetime is timezone aware, and represents the generation time in UTC.
+    # It is precise to the second.
     @cached_prop
     def datetime(self)                          : from .DateTime import DateTime; return DateTime(self.generation_time)
 

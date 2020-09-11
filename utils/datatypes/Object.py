@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-  
 from ..shared  import *
-from .Str      import Str
 from .DateTime import timedelta_class, TimeDelta, date_class, Date, time_class, Time, datetime_class, DateTime
-from .List     import List
+from .Str      import Str
 from .Dict     import Dict
+from .List     import List
 from .Iter     import Iter
 
-@add_print_func
+@printable
 class Object :
 
     __id_list = [ ]
@@ -45,13 +45,13 @@ class Object :
                 pd[name]    = {}
                 if p_default != self._no_value  : pd[name]['default'] = self._wrap_value(p_default)
                 if p_type is not None           :
-                    if not isinstance(p_type, (type, tuple))     : raise CustomTypeError(p_type)
+                    if not isinstance(p_type, (type, tuple))     : raise TypeError(p_type)
                     if isinstance(p_type, tuple)                 : p_type = tuple(item or type(None) for item in p_type)
                     pd[name]['type'] = p_type
                 if p_validator is not None      :
-                    if not isinstance(p_validator, (str, tuple)) : raise CustomTypeError(p_validator)
+                    if not isinstance(p_validator, (str, tuple)) : raise TypeError(p_validator)
                     pd[name]['validator'] = p_validator
-            else                           : raise CustomTypeError(config)
+            else                           : raise TypeError(config)
         return self
 
     def has_property(self, name, /) : return self._data.has(name)
@@ -205,14 +205,14 @@ class Object :
                             if isinstance(pt, type)    :
                                 func = lambda item : isinstance(item, pt)
                                 if not all(list(map(func, value))) : raise RuntimeError(f'{prefix} 属性 {name} 的列表值\n[{value}]\n中有值不匹配类型 {pt}\n{self}\n')
-                            else                       : raise CustomTypeError(pt)
+                            else                       : raise TypeError(pt)
                         else                       :
                             if isinstance(pt, type)    :
                                 if not isinstance(value, pt)       : raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
                             elif isinstance(pt, tuple) :
                                 func = lambda t : ((t is None or t is type(None)) and value is None) or (isinstance(value, t))
                                 if not any(list(map(func, pt)))    : raise RuntimeError(f'{prefix} 属性 {name} 的值\n[{value}]\n的类型 {type(value)} 不匹配类型 {pt}\n{self}\n')
-                            else                       : raise CustomTypeError(pt)
+                            else                       : raise TypeError(pt)
 
                     type_tuple = (int, float, bool, bytes, range, tuple, set, list, dict, timedelta_class, date_class, time_class, datetime_class)
                     if isinstance(pv, tuple)                                   :
@@ -231,8 +231,9 @@ class Object :
         return self
 
     # id(object) -> integer
-    # Return the identity of an object.  This is guaranteed to be unique among
-    # simultaneously existing objects.  (Hint: it's the object's memory address.)
+    # Return the identity of an object.
+    # This is guaranteed to be unique among simultaneously existing objects.
+    # (Hint: it's the object's memory address.)
     def get_id(self) : return hex(id(self))
 
     def get_raw(self) : return self._data.get_raw()

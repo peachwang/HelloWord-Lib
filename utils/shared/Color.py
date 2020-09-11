@@ -3,7 +3,7 @@
 # https://github.com/tartley/colorama
 # https://github.com/dslackw/colored
 # from bcolors import OKMSG as OK, ERRMSG as ERROR, WAITMSG as WAIT
-from .ClassTools import wraps, total_ordering, prop
+from .ClassTools import wraps, prop
 
 END            = f'\x1b[0m'
 FG_BOLD        = f'\x1b[1m'
@@ -57,7 +57,6 @@ BG_WHITE       = f'\x1b[107m'
 
 NONE = '#NONE#'
 
-@total_ordering
 class _Color :
 
     def __init__(self, value = NONE) :
@@ -122,7 +121,19 @@ class _Color :
     def __lt__(self, other) : return self._value < other
 
     @_wrap
+    def __le__(self, other) : return self._value <= other
+
+    @_wrap
+    def __gt__(self, other) : return self._value > other
+
+    @_wrap
+    def __ge__(self, other) : return self._value >= other
+
+    @_wrap
     def __eq__(self, other) : return self._value == other
+
+    @_wrap
+    def __ne__(self, other) : return self._value != other
 
 class R(_Color) : _color = FG_RED
 class Y(_Color) : _color = FG_YELLOW

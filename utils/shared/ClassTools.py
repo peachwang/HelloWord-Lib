@@ -23,7 +23,35 @@ def log_entering(pattern_or_func) :
         return wrapper
     if isinstance(pattern_or_func, str)        : return decorator
     elif isinstance(pattern_or_func, Callable) : return decorator(pattern_or_func)
-    else                                       : raise CustomTypeError(pattern_or_func)
+    else                                       : raise TypeError(pattern_or_func)
+
+def container(cls) :
+
+    def has(self, item, /) : return self.__contains__(item)
+    cls.has = has
+
+    return cls
+
+def iterable(cls) :
+
+    @prop
+    def iter_wrap(self) :
+        from ..datatypes.Iter import Iter
+        return Iter(self.__iter__())
+    cls.iter = iter_wrap
+
+    return cls
+
+def sized(cls) :
+    
+    @prop
+    def len_wrap(self) : return self.__len__()
+    cls.len = len_wrap
+
+    def is_empty(self) : return self.__len__() == 0
+    cls.is_empty = is_empty
+
+    return cls
 
 def print_func(func) :
     @wraps(func)
@@ -37,21 +65,21 @@ def print_func(func) :
         return self
     return wrapper
 
-def add_print_func(cls) :
+def printable(cls) :
 
     @print_func
-    def print_format(self) : return self.__format__(''), False
+    def print_format(self)        : return self.__format__(''), False
     cls.print_format = print_format
 
     @print_func
-    def print_str(self) : return self.__str__(), False
+    def print_str(self)           : return self.__str__(), False
     cls.print_str = print_str
 
     def j(self, *, indent = True) : from ..app.Json import j; return j(self.json_serialize(), indent = indent)
     cls.j = j
 
     @print_func
-    def print_j(self) : return self.j(), False
+    def print_j(self)             : return self.j(), False
     cls.print_j = print_j
 
     return cls
@@ -276,7 +304,7 @@ def cls_prop(fget) :
     return _ClassPropertyDescriptor(fget, name)
 
 # =====================            iterator_property                          =====================
-def _iter_wrap(func) :
+def iter_func(func) :
     from ..datatypes.Iter import Iter
     @wraps(func)
     def wrapper(*args, **kwargs) : return Iter(func(*args, **kwargs))
@@ -284,9 +312,9 @@ def _iter_wrap(func) :
 
 class iter_prop(prop) :
 
-    def __init__(self, fget, *args, **kwargs) : prop.__init__(self, _iter_wrap(fget), *args, **kwargs)
+    def __init__(self, fget, *args, **kwargs) : prop.__init__(self, iter_func(fget), *args, **kwargs)
 
-    def getter(self, fget)  : return prop.getter(self, _iter_wrap(fget))
+    def getter(self, fget)  : return prop.getter(self, iter_func(fget))
 
     setter = deleter = None
 
@@ -531,7 +559,8 @@ class BaseClass(ABC, metaclass = MetaClass) : pass
         # This is closely related to class decorators, but where class decorators only affect the specific class they’re applied to,
         # __init_subclass__ solely applies to future subclasses of the class defining the method.
         # 
-        # This method is called whenever the containing class is subclassed. cls is then the new subclass.
+        # This method is called whenever the containing class is subclassed.
+        # cls is then the new subclass.
         # If defined as a normal instance method, this method is implicitly converted to a class method.
         # Keyword arguments which are given to a new class are passed to the parent’s class __init_subclass__.
         # For compatibility with other classes using __init_subclass__, one should take out the needed keyword arguments and pass the others over to the base class, as in:
@@ -592,7 +621,8 @@ class BaseClass(ABC, metaclass = MetaClass) : pass
         
         # MyIterable.register(Foo)
         # 
-        # The ABC MyIterable defines the standard iterable method, __iter__(), as an abstract method. The implementation given here can still be called from subclasses.
+        # The ABC MyIterable defines the standard iterable method, __iter__(), as an abstract method.
+        # The implementation given here can still be called from subclasses.
         # The get_iterator() method is also part of the MyIterable abstract base class, but it does not have to be overridden in non-abstract derived classes.
         # The __subclasshook__() class method defined here says that any class that has an __iter__() method in its __dict__
         # (or in that of one of its base classes, accessed via the __mro__ list) is considered a MyIterable too.
@@ -633,7 +663,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # This attribute is a tuple of classes that are considered when looking for base classes during method resolution.
 
     # class.__subclasses__(self)
-        # Each class keeps a list of weak references to its immediate subclasses. This method returns a list of all those references still alive.
+        # Each class keeps a list of weak references to its immediate subclasses.
+        # This method returns a list of all those references still alive.
         # Example:
         # >>> int.__subclasses__()
         # [<class 'bool'>]
@@ -643,9 +674,11 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # https://docs.python.org/3/howto/descriptor.html
 
     # Functions and Methods
-        # Python’s object oriented features are built upon a function based environment. Using non-data descriptors, the two are merged seamlessly.
+        # Python’s object oriented features are built upon a function based environment.
+        # Using non-data descriptors, the two are merged seamlessly.
 
-        # Class dictionaries store methods as functions. In a class definition, methods are written using def or lambda, the usual tools for creating functions.
+        # Class dictionaries store methods as functions.
+        # In a class definition, methods are written using def or lambda, the usual tools for creating functions.
         # Methods only differ from regular functions in that the first argument is reserved for the object instance.
         # By Python convention, the instance reference is called self but may be called this or any other variable name.
 
@@ -699,7 +732,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # Non-data descriptors provide a simple mechanism for variations on the usual patterns of binding functions into methods.
 
         # To recap, functions have a __get__() method so that they can be converted to a method when accessed as attributes.
-        # The non-data descriptor transforms an obj.f(*args) call into f(obj, *args). Calling klass.f(*args) becomes f(*args).
+        # The non-data descriptor transforms an obj.f(*args) call into f(obj, *args).
+        # Calling klass.f(*args) becomes f(*args).
 
         # This chart summarizes the binding and its two most useful variants:
 
@@ -710,7 +744,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
     # class staticmethod :
         # Transform a method into a static method.
-        # A static method does not receive an implicit first argument. To declare a static method, use this idiom:
+        # A static method does not receive an implicit first argument.
+        # To declare a static method, use this idiom:
         # class C:
         #     @staticmethod
         #     def f(arg1, arg2, ...): ...
@@ -798,7 +833,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
             #       @classmethod
             #       def f(cls, arg1, arg2, ...):
             #           ...
-            # It can be called either on the class (e.g. C.f()) or on an instance (e.g. C().f()).  The instance is ignored except for its class.
+            # It can be called either on the class (e.g. C.f()) or on an instance (e.g. C().f()).
+            # The instance is ignored except for its class.
             # If a class method is called for a derived class, the derived class object is passed as the implied first argument.
             
             # Class methods are different than C++ or Java static methods.
@@ -851,7 +887,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         
         # The isinstance() built-in function is recommended for testing the type of an object, because it takes subclasses into account.
         
-        # With three arguments, return a new type object. This is essentially a dynamic form of the class statement.
+        # With three arguments, return a new type object.
+        # This is essentially a dynamic form of the class statement.
         # The name string is the class name and becomes the __name__ attribute;
         # the bases tuple itemizes the base classes and becomes the __bases__ attribute;
         # and the dict dictionary is the namespace containing definitions for class body and is copied to a standard dictionary to become the __dict__ attribute.
@@ -868,7 +905,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
             # type(name, bases, dict) -> a new type
 
     # class object()
-        # Return a new featureless object. object is a base for all classes.
+        # Return a new featureless object.
+        # object is a base for all classes.
         # It has the methods that are common to all instances of Python classes.
         # This function does not accept any arguments.
         # Note: object does not have a __dict__, so you can’t assign arbitrary attributes to an instance of the object class.
@@ -999,12 +1037,14 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # no non-None value may be returned by __init__(); doing so will cause a TypeError to be raised at runtime.
 
     # object.__del__(self)
-        # Called when the instance is about to be destroyed. This is also called a finalizer or (improperly) a destructor.
+        # Called when the instance is about to be destroyed.
+        # This is also called a finalizer or (improperly) a destructor.
         # If a base class has a __del__() method, the derived class’s __del__() method, if any,
         # must explicitly call it to ensure proper deletion of the base class part of the instance.
 
         # It is possible (though not recommended!) for the __del__() method to postpone destruction of the instance by creating a new reference to it.
-        # This is called object resurrection. It is implementation-dependent whether __del__() is called a second time
+        # This is called object resurrection.
+        # It is implementation-dependent whether __del__() is called a second time
         # when a resurrected object is about to be destroyed; the current CPython implementation only calls it once.
 
         # It is not guaranteed that __del__() methods are called for objects that still exist when the interpreter exits.
@@ -1055,7 +1095,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # object.__repr__(self)
         # Called by the repr() built-in function to compute the “official” string representation of an object.
         # If at all possible, this should look like a valid Python expression that could be used to recreate an object with the same value (given an appropriate environment).
-        # If this is not possible, a string of the form <...some useful description...> should be returned. The return value must be a string object.
+        # If this is not possible, a string of the form <...some useful description...> should be returned.
+        # The return value must be a string object.
         # If a class defines __repr__() but not __str__(), then __repr__() is also used when an “informal” string representation of instances of that class is required.
 
         # This is typically used for debugging, so it is important that the representation is information-rich and unambiguous.
@@ -1174,7 +1215,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # object.__ne__(self, other)
     # object.__gt__(self, other)
     # object.__ge__(self, other)
-        # These are the so-called “rich comparison” methods. The correspondence between operator symbols and method names is as follows:
+        # These are the so-called “rich comparison” methods.
+        # The correspondence between operator symbols and method names is as follows:
         # x<y calls x.__lt__(y), x<=y calls x.__le__(y), x==y calls x.__eq__(y), x!=y calls x.__ne__(y), x>y calls x.__gt__(y), and x>=y calls x.__ge__(y).
 
         # A rich comparison method may return the singleton NotImplemented if it does not implement the operation for a given pair of arguments.
@@ -1188,7 +1230,11 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
         # See the paragraph on __hash__() for some important notes on creating hashable objects which support custom comparison operations and are usable as dictionary keys.
 
-        # There are no swapped-argument versions of these methods (to be used when the left argument does not support the operation but the right argument does); rather, __lt__() and __gt__() are each other’s reflection, __le__() and __ge__() are each other’s reflection, and __eq__() and __ne__() are their own reflection. If the operands are of different types, and right operand’s type is a direct or indirect subclass of the left operand’s type, the reflected method of the right operand has priority, otherwise the left operand’s method has priority. Virtual subclassing is not considered.
+        # There are no swapped-argument versions of these methods (to be used when the left argument does not support the operation but the right argument does);
+        # rather, __lt__() and __gt__() are each other’s reflection, __le__() and __ge__() are each other’s reflection, and __eq__() and __ne__() are their own reflection.
+        # If the operands are of different types, and right operand’s type is a direct or indirect subclass of the left operand’s type,
+        # the reflected method of the right operand has priority, otherwise the left operand’s method has priority.
+        # Virtual subclassing is not considered.
 
     # hash(object)
         # Return the hash value of the object (if it has one).
@@ -1205,7 +1251,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
     # object.__hash__(self)
         # Called by built-in function hash() and for operations on members of hashed collections including set, frozenset, and dict.
-        # __hash__() should return an integer. The only required property is that objects which compare equal have the same hash value;
+        # __hash__() should return an integer.
+        # The only required property is that objects which compare equal have the same hash value;
         # it is advised to mix together the hash values of the components of the object that also play a part in comparison of objects by packing them into a tuple and hashing the tuple.
         # Example:
         # def __hash__(self):
@@ -1221,7 +1268,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # since the implementation of hashable collections requires that a key’s hash value is immutable
         # (if the object’s hash value changes, it will be in the wrong hash bucket).
 
-        # User-defined classes have __eq__() and __hash__() methods by default; with them, all objects compare unequal (except with themselves)
+        # User-defined classes have __eq__() and __hash__() methods by default;
+        # with them, all objects compare unequal (except with themselves)
         # and x.__hash__() returns an appropriate value such that x == y implies both that x is y and hash(x) == hash(y).
 
         # A class that overrides __eq__() and does not define __hash__() will have its __hash__() implicitly set to None.
@@ -1239,7 +1287,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # This is intended to provide protection against a denial-of-service caused by carefully-chosen inputs that exploit the worst case performance of a dict insertion, O(n^2) complexity.
         # See http://www.ocert.org/advisories/ocert-2011-003.html for details.
 
-        # Changing hash values affects the iteration order of sets. Python has never made guarantees about this ordering (and it typically varies between 32-bit and 64-bit builds).
+        # Changing hash values affects the iteration order of sets.
+        # Python has never made guarantees about this ordering (and it typically varies between 32-bit and 64-bit builds).
 
         # See also PYTHONHASHSEED.
 
@@ -1275,7 +1324,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
             # This is done by calling getattr(obj, name) and catching AttributeError.
 
     # getattr(object, name[, default])
-        # Return the value of the named attribute of object. name must be a string.
+        # Return the value of the named attribute of object.
+        # name must be a string.
         # If the string is the name of one of the object’s attributes, the result is the value of that attribute.
         # For example, getattr(x, 'foobar') is equivalent to x.foobar.
         # If the named attribute does not exist, default is returned if provided, otherwise AttributeError is raised.
@@ -1306,7 +1356,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # See Special method lookup.
 
     # setattr(object, name, value)
-        # This is the counterpart of getattr(). The arguments are an object, a string and an arbitrary value.
+        # This is the counterpart of getattr().
+        # The arguments are an object, a string and an arbitrary value.
         # The string may name an existing attribute or a new attribute.
         # The function assigns the value to the attribute, provided the object allows it.
         # For example, setattr(x, 'foobar', 123) is equivalent to x.foobar = 123.
@@ -1351,7 +1402,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # If the object is a type or class object, the list contains the names of its attributes, and recursively of the attributes of its bases.
         # Otherwise, the list contains the object’s attributes’ names, the names of its class’s attributes, and recursively of the attributes of its class’s base classes.
 
-        # The resulting list is sorted alphabetically. For example:
+        # The resulting list is sorted alphabetically.
+        # For example:
 
         # >>>
         # import struct
@@ -1373,7 +1425,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # For example, metaclass attributes are not in the result list when the argument is a class.
 
     # object.__dir__(self)
-        # Called when dir() is called on the object. A sequence must be returned.
+        # Called when dir() is called on the object.
+        # A sequence must be returned.
         # dir() converts the returned sequence to a list and sorts it.
 
 # ===================== 3.3.2.1.   Customizing module attribute access      =====================
@@ -1387,7 +1440,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # If present, this function overrides the standard dir() search on a module.
 
     # For a more fine grained customization of the module behavior (setting attributes, properties, etc.),
-    # one can set the __class__ attribute of a module object to a subclass of types.ModuleType. For example:
+    # one can set the __class__ attribute of a module object to a subclass of types.ModuleType.
+    # For example:
 
     # import sys
     # from types import ModuleType
@@ -1425,7 +1479,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # This method should return the computed attribute value or raise an AttributeError exception.
 
         # PEP 252 specifies that __get__() is callable with one or two arguments.
-        # Python’s own built-in descriptors support this specification; however, it is likely that some third-party tools have descriptors that require both arguments.
+        # Python’s own built-in descriptors support this specification;
+        # however, it is likely that some third-party tools have descriptors that require both arguments.
         # Python’s own __getattribute__() implementation always passes in both arguments whether they are required or not.
 
     # object.__set__(self, instance, value)
@@ -1438,7 +1493,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # Called to delete the attribute on an instance instance of the owner class.
 
     # object.__set_name__(self, owner, name)
-        # Called at the time the owning class owner is created. The descriptor has been assigned to name.
+        # Called at the time the owning class owner is created.
+        # The descriptor has been assigned to name.
 
         # Note: __set_name__() is only called implicitly as part of the type constructor,
         # so it will need to be called explicitly with the appropriate parameters when a descriptor is added to a class after initial creation:
@@ -1469,7 +1525,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # However, if the looked-up value is an object defining one of the descriptor methods, then Python may override the default behavior and invoke the descriptor method instead.
     # Where this occurs in the precedence chain depends on which descriptor methods were defined and how they were called.
 
-    # The starting point for descriptor invocation is a binding, a.x. How the arguments are assembled depends on a:
+    # The starting point for descriptor invocation is a binding, a.x.
+    # How the arguments are assembled depends on a:
 
     # Direct Call
     # The simplest and least common call is when user code directly invokes a descriptor method: x.__get__(a).
@@ -1532,7 +1589,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # (which should only contain names of any additional slots).
 
     # If a class defines a slot also defined in a base class, the instance variable defined by the base class slot is inaccessible
-    # (except by retrieving its descriptor directly from the base class). This renders the meaning of the program undefined.
+    # (except by retrieving its descriptor directly from the base class).
+    # This renders the meaning of the program undefined.
     # In the future, a check may be added to prevent this.
 
     # Nonempty __slots__ does not work for classes derived from “variable-length” built-in types such as int, bytes and tuple.
@@ -1555,7 +1613,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # __init_subclass__ solely applies to future subclasses of the class defining the method.
 
     # classmethod object.__init_subclass__(cls)
-        # This method is called whenever the containing class is subclassed. cls is then the new subclass.
+        # This method is called whenever the containing class is subclassed.
+        # cls is then the new subclass.
         # If defined as a normal instance method, this method is implicitly converted to a class method.
 
         # Keyword arguments which are given to a new class are passed to the parent’s class __init_subclass__.
@@ -1674,7 +1733,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # Describes the implicit __class__ closure reference
 
 # ===================== 3.3.3.7.   Uses for metaclasses                     =====================
-    # The potential uses for metaclasses are boundless. Some ideas that have been explored include
+    # The potential uses for metaclasses are boundless.
+    # Some ideas that have been explored include
     # enum, logging, interface checking, automatic delegation, automatic property creation, proxies, frameworks, and automatic resource locking/synchronization.
 
 # ===================== 3.3.4.     Customizing instance and subclass checks =====================
@@ -1741,7 +1801,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
             # Note that classes are callable, as are instances of classes with a __call__() method.
 
     # object.__call__(self[, args...])
-        # Called when the instance is “called” as a function; if this method is defined, x(arg1, arg2, ...) is a shorthand for x.__call__(arg1, arg2, ...).
+        # Called when the instance is “called” as a function;
+        # if this method is defined, x(arg1, arg2, ...) is a shorthand for x.__call__(arg1, arg2, ...).
 
 # ===================== 3.3.8.     Emulating numeric types                  =====================
     # The following methods can be defined to emulate numeric objects.
@@ -1881,7 +1942,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
         # If __complex__() is not defined then it falls back to __float__().
         # If __float__() is not defined then it falls back to __index__().
 
-        # Note When converting from a string, the string must not contain whitespace around the central + or - operator. For example, complex('1+2j') is fine, but complex('1 + 2j') raises ValueError.
+        # Note When converting from a string, the string must not contain whitespace around the central + or - operator.
+        # For example, complex('1+2j') is fine, but complex('1 + 2j') raises ValueError.
         # The complex type is described in Numeric Types — int, float, complex.
         
         # Changed in version 3.6: Grouping digits with underscores as in code literals is allowed.
@@ -2008,7 +2070,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
     # oct(x)
         # Convert an integer number to an octal string prefixed with “0o”.
         # The result is a valid Python expression.
-        # If x is not a Python int object, it has to define an __index__() method that returns an integer. For example:
+        # If x is not a Python int object, it has to define an __index__() method that returns an integer.
+        # For example:
         # >>> oct(8)
         # '0o10'
         # >>> oct(-56)
@@ -2102,7 +2165,8 @@ class SingularBaseClass(BaseClass, metaclass = SingularMetaClass) : pass
 
     # object.__exit__(self, exc_type, exc_value, traceback)
         # Exit the runtime context related to this object.
-        # The parameters describe the exception that caused the context to be exited. If the context was exited without an exception, all three arguments will be None.
+        # The parameters describe the exception that caused the context to be exited.
+        # If the context was exited without an exception, all three arguments will be None.
 
         # If an exception is supplied, and the method wishes to suppress the exception (i.e., prevent it from being propagated), it should return a true value.
         # Otherwise, the exception will be processed normally upon exit from this method.

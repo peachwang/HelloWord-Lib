@@ -9,7 +9,7 @@ from .Iter    import Iter
 
 SRE_MATCH_TYPE = type(re.match('', ''))
 
-@add_print_func
+@printable
 class _Pattern :
 
     def __init__(self, pattern, /)      : self._pattern = pattern
@@ -40,7 +40,7 @@ class _Pattern :
     def group_index(self, name: str, /) : return self._pattern.groupindex[name]
 
 
-@add_print_func
+@printable
 class _Match :
 
     _no_value = object()
@@ -94,18 +94,18 @@ class _Match :
     # If a string argument is not used as a group name in the pattern, an IndexError exception is raised.
     # Named groups can also be referred to by their index.
     # (?P<name>...)
-    def group_tuple(self, *groups) -> tuple                                      :
+    def group_tuple(self, *groups) -> tuple        :
         if len(groups) == 0   : raise ValueError(f'非法{groups=}')
         elif len(groups) == 1 : _ = self._match.group(groups[0]); return tuple(self._wrap(_))
         else                  : return tuple(self._wrap(_) for _ in self._match.group(*groups))
 
-    def one_group(self, group: Union[int, str], /)                               : _ = self._match.group(group); return self._wrap(_)
+    def one_group(self, group: Union[int, str], /) : return self._wrap(self._match.group(group))
 
     # Match.__getitem__(g)
     # m[group] <--> m.group(group)
     # This is identical to m.group(group).
     # This allows easier access to an individual group from a match.
-    def __getitem__(self, group: Union[int, str])                                : return self._wrap(self._match.__getitem__(group))
+    def __getitem__(self, group: Union[int, str])  : return self._wrap(self._match.__getitem__(group))
 
     # Match.groups(default=None)
     # Return a tuple containing all the subgroups of the match, from 1 up to however many groups (indexed and named!!!) are in the pattern.
@@ -125,35 +125,41 @@ class _Match :
     # Match.groupdict(default=None)
     # Return a dictionary containing all the named subgroups (not indexed!!!) of the match, keyed by the subgroup name.
     # The default argument is used for groups that did not participate in the match; it defaults to None.
-    def named_group_dict(self, *, default = None, ignore_missing = True)         :
+    def named_group_dict(self, *, default = None, ignore_missing = True, cast = {}) :
         from .Dict import Dict
-        return Dict((key, value) for key, value in self._match.groupdict(default).items() if not ignore_missing or value != default)
+        return Dict(
+            (key, value if cast.get(key) is None else cast[key](value))
+            for key, value in self._match.groupdict(default).items()
+            if not ignore_missing or value != default
+        )
 
     # Match.start([group])
     # Return the indices of the start of the substring matched by group; group defaults to zero (meaning the whole matched substring).
     # Return -1 if group exists but did not contribute to the match.
     # For a match object m, and a group g that did contribute to the match, the substring matched by group g (equivalent to m.group(g)) is m.string[m.start(g):m.end(g)].
     # Note that m.start(group) will equal m.end(group) if group matched a null string.
-    def start_of_group(self, group: Union[int, str], /) -> int                   : return self._match.start(group)
+    def start_of_group(self, group: Union[int, str], /) -> int  : return self._match.start(group)
 
     # Match.end([group])
     # Return the indices of the end of the substring matched by group;
-    def end_of_group(self, group: Union[int, str], /) -> int                     : return self._match.end(group)
+    def end_of_group(self, group: Union[int, str], /) -> int    : return self._match.end(group)
 
     # Match.span([group])
     # For a match m, return the 2-tuple (m.start(group), m.end(group)).
     # Note that if group did not contribute to the match, this is (-1, -1).
     # group defaults to zero, the entire match.
-    def span_of_group(self, group: Union[int, str], /) -> tuple                  : return self._match.span(group)
+    def span_of_group(self, group: Union[int, str], /) -> tuple : return self._match.span(group)
 
     def replace_group(self, group: Union[int, str], repl_str_or_func, /) :
         if self.one_group(group) is None      : return self.string
         if isinstance(repl_str_or_func, str) : replacement = repl_str_or_func
         elif callable(repl_str_or_func)      : replacement = repl_str_or_func(self.one_group(group))
-        else                                 : raise CustomTypeError(repl_str_or_func)
+        else                                 : raise TypeError(repl_str_or_func)
         return self.string[ : self.start_of_group(group)] + replacement + self.string[self.end_of_group(group) : ]
 
-@add_print_func
+@iterable
+@sized
+@printable
 class Str(str) :
 
     _no_value = _Match._no_value
@@ -209,8 +215,6 @@ class Str(str) :
     # Return len(self).
     def __len__(self)                 : return str.__len__(self)
 
-    def len(self)                     : return str.__len__(self)
-
     @log_entering
     def is_empty(self)                : return self.full_match(r'[ \t\r\n]*')
 
@@ -222,37 +226,34 @@ class Str(str) :
         if not self.is_empty() : return self
         else                   : raise RuntimeError(f'{self = }应该不为空串')
 
-    def is_in(self, *item_list)       : return self in item_list
+    def is_in(self, *item_iterable)   : return self in item_iterable
 
     # x.__contains__(y) <==> y in x
     # sub: Union[str, Str]
-    def __contains__(self, sub, /)                                     : return str.__contains__(self, sub)
+    def __contains__(self, sub, /)                                  : return str.__contains__(self, sub)
 
-    def has(self, sub_or_pattern, /, *, re_mode = False, flags = 0)    :
+    def has(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
         if not re_mode : return str.__contains__(self, sub_or_pattern)
         else           : return self.count(sub_or_pattern, re_mode = re_mode, flags = flags) > 0
 
-    def has_no(self, sub_or_pattern, /, *, re_mode = False, flags = 0) :
-        return not self.has(sub_or_pattern, re_mode = re_mode, flags = flags)
+    def has_any_of(self, *sub_iterable)                             : return any(self.has(sub) for sub in sub_iterable)
 
-    def has_any_of(self, *sub_iterable)                                : return any(self.has(sub) for sub in sub_iterable)
+    def has_all_of(self, *sub_iterable)                             : return all(self.has(sub) for sub in sub_iterable)
 
-    def has_all_of(self, *sub_iterable)                                : return all(self.has(sub) for sub in sub_iterable)
-
-    def has_none_of(self, *sub_iterable)                               : return all(self.has_no(sub) for sub in sub_iterable)
+    def has_none_of(self, *sub_iterable)                            : return all(self.has_no(sub) for sub in sub_iterable)
 
     # S.count(sub[, start[, end]]) -> int
     # Return the number of non-overlapping occurrences of substring sub in string S[start:end].
     # Optional arguments start and end are interpreted as in slice notation.
-    def count(self, sub_or_pattern, /, *, start = 0, end = -1, re_mode = False, flags = 0)            :
-        if re_mode : return self.find_all_match_list(sub_or_pattern, flags = flags).len()
+    def count(self, sub_or_pattern, /, *, start = 0, end = -1, re_mode = False, flags = 0) :
+        if re_mode : return self.find_all_match_iter(sub_or_pattern, flags = flags).len
         else       : return str.count(self, sub_or_pattern, start, end)
 
     # S.index(sub[, start[, end]]) -> int
     # Return the lowest or highest index in S where substring sub is found, such that sub is contained within S[start:end].
     # Optional arguments start and end are interpreted as in slice notation.
     # Raises ValueError when the substring is not found.
-    def index(self, sub, /, *, start = 0, end = -1, reverse = False)                                  :
+    def index(self, sub, /, *, start = 0, end = -1, reverse = False)                       :
         if not reverse : return str.index(self, sub, start, end)
         else           : return str.rindex(self, sub, start, end)
 
@@ -260,7 +261,7 @@ class Str(str) :
     # Return the lowest or highest index in S where substring sub is found, such that sub is contained within S[start:end].
     # Optional arguments start and end are interpreted as in slice notation.
     # Return -1 on failure.
-    # def find(self, sub, start = 0, end = -1, reverse = False)                                       :
+    # def find(self, sub, start = 0, end = -1, reverse = False)                            :
         # if not reverse : return str.find(self, sub, start, end)
         # else           : return str.find(self, sub, start, end)
 
@@ -269,10 +270,10 @@ class Str(str) :
     # Return None if the string does not match the pattern; note that this is different from a zero-length match.
     # Note that even in MULTILINE mode, re.match() will only match at the beginning of the string and not at the beginning of each line.
     # If you want to locate a match anywhere in string, use search() instead.
-    def left_match(self, pattern, /, *, flags = 0) -> Optional[_Match]                                :
+    def left_match(self, pattern, /, *, flags = 0) -> Optional[_Match] :
         return _Match(re.match(pattern, self, flags)) if _ else None
 
-    def ensure_left_match(self, pattern = None, /, *, flags = 0)                                      :
+    def ensure_left_match(self, pattern = None, /, *, flags = 0)       :
         if self.left_match(pattern, flags = flags) : return self
         else                                       : raise RuntimeError(f'\n{self=}\n应该左匹配\n{pattern=}')
 
@@ -281,54 +282,50 @@ class Str(str) :
     # With optional start, test S beginning at that position.
     # With optional end, stop comparing S at that position.
     # prefix can also be a tuple of strings to try.
-    def starts_with(self, *prefixes)                                                                  : return str.startswith(self, tuple(prefixes))
+    def starts_with(self, *prefixes) : return str.startswith(self, tuple(prefixes))
     
     # S.endswith(suffix[, start[, end]]) -> bool
     # Return True if S ends with the specified suffix, False otherwise.
     # With optional start, test S beginning at that position.
     # With optional end, stop comparing S at that position.
     # suffix can also be a tuple of strings to try.
-    def ends_with(self, *suffixes)                                                                    : return str.endswith(self, tuple(suffixes))
+    def ends_with(self, *suffixes)   : return str.endswith(self, tuple(suffixes))
     
     # @Timer.timeit_total('full_match')
     # re.fullmatch(pattern, string, flags=0)
     # If the whole string matches the regular expression pattern, return a corresponding match object.
     # Return None if the string does not match the pattern; note that this is different from a zero-length match.
-    def full_match(self, pattern, /, *, flags = 0) -> Optional[_Match]                                :
+    def full_match(self, pattern, /, *, flags = 0) -> Optional[_Match] :
         try                      : _ = re.fullmatch(pattern, self, flags)
         except KeyboardInterrupt : print(R(f'fullMatch卡住: {self}')); input(); return None
         return _Match(_) if _ else None
 
-    def ensure_full_match(self, pattern = None, /, *, flags = 0)                                      :
+    def ensure_full_match(self, pattern = None, /, *, flags = 0)       :
         if self.full_match(pattern, flags = flags) : return self
         else                                       : raise RuntimeError(f'\n{self=}\n应该完全匹配\n{pattern=}')
 
     # re.search(pattern, string, flags=0)
     # Scan through string looking for the first location where the regular expression pattern produces a match, and return a corresponding match object.
     # Return None if no position in the string matches the pattern; note that this is different from finding a zero-length match at some point in the string.
-    def search_one_match(self, pattern, /, *, reverse = False, flags = 0) -> Optional[_Match]         :
+    def search_one_match(self, pattern, /, *, reverse = False, flags = 0) -> Optional[_Match] :
         return _Match(re.search(pattern, self, flags)) if _ else None
 
     # re.finditer(pattern, string, flags=0)
     # Return an iterator yielding match objects over all non-overlapping matches for the RE pattern in string.
     # The string is scanned left-to-right, and matches are returned in the order found.
     # Empty matches are included in the result.
-    def find_all_match_iter(self, pattern, /, *, flags = 0)                                           :
+    def find_all_match_iter(self, pattern, /, *, flags = 0)                                   :
         return Iter(_Match(match) for match in re.finditer(pattern, self, flags))
     
-    def find_all_match_list(self, *args, **kwargs)                                                    :
-        from .List import List
-        return List(self.find_all_match_iter(*args, **kwargs))
-    
-    def only_one_match(self, pattern, /, *, flags = 0, default = _no_value) -> _Match                 :
-        matches = self.find_all_match_list(pattern, flags = flags)
-        if matches.len() > 1    : raise RuntimeError(f'[{pattern}] 在 [{self}] 中出现不止一次')
-        elif matches.len() == 0 :
+    def only_one_match(self, pattern, /, *, flags = 0, default = _no_value) -> _Match         :
+        all_match_iter = self.find_all_match_iter(pattern, flags = flags)
+        if all_match_iter.len > 1    : raise RuntimeError(f'[{pattern}] 在 [{self}] 中出现不止一次')
+        elif all_match_iter.len == 0 :
             if default != self._no_value : return self._wrap(default)
             else                         : raise RuntimeError(f'[{pattern}] 在 [{self}] 中不存在')
-        else                    : return matches[0]
+        else                    : return all_match_iter.list[0]
 
-    def only_one_group(self, pattern, /, *, flags = 0, default = _no_value)                           :
+    def only_one_group(self, pattern, /, *, flags = 0, default = _no_value)                   :
         m = self.only_one_match(pattern, flags = flags, default = default)
         if m == default : return self._wrap(default)
         else            : return m.only_one_group(default = default)
@@ -340,7 +337,7 @@ class Str(str) :
     # this will be a list of tuples if the pattern has more than one group.
     # Empty matches are included in the result.
     # Non-empty matches can now start just after a previous empty match.
-    # def findall(self, pattern, /, *, flags = 0)                                                     :
+    # def findall(self, pattern, /, *, flags = 0)                                               :
     #     from List import List; return List(re.findall(pattern, self, flags))
 
     # re.sub(pattern, repl, string, count=0, flags=0)
@@ -426,15 +423,15 @@ class Str(str) :
     # If maxsplit is given, at most maxsplit splits are done.
     # If sep is not specified, any whitespace string is a separator.
     # NOT IN PLACE
-    def rsplit(self, sep_or_pattern, /, **kwargs)                                                            :
+    def rsplit(self, sep_or_pattern, /, **kwargs) :
         return self.split(sep_or_pattern, reverse = True, **kwargs)
 
     # S.join(iterable) -> str
     # Return a string which is the concatenation of the strings in the iterable.
     # The separator between elements is S.
     # NOT IN PLACE
-    def join(self, item_list_or_iter: list, /)                                                               :
-        return Str(str.join(self, [f'{_}' for _ in item_list_or_iter]))
+    def join(self, item_iterable, /) :
+        return Str(str.join(self, [f'{_}' for _ in item_iterable]))
 
     # S.strip([chars]) -> str
     # Return a copy of the string S with leading and trailing whitespace removed.
@@ -450,18 +447,18 @@ class Str(str) :
     # Return a copy of the string S with leading whitespace removed.
     # If chars is given and not None, remove characters in chars instead.
     # NOT IN PLACE
-    def lstrip(self, string, /)                                                         : return self.strip(string, left = False)
+    def lstrip(self, string, /) : return self.strip(string, left = False)
 
     # S.rstrip([chars]) -> str
     # Return a copy of the string S with trailing whitespace removed.
     # If chars is given and not None, remove characters in chars instead.
     # NOT IN PLACE
-    def rstrip(self, string, /)                                                         : return self.strip(string, right = False)
+    def rstrip(self, string, /) : return self.strip(string, right = False)
 
     # NOT IN PLACE
-    def range(self)                                      :
+    def range_iter(self) :
         from .List import List
-        return self.split(r' *, *', re_mode = True).map(
+        return self.split(r' *, *', re_mode = True).iter.map(
             lambda part : 
                 List(range(int(part.split('-')[0]), int(part.split('-')[1]) + 1))
                 if part.count('-') == 1
@@ -469,7 +466,7 @@ class Str(str) :
         ).merge()
 
     # NOT IN PLACE
-    def to_url(self)                                     :
+    def to_url(self) :
         result = Str()
         for char in self :
             if char == ' '        : result += Str('%20')
@@ -542,18 +539,18 @@ class Str(str) :
     def _split_word_list(self) :
         result = []
         for char in self :
-            if len(result) == 0 :
+            if len(result) == 0   :
                 if char == '_' : continue # 过滤头部下划线
                 result.append(char)
             elif char.is_lower()  : result[-1] += char
             elif char.is_upper()  : result.append(char)
             elif char.is_number() :
                 if result[-1].is_number() : result[-1] += char
-                else                     : result.append(char)
-            elif char == '_'     :
+                else                      : result.append(char)
+            elif char == '_'      :
                 if result[-1] == '' : continue
                 else                : result.append(Str(''))
-            else                 : raise RuntimeError(f'非法字符[{P(char)}] in [{P(self)}]')
+            else                  : raise RuntimeError(f'非法字符[{P(char)}] in [{P(self)}]')
         if len(result) == 0 : raise RuntimeError(f'无法 splitWord [{self}]')
         return result
 
@@ -649,7 +646,8 @@ class Str(str) :
 
     # S.encode(encoding='utf-8', errors='strict') -> bytes
     # Encode S using the codec registered for encoding.
-    # Default encoding is 'utf-8'. errors may be given to set a different error handling scheme.
+    # Default encoding is 'utf-8'.
+    # errors may be given to set a different error handling scheme.
     # Default is 'strict' meaning that encoding errors raise a UnicodeEncodeError.
     # Other possible values are 'ignore', 'replace' and 'xmlcharrefreplace' as well as any other name registered with codecs.register_error that can handle UnicodeEncodeErrors.
     # def encode(self) :

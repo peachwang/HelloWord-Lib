@@ -43,7 +43,7 @@ from .Iter import Iter
     # tm_zone     时区名称的缩写
     # tm_gmtoff   以秒为单位的UTC以东偏离
 
-@add_print_func
+@printable
 @total_ordering
 class TimeDelta :
 
@@ -56,7 +56,7 @@ class TimeDelta :
         if td is None                        : self._timedelta = timedelta_class(**kwargs)
         elif isinstance(td, timedelta_class) : self._timedelta = td
         elif isinstance(td, TimeDelta)       : self._timedelta = td.get_raw()
-        else                                 : raise CustomTypeError(td)
+        else                                 : raise TypeError(td)
 
     # READ-ONLY PROPERTIES
     # @prop self._timedelta.days         -999999999 至 999999999
@@ -129,18 +129,18 @@ class TimeDelta :
     def __add__(self, other)                   :
         if isinstance(other, int) and other == 0 : return self
         elif isinstance(other, TimeDelta)        : return TimeDelta(self._timedelta + other.get_raw())
-        else                                     : raise CustomTypeError(other)
+        else                                     : raise TypeError(other)
         
 
     def __sub__(self, other)                   :
         if isinstance(other, int) and other == 0 : return self
         elif isinstance(other, TimeDelta)        : return TimeDelta(self._timedelta - other.get_raw())
-        else                                     : raise CustomTypeError(other)
+        else                                     : raise TypeError(other)
         
 
     def __mul__(self, int_or_float)            :
         if isinstance(int_or_float, (int, float)) : return TimeDelta(self._timedelta * int_or_float)
-        else                                      : raise CustomTypeError(int_or_float)
+        else                                      : raise TypeError(int_or_float)
         
 
     def __rmul__(self, int_or_float)           : return self.__mul__(int_or_float)
@@ -148,33 +148,32 @@ class TimeDelta :
     def __truediv__(self, td_or_int_or_float)  :
         if isinstance(td_or_int_or_float, TimeDelta)      : return self._timedelta / td_or_int_or_float.get_raw()
         elif isinstance(td_or_int_or_float, (int, float)) : return TimeDelta(self._timedelta / td_or_int_or_float)
-        else                                              : raise CustomTypeError(td_or_int_or_float)
+        else                                              : raise TypeError(td_or_int_or_float)
 
     def __floordiv__(self, td_or_int_or_float) :
         if isinstance(td_or_int_or_float, TimeDelta)      : return self._timedelta // td_or_int_or_float.get_raw()
         elif isinstance(td_or_int_or_float, (int, float)) : return TimeDelta(self._timedelta // td_or_int_or_float)
-        else                                              : raise CustomTypeError(td_or_int_or_float)
+        else                                              : raise TypeError(td_or_int_or_float)
 
     def __mod__(self, other)                   :
         if isinstance(other, TimeDelta) : return TimeDelta(self._timedelta % other.get_raw())
-        else                            : raise CustomTypeError(other)
+        else                            : raise TypeError(other)
         
 
     def __divmod__(self, other)                :
         if isinstance(other, TimeDelta) : return (self._timedelta // other.get_raw(), TimeDelta(self._timedelta % other.get_raw()))
-        else                            : raise CustomTypeError(other)
+        else                            : raise TypeError(other)
         
 
     def __lt__(self, td_or_int)                :
         if isinstance(td_or_int, TimeDelta)                : return self._timedelta.__lt__(td_or_int.get_raw())
         elif isinstance(td_or_int, int) and td_or_int == 0 : return self < TimeDelta()
-        else                                               : raise CustomTypeError(td_or_int)
-        
+        else                                               : raise TypeError(td_or_int)
 
     def __eq__(self, td_or_int)                :
         if isinstance(td_or_int, TimeDelta)                : return self._timedelta.__eq__(td_or_int.get_raw())
         elif isinstance(td_or_int, int) and td_or_int == 0 : return self == TimeDelta()
-        else                                               : raise CustomTypeError(td_or_int)
+        else                                               : raise TypeError(td_or_int)
         
 
     def __hash__(self) -> int                  : return hash(self._timedelta)
@@ -192,7 +191,7 @@ class TimeDelta :
     
     def __repr__(self)                         : return f'{type(self).__name__}({self._timedelta!r})'
 
-@add_print_func
+@printable
 @total_ordering
 class Date :
 
@@ -219,10 +218,10 @@ class Date :
         elif isinstance(ts_or_d_or_str, date_class)   : self._date = ts_or_d_or_str
         elif isinstance(ts_or_d_or_str, Date)         : self._date = ts_or_d_or_str.get_raw()
         elif isinstance(ts_or_d_or_str, (int, float)) :
-            if ts_or_d_or_str < 10000 or ts_or_d_or_str > 2000000000 : raise CustomTypeError(ts_or_d_or_str)
+            if ts_or_d_or_str < 10000 or ts_or_d_or_str > 2000000000 : raise ValueError(ts_or_d_or_str)
             self._date = date_class.fromtimestamp(timestamp_or_datetime_or_string)
         elif isinstance(ts_or_d_or_str, str)          : self._date = datetime_class.strptime(f'{ts_or_d_or_str} 00:00:00', f'{pattern} %H:%M:%S').date()
-        else                                          : raise CustomTypeError(ts_or_d_or_str)
+        else                                          : raise TypeError(ts_or_d_or_str)
 
     # 1 <= year <= 9999
     @cached_prop
@@ -289,7 +288,7 @@ class Date :
     def __add__(self, td_or_days, /)                    :
         if isinstance(td_or_days, TimeDelta) : return Date(self.get_raw() + td_or_days.get_raw())
         elif isinstance(td_or_days, int)     : return Date(self.get_raw() + TimeDelta(days = td_or_days).get_raw())
-        else                                 : raise CustomTypeError(td_or_days)
+        else                                 : raise TypeError(td_or_days)
 
     # date2 = date1 - timedelta 计算 date2 的值使得 date2 + timedelta == date1。 timedelta.seconds 和 timedelta.microseconds 会被忽略。
     # timedelta = date1 - date2 此值完全精确且不会溢出。 操作完成后 timedelta.seconds 和 timedelta.microseconds 均为 0，并且 date2 + timedelta == date1。
@@ -297,16 +296,16 @@ class Date :
         if isinstance(td_or_d_or_days, TimeDelta) : return Date(self.get_raw() - td_or_d_or_days.get_raw())
         elif isinstance(td_or_d_or_days, Date)    : return TimeDelta(self.get_raw() - td_or_d_or_days.get_raw())
         elif isinstance(td_or_d_or_days, int)     : return Date(self.get_raw() - TimeDelta(days = td_or_d_or_days).get_raw())
-        else                                      : raise CustomTypeError(td_or_d_or_days)
+        else                                      : raise TypeError(td_or_d_or_days)
 
     def __lt__(self, other)                             :
         if isinstance(other, Date) : return self._date.__lt__(other.get_raw())
-        else                       : raise CustomTypeError(other)
+        else                       : raise TypeError(other)
         
 
     def __eq__(self, other)                             :
         if isinstance(other, Date) : return self._date.__eq__(other.get_raw())
-        else                       : raise CustomTypeError(other)
+        else                       : raise TypeError(other)
         
 
     def __hash__(self) -> int                           : return hash(self._date)
@@ -322,7 +321,7 @@ class Date :
         weekday = {1 : '一', 2 : '二', 3 : '三', 4 : '四', 5 : '五', 6 : '六', 7 : '日'}[self.weekday]
         return f'{self}({weekday})'
 
-@add_print_func
+@printable
 @total_ordering
 class Time :
 
@@ -341,7 +340,7 @@ class Time :
         elif isinstance(t_or_str, time_class) : self._time = t_or_str
         elif isinstance(t_or_str, Time)       : self._time = t_or_str.get_raw()
         elif isinstance(t_or_str, str)        : self._time = datetime_class.strptime(t_or_str, pattern).time()
-        else                                  : raise CustomTypeError(t_or_str)
+        else                                  : raise TypeError(t_or_str)
 
     # 0 <= hour < 24
     @cached_prop
@@ -374,12 +373,12 @@ class Time :
     def __lt__(self, t_or_int)      :
         if isinstance(t_or_int, Time)                    : return self._time.__lt__(t_or_int.get_raw())
         elif isinstance(t_or_int, int) and t_or_int == 0 : return self < Time()
-        else                                             : raise CustomTypeError(t_or_int)
+        else                                             : raise TypeError(t_or_int)
 
     def __eq__(self, t_or_int)      :
         if isinstance(t_or_int, Time)                    : return self._time.__eq__(t_or_int.get_raw())
         elif isinstance(t_or_int, int) and t_or_int == 0 : return self == Time()
-        else                                             : raise CustomTypeError(t_or_int)
+        else                                             : raise TypeError(t_or_int)
 
     def __hash__(self) -> int       : return hash(self._time)
 
@@ -389,7 +388,7 @@ class Time :
     
     def __repr__(self)              : return f'{type(self).__name__}({self._time!r})'
 
-@add_print_func
+@printable
 @total_ordering
 class DateTime :
 
@@ -404,7 +403,7 @@ class DateTime :
 
     @classmethod
     def combine(cls, date: Date, time: Time) :
-        if not isinstance(date, Date) or not isinstance(time, Time) : raise CustomTypeError((date, time))
+        if not isinstance(date, Date) or not isinstance(time, Time) : raise TypeError((date, time))
         return cls(datetime_class.combine(date.get_raw(), time.get_raw()))
 
     # class datetime.datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
@@ -415,7 +414,7 @@ class DateTime :
         elif isinstance(ts_or_dt_or_str_or_dct, datetime_class) : self._datetime = ts_or_dt_or_str_or_dct
         elif isinstance(ts_or_dt_or_str_or_dct, DateTime)       : self._datetime = ts_or_dt_or_str_or_dct.get_raw()
         elif isinstance(ts_or_dt_or_str_or_dct, (int, float))   :
-            if ts_or_dt_or_str_or_dct < 10000 or ts_or_dt_or_str_or_dct > 2000000000 : raise CustomTypeError(ts_or_dt_or_str_or_dct)
+            if ts_or_dt_or_str_or_dct < 10000 or ts_or_dt_or_str_or_dct > 2000000000 : raise ValueError(ts_or_dt_or_str_or_dct)
             self._datetime = datetime_class.fromtimestamp(ts_or_dt_or_str_or_dct)
         elif isinstance(ts_or_dt_or_str_or_dct, str)            : self._datetime = datetime_class.strptime(ts_or_dt_or_str_or_dct, pattern)
         elif (isinstance(ts_or_dt_or_str_or_dct, dict)
@@ -467,7 +466,7 @@ class DateTime :
     def get_raw(self)                        : return self._datetime
 
     # def json_serialize(self) -> list : return list(self.tuple)
-    def json_serialize(self) -> list         : return { 'sec' : int(self.timestamp), 'usec' : self.microsecond }
+    def json_serialize(self) -> dict         : return { 'sec' : int(self.timestamp), 'usec' : self.microsecond }
 
     # datetime.replace(year=self.year, month=self.month, day=self.day, hour=self.hour, minute=self.minute, second=self.second, microsecond=self.microsecond, tzinfo=self.tzinfo, * fold=0)
     def replace(self, **kwargs)              : return DateTime(self._datetime.replace(**kwargs))
@@ -525,7 +524,8 @@ class DateTime :
         weekday = {1 : '一', 2 : '二', 3 : '三', 4 : '四', 5 : '五', 6 : '六', 7 : '日'}[self.date.weekday]
         return f'{self}({weekday})'
 
-@add_print_func
+@iterable
+@printable
 @total_ordering
 class DateList : # Immutable
 
@@ -533,18 +533,13 @@ class DateList : # Immutable
         from .List import List
         self._date_list = List(Date(date) for date in date_iterable)
     
-    def __iter__(self)                          : return self._date_list.iter()
+    def __iter__(self)                          : return self._date_list.iter
 
     @prop
-    def iter(self)                              : return Iter(self)
+    def list(self)                              : raise NotImplementedError # 不允许访问内部数据，以避免 制作副本缓存后被修改 vs 不缓存反复制作副本的开销 之间的矛盾
 
-    @prop
-    def list(self)                              : raise NotImplementedError # ImmutableList # 不允许访问内部数据，以避免 制作副本缓存后被修改 vs 不缓存反复制作副本的开销 之间的矛盾
-
-    def __len__(self) -> int                    : return self._date_list.len()
+    def __len__(self) -> int                    : return len(self._date_list)
     
-    def len(self) -> int                        : return self.__len__()
-
     def __getitem__(self, index) -> Date        : return self._date_list[index]
 
     # def get_raw(self) -> list                   : return self._date_list.get_raw()
@@ -552,22 +547,21 @@ class DateList : # Immutable
 
     def json_serialize(self) -> list            : return self._date_list.json_serialize()
 
-    @cached_prop
-    def workday_list(self)                      : return DateList(date for date in self if date.is_workday) # Immutable
+    @prop
+    def workday_iter(self)                      : return Iter(date for date in self if date.is_workday)
     
-    @cached_prop
-    def weekend_list(self)                      : return DateList(date for date in self if date.is_weekend) # Immutable
+    @prop
+    def weekend_iter(self)                      : return Iter(date for date in self if date.is_weekend)
 
-    @cached_func
-    def get_weekday_list(self, weekday: int, /) :
-        if weekday in range(1, 8) : return DateList(date for date in self._date_list if date.weekday == weekday) # Immutable
-        else                      : raise CustomTypeError(weekday)
+    def get_weekday_iter(self, weekday: int, /) :
+        if weekday in range(1, 8) : return Iter(date for date in self._date_list if date.weekday == weekday)
+        else                      : raise ValueError(weekday)
 
     __lt__ = None
 
     def __eq__(self, other)                     :
         if type(self) == DateList : return self._date_list == other._date_list
-        else                      : raise CustomTypeError(other)
+        else                      : raise TypeError(other)
 
     def __format__(self, spec)                  : return f'{self._date_list:{spec}}'
 
@@ -575,17 +569,18 @@ class DateList : # Immutable
     
     def __repr__(self)                          : return f'{type(self).__name__}({self._date_list!r})'
 
-@add_print_func
+@iterable
+@sized
+@printable
 @total_ordering
 class DateRange(DateList) : # Immutable
 
     def __init__(self, start: Union[date_class, Date, str], end: Union[date_class, Date, str], pattern = '%Y-%m-%d', /, *, step_days: int = 1) :
-        from .List import List
         self._start_date = Date(start, pattern)
         self._end_date   = Date(end, pattern)
         self._step_days  = step_days
         if not isinstance(step_days, int) or step_days == 0 or (self._end_date > self._start_date) != (step_days > 0) :
-            raise CustomTypeError(step_days)
+            raise ValueError((self._start_date, self._end_date, step_days))
 
     @cached_prop
     def start_date(self) -> Date         : return self._start_date
@@ -600,14 +595,10 @@ class DateRange(DateList) : # Immutable
         date = self._start_date
         while date < self._end_date : yield date; date = date + self._step_days
 
-    def iter(self)                       : return Iter(self)
-
     @prop
     def list(self)                       : raise NotImplementedError # 不允许访问内部数据，以避免 制作副本缓存后被修改 vs 不缓存反复制作副本的开销 之间的矛盾
 
     def __len__(self) -> int             : return (self._end_date - self._start_date).abs().days
-    
-    def len(self) -> int                 : return self.__len__()
     
     def __getitem__(self, index) -> Date : raise NotImplementedError
 
@@ -616,10 +607,8 @@ class DateRange(DateList) : # Immutable
     
     def json_serialize(self) -> list     : return list(self.tuple) if isinstance(self, (Year, Month, Week)) else [ self._start_date, self._end_date ]
 
-    @cached_prop
-    def related_week_list(self)          :
-        from .List import List
-        return List(Week(date.year, date.month, date.day) for date in self).unique()
+    @prop
+    def related_week_iter(self)          : return Iter(Week(date.year, date.month, date.day) for date in self).unique()
 
     def __lt__(self, other)              :
         if type(self) != DateRange and type(self) == type(other) : return self.tuple < other.tuple
@@ -706,7 +695,7 @@ class Week(DateRange) : # Immutable
 
     def __hash__(self) -> int            : return hash(self.tuple)
 
-@add_print_func
+@printable
 class TimeZone :
 
     # class_property utc UTC 时区，timezone(timedelta(0))。

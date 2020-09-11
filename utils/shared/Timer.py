@@ -5,12 +5,13 @@ from typing    import Optional
 from .Color    import Y, P, E
 prop = property
 
+@sized
 class Timer :
 
     _has_inited          = False
 
     @classmethod
-    def __initclass__(cls) :
+    def __initclass__(cls)          :
         if cls._has_inited : return
         cls._global_total      = 0
         cls._global_current    = time.time()
@@ -19,7 +20,7 @@ class Timer :
         cls._has_inited        = True
 
     @classmethod
-    def get_timer_dict(cls) : return cls._timer_dict
+    def get_timer_dict(cls)         : return cls._timer_dict
 
     def __init__(self, key: str, /) :
         self.__initclass__()
@@ -30,26 +31,26 @@ class Timer :
         self._last_len   = 0
 
     @prop
-    def key(self) : return self._key
+    def key(self)                   : return self._key
     
     @prop
-    def total(self) : return self._total
+    def total(self)                 : return self._total
 
-    def add(self, delta: float, /) : self._total += delta; self._delta_list.append(delta); return self
+    def add(self, delta: float, /)  : self._total += delta; self._delta_list.append(delta); return self
 
-    def len(self) -> int : return len(self._delta_list)
-
-    @prop
-    def len_delta(self) -> int : result = self.len() - self._last_len; self._last_len = self.len(); return result
+    def __len__(self) -> int        : return len(self._delta_list)
 
     @prop
-    def ave(self) -> float : return self._total / self.len() if self.len() > 0 else 0
+    def len_delta(self) -> int      : result = self.len - self._last_len; self._last_len = self.len; return result
 
     @prop
-    def total_delta(self) -> float : result = self._total - self._last_total; self._last_total = self._total; return result
+    def ave(self) -> float          : return self._total / self.len if self.len > 0 else 0
+
+    @prop
+    def total_delta(self) -> float  : result = self._total - self._last_total; self._last_total = self._total; return result
 
     @staticmethod
-    def timeit_once(msg = '', /) :
+    def timeit_once(msg = '', /)    :
         def decorator(func) :
             Timer.__initclass__()
             @wraps(func)
@@ -89,7 +90,7 @@ class Timer :
     def print_total(cls, key: str, /, msg = '') :
         cls.__initclass__()
         def print_timer(timer) :
-            print(P(f'类目({timer.key:50}) 总共({timer.len():>10}次, +{timer.len_delta:>10}次, {timer.total:.6f}s, +{timer.total_delta:.6f}s) 平均{timer.ave:.6f}s [ {msg} ]'), flush = True)
+            print(P(f'类目({timer.key:50}) 总共({timer.len:>10}次, +{timer.len_delta:>10}次, {timer.total:.6f}s, +{timer.total_delta:.6f}s) 平均{timer.ave:.6f}s [ {msg} ]'), flush = True)
         _ = cls._timer_dict[key]
         if isinstance(_, dict) :
             for key_args in _ : print_timer(_[key_args])

@@ -4,10 +4,14 @@ from .Iter import Iter
 
 # ListDiff: 以 item 作为最小比较单元。降维后可用于StrDiff
 
-@add_print_func
+@container
+@iterable
+@sized
+@printable
 class List(list) :
 
     _has_imported_types = False
+    _no_value           = object()
 
     @classmethod
     def _import_types(cls) :
@@ -37,7 +41,6 @@ class List(list) :
         # 如果不赋值到self中，本装饰器无效，原因：locals() 只读, globals() 可读可写。https://www.jianshu.com/p/4510a9d68f3f
         cls._has_imported_types = True
 
-    # @Timer.timeit_total('_wrap_item')
     @classmethod
     def _wrap_item(cls, item, /) :
         if isinstance(item, (cls._ObjectId, cls._Str, cls._List, cls._Dict)) : return item
@@ -58,10 +61,12 @@ class List(list) :
     @staticmethod
     def _wrap_str_or_type(_, func) : return '"{}"'.format(_) if isinstance(_, str) else (str(_).split("'")[1] if isinstance(_, type) else func(_))
 
-    # Create and return a new object.  See help(type) for accurate signature.
+    # Create and return a new object.
+    # See help(type) for accurate signature.
     # def __new__(self) :
 
-    # Initialize self.  See help(type(self)) for accurate signature.
+    # Initialize self.
+    # See help(type(self)) for accurate signature.
     # list() -> new empty list
     # list(iterable) -> new list initialized from iterable's items
     def __init__(self, *args) :
@@ -79,19 +84,20 @@ class List(list) :
     def copy(self) : return List(self)
 
     # id(object) -> integer
-    # Return the identity of an object.  This is guaranteed to be unique among
-    # simultaneously existing objects.  (Hint: it's the object's memory address.)
+    # Return the identity of an object.
+    # This is guaranteed to be unique among simultaneously existing objects.
+    # (Hint: it's the object's memory address.)
     def get_id(self) -> int : return hex(id(self))
 
     # Implement iter(self).
     # iter(iterable) -> iterator
     # iter(callable, sentinel) -> iterator
-    # Get an iterator from an object.  In the first form, the argument must
-    # supply its own iterator, or be a sequence.
+    # Get an iterator from an object.
+    # In the first form, the argument must supply its own iterator, or be a sequence.
     # In the second form, the callable is called until it returns the sentinel.
+        # __iter__(self, /)
+            # Implement iter(self).
     def __iter__(self) : return list.__iter__(self)
-    
-    def iter(self) : return Iter(self)
     
     # 去除最外层封装，用于原生对象初始化：list/dict.__init__()/.update()
     def _get_data(self) -> list : return [ item for item in self ]
@@ -103,7 +109,7 @@ class List(list) :
     json_serialize = _get_data
 
     @print_func
-    def print_len(self, msg = None) : return f"{'' if msg is None else f'{msg}: '}{self.len()}个元素", False
+    def print_len(self, msg = None) : return f'{"" if msg is None else f"{msg}: "}{self.len}个元素', False
 
     @print_func
     def print_line(self, pattern = None, /) :
@@ -121,14 +127,14 @@ class List(list) :
 
     # Return str(self).
     # @log_entering
-    def __str__(self) : return 'List[ {} ]'.format(self.mapped(lambda item : List._wrap_str(item, str)).join(', '))
+    def __str__(self) : return f'{type(self).__name__}[ {{}} ]'.format(self.mapped(lambda item : List._wrap_str(item, str)).join(', '))
 
     @print_func
     def print_str(self) : return self.mapped(lambda item : List._wrap_str(item, str)).join('\n'), True
 
     # Return repr(self).
     # @log_entering
-    def __repr__(self) : return 'List( {} )'.format(self.mapped(lambda item : List._wrap_str_or_type(item, repr)).join(', '))
+    def __repr__(self) : return f'{type(self).__name__}( {{}} )'.format(self.mapped(lambda item : List._wrap_str_or_type(item, repr)).join(', '))
 
     @print_func
     def print_j(self) : return self.j(), True
@@ -151,8 +157,8 @@ class List(list) :
 
     # Return self==value.
     def __eq__(self, other) :
-        if not isinstance(other, List) or self.len() != other.len() : return False
-        return self.j() == other.j()
+        if not isinstance(other, list) or self.len != len(other) : return False
+        return self.j() == (other.j() if isinstance(other, List) else j(other))
 
     # Return self!=value.
     def __ne__(self, other) : return not self.__eq__(other)
@@ -160,24 +166,14 @@ class List(list) :
     # Return len(self).
     def __len__(self) : return list.__len__(self)
 
-    def len(self) : return list.__len__(self)
-
-    def is_empty(self) : return self.len() == 0
-
-    def is_not_empty(self) : return not self.is_empty()
-
     # x.__contains__(y) <==> y in x
     def __contains__(self, item, /) : return list.__contains__(self, item)
 
-    def has(self, item, /) : return list.__contains__(self, item)
+    def has_any_of(self, *item_iterable) : return any(self.has(item) for item in item_iterable)
 
-    def has_no(self, item, /) : return not self.has(item)
+    def has_all_of(self, *item_iterable) : return all(self.has(item) for item in item_iterable)
 
-    def has_any_of(self, item_list, /) : return any(self.has(item) for item in item_list)
-
-    def has_all_of(self, item_list, /) : return all(self.has(item) for item in item_list)
-
-    def has_none_of(self, item_list, /) : return all(self.has_no(item) for item in item_list)
+    def has_none_of(self, *item_iterable) : return all(self.has_no(item) for item in item_iterable)
 
     # L.count(value) -> integer -- return number of occurrences of value
     def count(self, item, /) -> int : return list.count(self, item)
@@ -194,35 +190,41 @@ class List(list) :
     def right_index(self, item, /) -> Optional[int] :
         try               : index = self.reversed().left_index(item)
         except ValueError : return None
-        else              : return self.len() - index - 1
+        else              : return self.len - index - 1
 
     def unique_index(self, item, /) -> int :
-        if self.count(item) == 0  : raise Exception(f'{self=}\n中值：\n{item=}\n不存在')
-        elif self.count(item) > 1 : raise Exception(f'{self=}\n中值：\n{item=}\n不唯一')
+        if self.count(item) == 0  : raise ValueError(f'{self=}\n中值：\n{item=}\n不存在')
+        elif self.count(item) > 1 : raise ValueError(f'{self=}\n中值：\n{item=}\n不唯一')
         return list.index(self, item)
 
     # Return getattr(self, name).
     # def __getattribute__(self) :
 
-    # getattr(object, name[, default]) -> value
-    # Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
-    # When a default argument is given, it is returned when the attribute doesn't
-    # exist; without it, an exception is raised in that case.
+    # getattr(object, name[, default])
+    # Return the value of the named attribute of object. name must be a string.
+    # If the string is the name of one of the object’s attributes, the result is the value of that attribute.
+    # For example, getattr(x, 'foobar') is equivalent to x.foobar.
+    # If the named attribute does not exist, default is returned if provided, otherwise AttributeError is raised.
+        # getattr(object, name[, default]) -> value
+        # Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
+        # When a default argument is given, it is returned when the attribute doesn't exist; without it, an exception is raised in that case.
     '''NOT IN PLACE'''
     def __getattr__(self, key_or_func_name) : return self.value_list(key_or_func_name)
-        # if self.len() == 0 :
-        #     raise Exception('不能对空列表进行 __getattr__ 操作，请检查是否是希望对Dict进行操作！')
+        # if self.is_empty() :
+        #     raise TypeError('不能对空列表进行 __getattr__ 操作，请检查是否是希望对Dict进行操作！')
 
-    def __call__(self) : raise Exception('请检查是否在批量调用List元素的方法获取结果List后，对结果List多加了()调用！')
+    def __call__(self) : raise RuntimeError('请检查是否在批量调用List元素的方法获取结果List后，对结果List多加了()调用！')
 
-    def get(self, index: int, /, default = None) :
-        if not isinstance(index, int) : raise CustomTypeError(index)
-        if abs(index) >= self.len()   : return default
+    def get(self, index: int, default = None, /) :
+        if not isinstance(index, int) : raise TypeError(index)
+        if abs(index) >= self.len     : return default
         else                          : return self.__getitem__(index)
 
     # x.__getitem__(y) <==> x[y]
     # https://docs.python.org/3/library/collections.abc.html?highlight=__contains__#collections.abc.ByteString
-    # Implementation note: Some of the mixin methods, such as __iter__(), __reversed__() and index(), make repeated calls to the underlying __getitem__() method. Consequently, if __getitem__() is implemented with constant access speed, the mixin methods will have linear performance; however, if the underlying method is linear (as it would be with a linked list), the mixins will have quadratic performance and will likely need to be overridden.
+    # Implementation note: Some of the mixin methods, such as __iter__(), __reversed__() and index(), make repeated calls to the underlying __getitem__() method.
+    # Consequently, if __getitem__() is implemented with constant access speed, the mixin methods will have linear performance;
+    # however, if the underlying method is linear (as it would be with a linked list), the mixins will have quadratic performance and will likely need to be overridden.
     def __getitem__(self, index: Union[int, slice], /) :
         if isinstance(index, int)     : return list.__getitem__(self, index)
         elif isinstance(index, slice) :
@@ -232,15 +234,15 @@ class List(list) :
                 start, end = None, None
                 for idx, item in self.enum() :
                     if index.start is not None and start is None and index.start == item : start = idx
-                    elif start is not None and index.start == item                       : raise Exception(f'\n{self=}\n中有重复的 [{index.start=}]: [{item}]')
+                    elif start is not None and index.start == item                       : raise RuntimeError(f'\n{self=}\n中有重复的 [{index.start=}]: [{item}]')
                     if index.stop is not None and end is None and index.stop == item     : end = idx
-                    elif end is not None and index.stop == item                          : raise Exception(f'\n{self=}\n中有重复的 [{index.stop=}]: [{item}]')
-                if index.start is not None and start is None : raise Exception(f'\n{self=}\n中不存在 [{index.start=}]')
-                if index.stop is not None and end is None    : raise Exception(f'\n{self=}\n中不存在 [{index.stop=}]')
+                    elif end is not None and index.stop == item                          : raise RuntimeError(f'\n{self=}\n中有重复的 [{index.stop=}]: [{item}]')
+                if index.start is not None and start is None : raise RuntimeError(f'\n{self=}\n中不存在 [{index.start=}]')
+                if index.stop is not None and end is None    : raise RuntimeError(f'\n{self=}\n中不存在 [{index.stop=}]')
                 return self[start : end]
         # Str.to_range_tuple() -> ((None, e1), idx2, (s3, e3), (s4, None))
         elif isinstance(index, tuple) : raise NotImplementedError
-        else                          : raise CustomTypeError(index)
+        else                          : raise TypeError(index)
 
     def get_unique_item(self, item, /) : return self[self.unique_index(item)] # 通常针对重载了 __eq__ 的情况
 
@@ -304,10 +306,10 @@ class List(list) :
     
     # L.extend(iterable) -> None -- extend list by appending elements from the iterable
     # IN PLACE
-    def extend(self, iterable: Optional[list], /) :
-        if isinstance(iterable, Iterable) : list.extend(self, iterable); return self
-        elif iterable is None             : return self
-        else                              : raise CustomTypeError(iterable)
+    def extend(self, item_iterable: Optional[list], /) :
+        if isinstance(item_iterable, Iterable) : list.extend(self, item_iterable); return self
+        elif item_iterable is None             : return self
+        else                                   : raise TypeError(item_iterable)
 
     # NOT IN PLACE
     def extended(self, item_list, /) : return self.copy().extend(item_list)
@@ -364,7 +366,7 @@ class List(list) :
         if (callable(key_func_or_attr_name)
             or key_func_or_attr_name is None)       : list.sort(self, key = key_func_or_attr_name, reverse = reverse)
         elif isinstance(key_func_or_attr_name, str) : list.sort(self, key = attrgetter(key_func_or_attr_name), reverse = reverse)
-        else                                        : raise CustomTypeError(key_func_or_attr_name)
+        else                                        : raise TypeError(key_func_or_attr_name)
         return self
 
     # NOT IN PLACE
@@ -418,7 +420,7 @@ class List(list) :
     # NOT IN PLACE
     # 可以允许字段不存在
     def value_list(self, key_list_or_func_name: Union[list, str], /, *, default = None) :
-        if self.len() == 0                          : return self.copy()
+        if self.len == 0                          : return self.copy()
         if isinstance(key_list_or_func_name, list)  :
             if isinstance(self[0], self._Object) : return self.batched('_get', key_list_or_func_name)
             else                                 : return self.batched('get', key_list_or_func_name)
@@ -441,22 +443,19 @@ class List(list) :
                         raise e
                 return attribute
             return self.mapped(get_value)
-        else                                        : raise CustomTypeError(key_list_or_func_name)
-
-    # NOT IN PLACE
-    def format(self, pattern, /) : return self.mapped(lambda _ : pattern.format(_))
+        else                                        : raise TypeError(key_list_or_func_name)
 
     # IN PLACE
     def filter(self, func_or_func_name, /, *args, **kwargs) :
         index = 0
-        while index < self.len() :
+        while index < self.len :
             if isinstance(func_or_func_name, str) :
                 if self[index].__getattribute__(func_or_func_name)(*args, **kwargs) : index += 1
                 else                                                                : self.pop_index(index)
             elif callable(func_or_func_name)      :
                 if func_or_func_name(self[index], *args, **kwargs) : index += 1
                 else                                               : self.pop_index(index)
-            else                                  : raise CustomTypeError(func_or_func_name)
+            else                                  : raise TypeError(func_or_func_name)
         return self
 
     # NOT IN PLACE
@@ -464,8 +463,8 @@ class List(list) :
 
     def filter_one(self, func_or_func_name, /, *args, **kwargs) :
         result = self.filtered(func_or_func_name, *args, **kwargs)
-        if result.len() != 1 : raise CustomTypeError(result)
-        else                 : return result[0]
+        if result.len != 1 : raise ValueError(result)
+        else               : return result[0]
 
     # IN PLACE
     def filter_by_value(self, key_list_or_func_name: Optional[Union[list, str]], value_or_list, /) :
@@ -481,7 +480,7 @@ class List(list) :
                 if callable(attribute)            : return attribute()
                 else                              : return attribute
             return self.filter(lambda item : get_value(item) in value_or_list)
-        else                                         : raise CustomTypeError(key_list_or_func_name)
+        else                                         : raise TypeError(key_list_or_func_name)
 
     # NOT IN PLACE
     def filtered_by_value(self, key_list_or_func_name, value_or_list, /) : return self.copy().filter_by_value(key_list_or_func_name, value_or_list)
@@ -512,23 +511,12 @@ class List(list) :
             else                  : result[k] = List(value_func(item) for item in g)
         return result
     
-    def count_by(self, key_func = None, /) : return self._Dict((k, g.len()) for k, g in self.group_by(key_func).items())
-
-    # NOT IN PLACE
-    def _reduce(self, key_list_or_func_name: Optional[Union[list, str]], func, initial_value, /) :
-        if key_list_or_func_name is None                    : return self.reduce(func, initial_value)
-        elif isinstance(key_list_or_func_name, (list, str)) : return self.value_list(key_list_or_func_name).reduce(func, initial_value)
-        else                                                : raise CustomTypeError(key_list_or_func_name)
-
-    # NOT IN PLACE
-    def sum(self, key_list_or_func_name = None, /, *, default = 0) :
-        if self.len() == 0 : return default
-        return self._reduce(key_list_or_func_name, lambda result, item : item + result, 0)
+    def count_by(self, key_func = None, /) : return self._Dict((k, g.len) for k, g in self.group_by(key_func).items())
 
     # NOT IN PLACE
     def ave(self, key_list_or_func_name = None, /, *, default = 0) :
-        if self.len() == 0 : return default
-        return 1.0 * self.sum(key_list_or_func_name) / self.len()
+        if self.len == 0 : return default
+        return 1.0 * self.sum(key_list_or_func_name) / self.len
 
     # NOT IN PLACE
     def _initial_value(self, key_list_or_func_name: Optional[Union[list, str]], /) :
@@ -541,11 +529,11 @@ class List(list) :
             else                                 : attribute = self[0].__getattribute__(key_list_or_func_name)
             if callable(attribute)               : return attribute()
             else                                 : return attribute
-        else                                         : raise CustomTypeError(key_list_or_func_name)
+        else                                         : raise TypeError(key_list_or_func_name)
 
     # NOT IN PLACE
     def max(self, key_list_or_func_name = None, /, *, default = None) :
-        if self.len() == 0 : return default
+        if self.len == 0 : return default
         return self._reduce(
             key_list_or_func_name,
             lambda result, item : item if item > result else result,
@@ -554,7 +542,7 @@ class List(list) :
 
     # NOT IN PLACE
     def min(self, key_list_or_func_name = None, /, *, default = None) :
-        if self.len() == 0 : return default
+        if self.len == 0 : return default
         return self._reduce(
             key_list_or_func_name,
             lambda result, item : item if item < result else result,
@@ -583,7 +571,7 @@ class List(list) :
     # IN PLACE
     # O(N^2)???
     def intersect(self, item_list: list, /) :
-        if not isinstance(item_list, list) : raise CustomTypeError(item_list)
+        if not isinstance(item_list, list) : raise TypeError(item_list)
         return self.filter(lambda item, item_list : item in item_list, List(item_list))
 
     # NOT IN PLACE
@@ -597,7 +585,7 @@ class List(list) :
     # IN PLACE
     # O(N^2)???
     def difference(self, item_list: list, /) :
-        if not isinstance(item_list, list) : raise CustomTypeError(item_list)
+        if not isinstance(item_list, list) : raise TypeError(item_list)
         return self.filter(lambda item, item_list : item not in item_list, List(item_list))
 
     # NOT IN PLACE
@@ -611,7 +599,7 @@ class List(list) :
     # IN PLACE
     # O(N^2)???
     def union(self, item_list: list, /) :
-        if not isinstance(item_list, list) : raise CustomTypeError(item_list)
+        if not isinstance(item_list, list) : raise TypeError(item_list)
         return self.extend(List(item_list).difference(self))
 
     # NOT IN PLACE
@@ -623,27 +611,27 @@ class List(list) :
 
     # Return True if two lists have a null intersection.
     # O(N^2)???
-    def is_disjoint_from(self, item_list, /) : return (self & item_list).len() == 0
+    def is_disjoint_from(self, item_list, /) : return (self & item_list).len == 0
 
     # Report whether another set contains this set.
     # O(N^2)???
-    def is_subset_of(self, item_list, /) : return (self - item_list).len() == 0
+    def is_subset_of(self, item_list, /) : return (self - item_list).len == 0
 
     # Return self<=value.
     def __le__(self, other) : return self.is_subset_of(other)
 
     # Return self<value.
-    def __lt__(self, other) : return self.len() < other.len() and self.__le__(other)
+    def __lt__(self, other) : return self.len < other.len and self.__le__(other)
 
     # Report whether this set contains another set.
     # O(N^2)???
-    def is_superset_of(self, item_list, /) : return (List(item_list) - self).len() == 0
+    def is_superset_of(self, item_list, /) : return (List(item_list) - self).len == 0
 
     # Return self>=value.
     def __ge__(self, other) : return self.is_superset_of(other)
 
     # Return self>value.
-    def __gt__(self, other) : return self.len() > other.len() and self.__ge__(other)
+    def __gt__(self, other) : return self.len > other.len and self.__ge__(other)
 
     def is_same_set_of(self, item_list, /) : return self <= item_list and self >= item_list
 
@@ -679,8 +667,15 @@ class List(list) :
     # It is further recommended that both mappings and sequences implement the __iter__() method to allow efficient iteration through the container;
     # for mappings, __iter__() should iterate through the object’s keys; for sequences, it should iterate through the values.
 
+    # len(s)
+        # Return the length (the number of items) of an object.
+        # The argument may be a sequence (such as a string, bytes, tuple, list, or range) or a collection (such as a dictionary, set, or frozen set).
+        # len(obj, /)
+            # Return the number of items in a container.
+
     # object.__len__(self)
-        # Called to implement the built-in function len(). Should return the length of the object, an integer >= 0.
+        # Called to implement the built-in function len().
+        # Should return the length of the object, an integer >= 0.
         # Also, an object that doesn’t define a __bool__() method and whose __len__() method returns zero is considered to be false in a Boolean context.
 
         # CPython implementation detail: In CPython, the length is required to be at most sys.maxsize.
@@ -688,17 +683,15 @@ class List(list) :
         # To prevent raising OverflowError by truth value testing, an object must define a __bool__() method.
 
     # object.__length_hint__(self)
-        # Called to implement operator.length_hint(). Should return an estimated length for the object (which may be greater or less than the actual length).
-        # The length must be an integer >= 0. The return value may also be NotImplemented, which is treated the same as if the __length_hint__ method didn’t exist at all.
+        # Called to implement operator.length_hint().
+        # Should return an estimated length for the object (which may be greater or less than the actual length).
+        # The length must be an integer >= 0.
+        # The return value may also be NotImplemented, which is treated the same as if the __length_hint__ method didn’t exist at all.
         # This method is purely an optimization and is never required for correctness.
 
-        # New in version 3.4.
-
-    # Note Slicing is done exclusively with the following three methods. A call like
-    # a[1:2] = b
-    # is translated to
-    # a[slice(1, 2, None)] = b
-    # and so forth. Missing slice items are always filled in with None.
+    # Note Slicing is done exclusively with the following three methods.
+    # A call like a[1:2] = b is translated to a[slice(1, 2, None)] = b and so forth.
+    # Missing slice items are always filled in with None.
 
     # object.__getitem__(self, key)
         # Called to implement evaluation of self[key].
@@ -711,41 +704,88 @@ class List(list) :
         # Note: for loops expect that an IndexError will be raised for illegal indexes to allow proper detection of the end of the sequence.
 
     # object.__setitem__(self, key, value)
-        # Called to implement assignment to self[key]. Same note as for __getitem__().
-        # This should only be implemented for mappings if the objects support changes to the values for keys, or if new keys can be added, or for sequences if elements can be replaced.
+        # Called to implement assignment to self[key].
+        # Same note as for __getitem__().
+        # This should only be implemented for mappings if the objects support changes to the values for keys,
+        # or if new keys can be added, or for sequences if elements can be replaced.
         # The same exceptions should be raised for improper key values as for the __getitem__() method.
 
     # object.__delitem__(self, key)
-        # Called to implement deletion of self[key]. Same note as for __getitem__().
-        # This should only be implemented for mappings if the objects support removal of keys, or for sequences if elements can be removed from the sequence.
+        # Called to implement deletion of self[key].
+        # Same note as for __getitem__().
+        # This should only be implemented for mappings if the objects support removal of keys,
+        # or for sequences if elements can be removed from the sequence.
         # The same exceptions should be raised for improper key values as for the __getitem__() method.
 
     # object.__missing__(self, key)
         # Called by dict.__getitem__() to implement self[key] for dict subclasses when key is not in the dictionary.
 
+    # iter(object[, sentinel])
+        # Return an iterator object.
+        # The first argument is interpreted very differently depending on the presence of the second argument.
+        # Without a second argument, object must be a collection object which supports the iteration protocol (the __iter__() method),
+        # or it must support the sequence protocol (the __getitem__() method with integer arguments starting at 0).
+        # If it does not support either of those protocols, TypeError is raised.
+
+        # If the second argument, sentinel, is given, then object must be a callable object.
+        # The iterator created in this case will call object with no arguments for each call to its __next__() method;
+        # if the value returned is equal to sentinel, StopIteration will be raised, otherwise the value will be returned.
+
+        # See also Iterator Types.
+
+        # One useful application of the second form of iter() is to build a block-reader.
+        # For example, reading fixed-width blocks from a binary database file until the end of file is reached:
+        # from functools import partial
+        # with open('mydata.db', 'rb') as f:
+            # for block in iter(partial(f.read, 64), b''):
+                # process_block(block)
+
+        # iter(...)
+            # iter(iterable) -> iterator
+            # iter(callable, sentinel) -> iterator
+            # Get an iterator from an object.
+            # In the first form, the argument must supply its own iterator, or be a sequence.
+            # In the second form, the callable is called until it returns the sentinel.
+
     # object.__iter__(self)
-        # This method is called when an iterator is required for a container. This method should return a new iterator object that can iterate over all the objects in the container.
+        # This method is called when an iterator is required for a container.
+        # This method should return a new iterator object that can iterate over all the objects in the container.
         # For mappings, it should iterate over the keys of the container.
 
-        # Iterator objects also need to implement this method; they are required to return themselves. For more information on iterator objects, see Iterator Types.
+        # Iterator objects also need to implement this method; they are required to return themselves.
+        # For more information on iterator objects, see Iterator Types.
+
+    # reversed(seq)
+        # Return a reverse iterator.
+        # seq must be an object which has a __reversed__() method or supports the sequence protocol
+        # (the __len__() method and the __getitem__() method with integer arguments starting at 0).
+        # class reversed(object)
+            # reversed(sequence, /)
+            # Return a reverse iterator over the values of the given sequence.
 
     # object.__reversed__(self)
-        # Called (if present) by the reversed() built-in to implement reverse iteration. It should return a new iterator object that iterates over all the objects in the container in reverse order.
+        # Called (if present) by the reversed() built-in to implement reverse iteration.
+        # It should return a new iterator object that iterates over all the objects in the container in reverse order.
 
         # If the __reversed__() method is not provided, the reversed() built-in will fall back to using the sequence protocol (__len__() and __getitem__()).
-        # Objects that support the sequence protocol should only provide __reversed__() if they can provide an implementation that is more efficient than the one provided by reversed().
+        # Objects that support the sequence protocol should only provide __reversed__()
+        # if they can provide an implementation that is more efficient than the one provided by reversed().
 
     # The membership test operators (in and not in) are normally implemented as an iteration through a container.
     # However, container objects can supply the following special method with a more efficient implementation, which also does not require the object be iterable.
 
     # object.__contains__(self, item)
-        # Called to implement membership test operators. Should return true if item is in self, false otherwise.
+        # Called to implement membership test operators.
+        # Should return true if item is in self, false otherwise.
         # For mapping objects, this should consider the keys of the mapping rather than the values or the key-item pairs.
 
         # For objects that don’t define __contains__(), the membership test first tries iteration via __iter__(),
         # then the old sequence iteration protocol via __getitem__(), see this section in the language reference.
         # 
-        # For container types such as list, tuple, set, frozenset, dict, or collections.deque, the expression x in y is equivalent to any(x is e or x == e for e in y).
+        # For container types such as list, tuple, set, frozenset, dict, or collections.deque,
+        # the expression x in y is equivalent to any(x is e or x == e for e in y).
+
+class ImmutableList(List) : pass
 
 
 if __name__ == '__main__':

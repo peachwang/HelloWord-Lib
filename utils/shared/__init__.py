@@ -3,11 +3,12 @@ from .Color          import R, Y, G, C, B, P, S, W, E
 from .Timer          import Timer
 from .ClassTools     import (
     log_entering,
-    print_func, add_print_func,
+    container, iterable, sized,
+    print_func, printable,
     anti_duplicate_new, anti_duplicate_init,
     total_ordering,
     cls_prop, cls_cached_prop,
-    prop, iter_prop, cached_prop,
+    prop, iter_func, iter_prop, cached_prop,
     MetaClass, BaseClass, SingularMetaClass, SingularBaseClass,
     ABCMeta, ABC, abstractmethod)
 from functools       import wraps, lru_cache as cached_func
@@ -18,17 +19,24 @@ from typing          import Optional, Union
 from operator        import attrgetter, itemgetter, methodcaller
 identical = lambda _ : _
 # operator.attrgetter(*attrs)
-# Return a callable object that fetches attr from its operand. If more than one attribute is requested, returns a tuple of attributes. The attribute names can also contain dots. For example:
+# Return a callable object that fetches attr from its operand.
+# If more than one attribute is requested, returns a tuple of attributes.
+# The attribute names can also contain dots.
+# For example:
 # attrgetter('name.first', 'name.last')(a) = (a.name.first, a.name.last).
 
 # operator.itemgetter(*items)
-# Return a callable object that fetches item from its operand using the operand’s __getitem__() method. If multiple items are specified, returns a tuple of lookup values. For example:
+# Return a callable object that fetches item from its operand using the operand’s __getitem__() method.
+# If multiple items are specified, returns a tuple of lookup values.
+# For example:
 # itemgetter('name')({'name' : 'tu', 'age' : 18}) = 'tu'
 # itemgetter(1, 3, 5)('ABCDEFG') = ('B', 'D', 'F')
 # itemgetter(slice(2, None))('ABCDEFG') = 'CDEFG'
 
 # operator.methodcaller(name, /, *args, **kwargs)
-# Return a callable object that calls the method name on its operand. If additional arguments and/or keyword arguments are given, they will be given to the method as well. For example:
+# Return a callable object that calls the method name on its operand.
+# If additional arguments and/or keyword arguments are given, they will be given to the method as well.
+# For example:
 # methodcaller('name', 'foo', bar = 1)(a) = a.name('foo', bar = 1).
 
 # https://docs.python.org/3/library/types.html

@@ -13,7 +13,7 @@ class SysArgv(SingularBaseClass) :
     def __initclass__(cls) :
         if cls._has_inited : return
         cls._args, cls._kwargs = List(), Dict()
-        for index, arg in List(sys.argv).enum() :
+        for index, arg in enumerate(sys.argv) :
             if index == 0    : continue
             if arg[0] == '-' :
                 m                = arg.full_match(r'^-([^=]+)=(.*)$')
@@ -102,7 +102,7 @@ def main_func(kwarg_to_type_or_func) :
         return wrapper
     if isinstance(kwarg_to_type_or_func, dict)       : return decorator
     elif isinstance(kwarg_to_type_or_func, Callable) : return decorator(kwarg_to_type_or_func)
-    else                                             : raise CustomTypeError(kwarg_to_type_or_func)
+    else                                             : raise TypeError(kwarg_to_type_or_func)
 
 
 if __name__ == '__main__':

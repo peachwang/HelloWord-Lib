@@ -50,23 +50,20 @@ class CustomEncoder(json.JSONEncoder) :
     def default(self, obj) -> object :
         type_to_str = lambda _type : str(_type).split('.')[1][ : -2] if '.' in str(_type) else str(_type)[8 : -2]
         wrap_dct    = lambda _obj, _data : { '__type__' : type_to_str(type(_obj)), '__data__' : _data }
-        if isinstance(obj, Str)                                      : return str(obj)
-        if isinstance(obj, (List, Dict))                             : return obj.json_serialize()
-        if isinstance(obj, Object)                                   : return wrap_dct(obj, obj.json_serialize())
+        if isinstance(obj, (ObjectId, DateTime, Str, Dict, List))    : return obj.json_serialize()
+        if isinstance(obj, (TimeDelta, Date, Time, DateList, DateRange, Year, Month, Week
+                            Object, File, Folder))                   : return wrap_dct(obj, obj.json_serialize())
         if isinstance(obj, (type(None), str, int, float, bool))      : return obj
-        if isinstance(obj, (ObjectId, DateTime))                     : return obj.json_serialize()
         if isinstance(obj, (tuple, set))                             : return wrap_dct(obj, list(obj))
         if isinstance(obj, bytes)                                    : return wrap_dct(obj, str(obj)[2 : -1])
         if isinstance(obj, datetime_class)                           : return DateTime(obj).json_serialize()
-        if isinstance(obj, (TimeDelta, Date, Time, File, Folder))    : return wrap_dct(obj, obj.json_serialize())
         if isinstance(obj, timedelta_class)                          : return wrap_dct(obj, TimeDelta(obj).json_serialize())
         if isinstance(obj, date_class)                               : return wrap_dct(obj, Date(obj).json_serialize())
         if isinstance(obj, time_class)                               : return wrap_dct(obj, Time(obj).json_serialize())
-        if isinstance(obj, (DateList, DateRange, Year, Month, Week)) : return wrap_dct(obj, obj.json_serialize())
         if hasattr(obj, 'json_serialize')                            : return wrap_dct(obj, obj.json_serialize())
-        if isinstance(obj, range)                                    : return wrap_dct(obj, [obj.start, obj.stop, obj.step])
+        if isinstance(obj, range)                                    : return wrap_dct(obj, [ obj.start, obj.stop, obj.step ])
         if isinstance(obj, type)                                     : return wrap_dct(obj, type_to_str(obj))
-        if isinstance(obj, (zip, slice))                             : raise CustomTypeError(obj, '无法序列化 zip, slice')
+        if isinstance(obj, (zip, slice))                             : raise TypeError(obj, '无法序列化 zip, slice')
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
 
