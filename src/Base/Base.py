@@ -21,7 +21,7 @@ class Base() : # Requester
         cls.updateConfig(config_login)
         username, password = cls.config['Username'], cls.config['Password']
         print('尝试获取教师 {} 的token...'.format(username), end = '')
-        url = 'https://v.helloword.cn/hw/api/v2/u/login'
+        url = 'http://api.helloword.cn/hw/api/v2/u/login'
         post_data = Dict({ 'Username' : username, 'Password' : password })
         response = requests.post(url, data = post_data.j().encode('utf-8'))
         if response.status_code == 200 :
